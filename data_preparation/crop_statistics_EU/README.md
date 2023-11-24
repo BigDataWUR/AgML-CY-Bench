@@ -5,7 +5,7 @@ Harmonized sub-national crop statistics on area, production, and yield, collecte
 https://agri4cast.jrc.ec.europa.eu/DataPortal/RequestDataResource.aspx?idResource=36&o=&r=n
 
 ## PAPER
-Ronchetti et al, 2023 (preprint)
+[Ronchetti et al, 2023 (preprint)](https://essd.copernicus.org/preprints/essd-2023-439/essd-2023-439.pdf)
 
 ## PUBLISHER
 Food Security Unit of the European Commission’s Joint Research Center (JRC.D.5)
