@@ -17,7 +17,7 @@ Thank you for your interest in contributing to AgML Crop Yield Forecasting.
 If you have not yet joined the AgML team, please send an email to agml+join@mail.agml.org.
 
 ### Request collaborator access
-Add your GitHub username to this [document](https://docs.google.com/document/d/1E2vTGl-L9ExDVF8zDJITrdLkCDqoVoEOllIsjo4W6ms/edit?usp=sharing) to get collaborator access.
+Add your GitHub username to this [document](https://docs.google.com/document/d/1Hhk2BEHmvHxg8ghc4pVRcGNvvIoX8XKN3Mj5hsSmC4A/edit?usp=sharing) to get collaborator access.
 
 ### Create an issue
 For any changes or enhancements, check if a related issue already exists. If not, open a new issue.
