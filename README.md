@@ -23,7 +23,7 @@ Add your GitHub username to this [document](https://docs.google.com/document/d/1
 For any changes or enhancements, check if a related issue already exists. If not, open a new issue.
 
 ### Make changes
-Clone the repository. Create a working branch to make changes. The branch can be named soemthing like
+Clone the repository. Create a working branch to make changes. The branch can be named something like
 `<username>/<short-summary-of-issue>`.
 
 After making necessary changes and testing them, commit your changes (add the issue number in the commit message).
