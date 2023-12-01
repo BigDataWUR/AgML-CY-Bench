@@ -26,6 +26,9 @@ Note: in Q2 of 2024 FPAR will be directly available in the ASAP system and we wi
 ## PUBLISHER
 Food Security Unit of the European Commission’s Joint Research Center (JRC D.5).
 
+## CONTACT NAME
+Michele Meroni
+
 ## DATASET OVERVIEW
 **Coordinate system**: WGS_1984
 

@@ -13,6 +13,9 @@ Winter cereals: [available soon]
 ## PUBLISHER
 Food Security Unit of the European Commission’s Joint Research Center (JRC D.5).
 
+## CONTACT NAME
+Michele Meroni
+
 ## DATASET OVERVIEW
 **Coordinate system**: WGS_1984
 

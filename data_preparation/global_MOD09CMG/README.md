@@ -7,6 +7,9 @@ The dataset can be processed using [the octvi python library](https://pypi.org/p
 ## PUBLISHER
 The publisher of the octvi python library is [NASA Harvest](https://nasaharvest.org/).
 
+## CONTACT NAME
+Ritvik Sahajpal
+
 ## DATASET OVERVIEW
 **Coordinate system**: WGS_1984
 

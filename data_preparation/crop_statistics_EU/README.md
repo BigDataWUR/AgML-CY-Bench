@@ -10,6 +10,9 @@ https://agri4cast.jrc.ec.europa.eu/DataPortal/RequestDataResource.aspx?idResourc
 ## PUBLISHER
 Food Security Unit of the European Commission’s Joint Research Center (JRC.D.5)
 
+## CONTACT NAME
+Marijn van der Velde
+
 ## DATASET OVERVIEW
 **Crops**: Durum wheat, Grain maize, Soft wheat, Spring barley, Sugar beet, Sunflower, Total barley, Total wheat, Winter barley
 
