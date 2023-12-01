@@ -17,10 +17,15 @@ Food Security Unit of the European Commission’s Joint Research Center (JRC.D.5
 Full list of variables: Harmonized sub-national statistics value, Data source, Calculated using regions, Calculated using crops, Calculated value, Coherence between indicators, Zero set as null, Coherence between crops, Unit of measure.
 
 **Temporal coverage**: From: 1975 - To: 2020
+
 **Temporal resolution**: Yearly
-**Spatial resolution**: Subnational (NUTS version 2016). NUTS1, NUTS2 or NUTS3. Shapefiles
+
+**Spatial resolution**: Subnational (NUTS version 2016). NUTS1, NUTS2 or NUTS3.
+
 **Version**: 2023.01
+
 **Date Published**: 16/10/2021
+
 **Data Modality**: Tabular data
 
 ## PROVENANCE
