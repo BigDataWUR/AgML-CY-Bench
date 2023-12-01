@@ -29,7 +29,7 @@ Clone the repository. Create a working branch to make changes. The branch can be
 After making necessary changes and testing them, commit your changes (add the issue number in the commit message).
 
 ## Pull request
-When you have finished making changes, create a pull request. Add at least one reviewer. After the reviewer approves your changes, your branch can be merged with `main`.
+When you have finished making changes, create a pull request and request review from at least one reviewer. After the reviewers approve your changes, your branch can be merged with `main`.
 
 ## Additional information
 For more information please visit [the AgML website](https://www.agml.org/).
