@@ -8,7 +8,7 @@ https://datosestimaciones.magyp.gob.ar/
 Ministerio de Agrícultura, Ganaderia y Pesca de Argentina
 
 ## CONTACT NAME
-Not applicable.
+Maximilian Zachow
 
 ## DATASET OVERVIEW
 **Crops**: Wheat, rice, soy, corn and more.
@@ -27,7 +27,7 @@ Not applicable.
 | Name  | Translation | Unit | Description | 
 |:---------|:----------------|:----------------------------|:------------------------|
 | Cultivo   | Crop | [-] | self-explanatory |
-| Campaña | Marketing Year | [-] | XXXX/YY USDA marketing year format (e.g. for wheat XXXX is the year of planting and harvest) |
+| Campaña | Marketing Year | [-] | XXXX/YY USDA marketing year format (e.g. for wheat, XXXX refers to the year when wheat is planted (around June) and when harvest begins (around November)) |
 | Provincia | Province | [-] | first subnational administrative division (e.g. US states) |
 | Departamento | Department | [-] | second subnational administrative division (e.g. US counties) |
 | idProvincia | Province ID | [-] | Province identifier of the national statistics institute of Argentina |
