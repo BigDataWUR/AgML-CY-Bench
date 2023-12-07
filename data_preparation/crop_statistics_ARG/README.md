@@ -28,7 +28,7 @@ Not applicable.
 |:---------|:----------------|:----------------------------|:------------------------|
 | Cultivo   | Crop | [-] | self-explanatory |
 | Campaña | Marketing Year | [-] | XXXX/YY USDA marketing year format (e.g. for wheat XXXX is the year of planting and harvest) |
-| Provincia | Province | [-] | [-] | first subnational administrative division (e.g. US states) |
+| Provincia | Province | [-] | first subnational administrative division (e.g. US states) |
 | Departamento | Department | [-] | second subnational administrative division (e.g. US counties) |
 | idProvincia | Province ID | [-] | Province identifier of the national statistics institute of Argentina |
 | idDepartamento | Department ID | [-] | Department identifier of the national statistics institute of Argentina |
