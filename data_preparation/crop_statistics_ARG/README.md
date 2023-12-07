@@ -25,6 +25,7 @@ Not applicable.
 
 **Data Column description**: 
 | Name  | Translation | Unit | Description | 
+|:---------|:----------------|:----------------------------|:------------------------|
 | Cultivo   | Crop | [-] | self-explanatory |
 | Campaña | Marketing Year | [-] | XXXX/YY USDA marketing year format (e.g. for wheat XXXX is the year of planting and harvest) |
 | Provincia | Province | [-] | [-] | first subnational administrative division (e.g. US states) |
