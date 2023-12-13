@@ -4,6 +4,13 @@ import pandas as pd
 
 from config import PATH_DATA_DIR
 
+"""
+    
+    Code for reading data from disk into a configured pd.DataFrame
+
+"""
+
+
 # For now include:  TODO -- remove
 #    - METEO_COUNTY_US
 #    - REMOTE SENSING

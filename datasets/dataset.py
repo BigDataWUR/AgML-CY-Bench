@@ -51,15 +51,24 @@ class AgMLDataset:
         self._data_meteo = df_meteo
         self._data_remote_sensing = df_remote_sensing
 
-        # TODO -- data features
-        # TODO -- align with yield data
+        # Sort the data for faster lookups
+        self._data_y.sort_index(inplace=True)
+        self._data_soil.sort_index(inplace=True)
+        self._data_meteo.sort_index(inplace=True)
+        self._data_remote_sensing.sort_index(inplace=True)
 
     @property
-    def years(self):
+    def years(self) -> list:
+        """
+        Obtain a list containing all years occurring in the dataset
+        """
         return list(set([year for _, year in self._data_y.index.values]))
 
     @property
-    def locations(self):
+    def county_ids(self) -> list:
+        """
+        Obtain a list containing all county ids occurring in the dataset
+        """
         return list(set([loc for loc, _ in self._data_y.index.values]))
 
     @staticmethod
@@ -80,40 +89,40 @@ class AgMLDataset:
 
     @staticmethod
     def feature_keys_remote_sensing() -> tuple:
-        return ('FAPAR',)
+        return 'FAPAR',
 
     def __getitem__(self, index) -> dict:
         # Index is either integer or tuple of (year, location)
 
         if isinstance(index, int):
             sample_y = self._data_y.iloc[index]
-            location, year = sample_y.name
+            county_id, year = sample_y.name
 
         elif isinstance(index, tuple):
-            location, year = index
+            county_id, year = index
             sample_y = self._data_y.loc[index]
 
         else:
             raise Exception(f'Unsupported index type {type(index)}')
 
-        data_meteo = self._get_meteo_data(location, year)
-        data_soil = self._get_soil_data(location)
-        data_remote_sensing = self._get_remote_sensing_data(location, year)
+        data_meteo = self._get_meteo_data(county_id, year)
+        data_soil = self._get_soil_data(county_id)
+        data_remote_sensing = self._get_remote_sensing_data(county_id, year)
 
         return {
             'FYEAR': year,
-            'COUNTY_ID': location,
+            'COUNTY_ID': county_id,
             'YIELD': sample_y.YIELD,
             **data_meteo,
             **data_soil,
             **data_remote_sensing,
         }
 
-    def _get_meteo_data(self, location: str, year: int) -> dict:
+    def _get_meteo_data(self, county_id: str, year: int) -> dict:
 
         # Select data matching the location and year
         # Sort the index for improved lookup speed
-        df = self._data_meteo.sort_index().xs((location, year), drop_level=True)
+        df = self._data_meteo.xs((county_id, year), drop_level=True)
 
         # Return the data as dict mapping
         #  key -> np.ndarray
@@ -122,18 +131,19 @@ class AgMLDataset:
             key: df[key].values for key in self.feature_keys_meteo()
         }
 
-    def _get_soil_data(self, location: str) -> dict:
+    def _get_soil_data(self, county_id: str) -> dict:
 
-        df = self._data_soil.loc[location]
+        # Select the data matching the location
+        df = self._data_soil.loc[county_id]
 
         return {
             key: df[key] for key in self.feature_keys_soil()
         }
 
-    def _get_remote_sensing_data(self, location: str, year: int) -> dict:
+    def _get_remote_sensing_data(self, county_id: str, year: int) -> dict:
         # Select data matching the location and year
         # Sort the index for improved lookup speed
-        df = self._data_remote_sensing.sort_index().xs((location, year), drop_level=True)
+        df = self._data_remote_sensing.xs((county_id, year), drop_level=True)
 
         # Return the data as dict mapping
         #  key -> np.ndarray
@@ -197,15 +207,6 @@ class AgMLDataset:
         df_1 = AgMLDataset._filter_df_on_index(df, keys1, level)
         df_2 = AgMLDataset._filter_df_on_index(df, keys2, level)
 
-
-        # df_1 = pd.concat(
-        #     [df.xs(key, level=level, drop_level=False) for key in keys1]
-        # )
-        #
-        # df_2 = pd.concat(
-        #     [df.xs(key, level=level, drop_level=False) for key in keys2]
-        # )
-
         return df_1, df_2
 
     @staticmethod
@@ -217,8 +218,8 @@ class AgMLDataset:
                 [df.xs(key, level=level, drop_level=False) for key in keys]
             )
 
-    @classmethod
-    def train_test_datasets(cls) -> tuple:  # TODO -- define the splits
+    @staticmethod
+    def train_test_datasets() -> tuple:  # TODO -- define the splits
         dataset = AgMLDataset()
         return dataset.split_on_years(
             years_split=(AgMLDataset.YEARS_TRAIN, AgMLDataset.YEARS_TEST),
