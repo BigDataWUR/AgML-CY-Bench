@@ -1,20 +1,66 @@
-import abc
-# from datasets.dataset import AGMLDataset
+from abc import ABC, abstractmethod
+from typing import overload
+import pickle
+import numpy as np
 
-class AgMLBaseModel(abc.ABC):
+class AgMLBaseModel(ABC):
 
-  @abc.abstractmethod
-  def fit(self, AgMLDataset):
+  @abstractmethod
+  def fit(self, train_dataset):
+    """
+    Fit or train the model.
+
+    Args:
+      train_dataset: The training dataset.
+    """
     raise NotImplementedError
 
-  @abc.abstractmethod
-  def predict(self, X):
+  @abstractmethod
+  @overload
+  def predict(self, test_dataset):
+    """
+    Run the model on the entire test set.
+
+    Args:
+      test_dataset: The test dataset.
+
+    Returns:
+      An numpy ndarray of predictions.
+    """
     raise NotImplementedError
 
-  @abc.abstractmethod
+  @abstractmethod
+  @overload
+  def predict(self, data):
+    """
+    Run the model on selected data items.
+
+    Args:
+      items: Data items that include predictors and labels.
+
+    Returns:
+      An numpy ndarray of predictions.
+    """
+    raise NotImplementedError
+
+  @abstractmethod
   def save(self, model_name):
+    """
+    Saves model, e.g. using pickle.
+
+    Args:
+      model_name: Name of the file that will be used to pickle the model.
+    """
     raise NotImplementedError
 
-  @abc.abstractclassmethod
+  @abstractmethod
   def load(cls, model_name):
-    raise NotImplementedError
+    """
+    Deserializes or unpickles a model saved using pickle.
+
+    Args:
+      model_name: The name that was used to save the model.
+
+    Returns:
+      The unpickled model.
+    """
