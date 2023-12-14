@@ -17,7 +17,7 @@ The United States Census Bureau
 
 **Scale**: 500k, 5M, 20M.
 
-**Coordinate reference system**: EPSG: 4326.
+**Coordinate reference system**: EPSG: 4326? (not clearly specified).
 
 **Version**: NA
 
