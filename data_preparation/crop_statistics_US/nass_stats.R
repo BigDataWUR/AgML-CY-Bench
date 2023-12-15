@@ -7,10 +7,10 @@
 if(!"tidyUSDA" %in% installed.packages()){install.packages("tidyUSDA")}
 library(tidyUSDA)
 
-api_key <- "923E639C-69E9-320C-90AA-75721B9B96AE"
+api_key <- "<your api key>""
 
 years <- seq(2000, 2022)
-nass_crops <- "CORN"
+nass_crop <- "CORN"
 csv_filenames <- c("CROP_AREA_COUNTY_US.csv",
                    "PRODUCTION_COUNTY_US.csv",
                    "YIELD_COUNTY_US.csv")
