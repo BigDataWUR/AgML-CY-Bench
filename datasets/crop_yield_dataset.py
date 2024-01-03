@@ -6,45 +6,85 @@ from datasets.dataset import AgMLBaseDataset
 
 
 class CropYieldDataset(AgMLBaseDataset):
-    def __init__(self, data_sources, data_dfs=None, data_path=None):
+    def __init__(
+        self,
+        data_sources,
+        label_key="YIELD",
+        spatial_id_col="REGION",
+        year_col="YEAR",
+        label_col="YIELD",
+        data_dfs=None,
+        data_path=None,
+        combined_features_labels=False,
+    ):
         assert (data_dfs is not None) or (data_path is not None)
-        # Load the data from disk if necessary
-        if data_dfs is None:
-            data_dfs = {}
-            for src in data_sources:
-                filename = data_sources[src]["filename"]
-                index_cols = data_sources[src]["index_cols"]
-                src_df = CropYieldDataset.get_data(data_path, filename, index_cols)
+
+        self._data_sources = data_sources
+        self._label_key = label_key
+        self._spatial_id_col = spatial_id_col
+        self._year_col = year_col
+        self._label_col = label_col
+        self._combined_features = False
+
+        # Check if data includes combined features and labels
+        if combined_features_labels:
+            self._combined_features = True
+            index_cols = data_sources["COMBINED"]["index_cols"]
+            self._index_cols = index_cols
+
+            # Load the data from disk if necessary
+            if data_dfs is None:
+                filename = data_sources["COMBINED"]["filename"]
+                data_df = CropYieldDataset.get_data(data_path, filename, index_cols)
+            else:
+                data_df = data_dfs["COMBINED"]
+
+            self._data_df = data_df
+            self._data_y = self._data_df[[self._label_col]]
+            self._feature_cols = [c for c in data_df.columns if (c != self._label_col)]
+
+        else:
+            if data_dfs is None:
+                data_dfs = {}
+                self._feature_cols = []
+                for src in data_sources:
+                    filename = data_sources[src]["filename"]
+                    index_cols = data_sources[src]["index_cols"]
+                    sel_cols = data_sources[src]["sel_cols"]
+                    src_df = CropYieldDataset.get_data(data_path, filename, index_cols)
+                    data_dfs[src] = src_df
+                    self._feature_cols += sel_cols
+
+                    if src == self._label_key:
+                        self._index_cols = index_cols
+
+            # TODO -- align data
+            # For now, only use counties that are present everywhere
+            # TODO -- data preprocessing:
+            #   - Start date, end date of season?
+            #   - Missing data?
+
+            spatial_units = None
+            for src in data_dfs:
+                src_units = set(data_dfs[src].index.get_level_values(0))
+                if spatial_units is None:
+                    spatial_units = src_units
+                else:
+                    spatial_units = set.intersection(spatial_units, src_units)
+
+            for src in data_dfs:
+                src_df = CropYieldDataset._filter_df_on_index(
+                    data_dfs[src], list(spatial_units), level=0
+                )
+                # Sort the data for faster lookups
+                src_df.sort_index(inplace=True)
                 data_dfs[src] = src_df
 
-        # TODO -- align data
-        # For now, only use counties that are present everywhere
-        # TODO -- data preprocessing:
-        #   - Start date, end date of season?
-        #   - Missing data?
-
-        spatial_units = None
-        for src in data_dfs:
-            src_units = set(data_dfs[src].index.get_level_values(0))
-            if spatial_units is None:
-                spatial_units = src_units
-            else:
-                spatial_units = set.intersection(spatial_units, src_units)
-
-        for src in data_dfs:
-            src_df = CropYieldDataset._filter_df_on_index(
-                data_dfs[src], list(spatial_units), level=0
-            )
-            # Sort the data for faster lookups
-            src_df.sort_index(inplace=True)
-            data_dfs[src] = src_df
-
-        self._data_y = data_dfs["YIELD"]
-        self._data_sources = data_sources
-        self._data_dfs = data_dfs
+            self._data_y = data_dfs[self._label_key]
+            self._data_dfs = data_dfs
 
     def __getitem__(self, index) -> dict:
-        # Index is either integer or tuple of (year, location)
+        # Index is either integer or tuple of (location, year)
 
         if isinstance(index, int):
             sample_y = self._data_y.iloc[index]
@@ -58,21 +98,26 @@ class CropYieldDataset(AgMLBaseDataset):
             raise Exception(f"Unsupported index type {type(index)}")
 
         data_item = {
-            "FYEAR": year,
-            "COUNTY_ID": spatial_unit,
-            "YIELD": sample_y.YIELD,
+            self._spatial_id_col: spatial_unit,
+            self._year_col: year,
+            self._label_col: sample_y[self._label_col],
         }
 
-        for src in self._data_sources:
-            if src == "YIELD":
-                continue
+        if self._combined_features:
+            df = self._data_df.xs((spatial_unit, year), drop_level=True)
+            sample = {key: df[key] for key in self._feature_cols}
+            data_item.update(**sample)
+        else:
+            for src in self._data_sources:
+                if src == self._label_key:
+                    continue
 
-            if "FYEAR" in self._data_sources[src]["index_cols"]:
-                src_sample = self._get_data_sample(src, spatial_unit, year)
-            else:
-                src_sample = self._get_data_sample(src, spatial_unit)
+                if self._year_col in self._data_sources[src]["index_cols"]:
+                    src_sample = self._get_data_sample(src, spatial_unit, year)
+                else:
+                    src_sample = self._get_data_sample(src, spatial_unit)
 
-            data_item.update(**src_sample)
+                data_item.update(**src_sample)
 
         return data_item
 
@@ -94,29 +139,70 @@ class CropYieldDataset(AgMLBaseDataset):
     def __len__(self) -> int:
         return len(self._data_y)
 
-    def split_on_years(self, years_split: tuple) -> tuple:
-        data_dfs1 = {}
-        data_dfs2 = {}
-        for src in self._data_dfs:
-            src_df = self._data_dfs[src]
-            if "FYEAR" in self._data_sources[src]["index_cols"]:
-                df1, df2 = self._split_df_on_index(src_df, years_split, level=1)
-                data_dfs1[src] = df1
-                data_dfs2[src] = df2
-            else:
-                data_dfs1[src] = src_df.copy()
-                data_dfs2[src] = src_df.copy()
+    @property
+    def indexCols(self) -> list:
+        return self._index_cols
 
-        return (
-            CropYieldDataset(self._data_sources, data_dfs=data_dfs1),
-            CropYieldDataset(self._data_sources, data_dfs=data_dfs2),
-        )
+    @property
+    def featureCols(self) -> list:
+        return self._feature_cols
+
+    @property
+    def labelCol(self) -> str:
+        return self._label_col
 
     @staticmethod
     def get_data(data_path, filename, index_cols):
         path = os.path.join(data_path, filename)
         df = pd.read_csv(path, index_col=index_cols)
         return df
+
+    def split_on_years(self, years_split: tuple) -> tuple:
+        if self._combined_features:
+            df1, df2 = self._split_df_on_index(self._data_df, years_split, level=1)
+            return (
+                CropYieldDataset(
+                    self._data_sources,
+                    spatial_id_col=self._spatial_id_col,
+                    year_col=self._year_col,
+                    data_dfs={"COMBINED": df1},
+                    combined_features_labels=True,
+                ),
+                CropYieldDataset(
+                    self._data_sources,
+                    spatial_id_col=self._spatial_id_col,
+                    year_col=self._year_col,
+                    data_dfs={"COMBINED": df2},
+                    combined_features_labels=True,
+                ),
+            )
+        else:
+            data_dfs1 = {}
+            data_dfs2 = {}
+            for src in self._data_dfs:
+                src_df = self._data_dfs[src]
+                if self._year_col in self._data_sources[src]["index_cols"]:
+                    df1, df2 = self._split_df_on_index(src_df, years_split, level=1)
+                    data_dfs1[src] = df1
+                    data_dfs2[src] = df2
+                else:
+                    data_dfs1[src] = src_df.copy()
+                    data_dfs2[src] = src_df.copy()
+
+            return (
+                CropYieldDataset(
+                    self._data_sources,
+                    spatial_id_col=self._spatial_id_col,
+                    year_col=self._year_col,
+                    data_dfs=data_dfs1,
+                ),
+                CropYieldDataset(
+                    self._data_sources,
+                    spatial_id_col=self._spatial_id_col,
+                    year_col=self._year_col,
+                    data_dfs=data_dfs2,
+                ),
+            )
 
     @staticmethod
     def _split_df_on_index(df: pd.DataFrame, split: tuple, level: int):
@@ -166,10 +252,36 @@ if __name__ == "__main__":
         },
     }
 
-    _dataset = CropYieldDataset(data_sources, data_path=data_path)
+    _dataset = CropYieldDataset(
+        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path
+    )
+    print(_dataset["AL_LAWRENCE", 2000])
 
-    # print(_dataset.years)
-    # print(_dataset.locations)
+    print("\n")
+    print("Test dataset splits")
+    dataset_train, dataset_test = _dataset.split_on_years(([2000], [2001]))
+    print(dataset_train["AL_LAWRENCE", 2000])
+
+    # Test with combined features and labels
+    print("\n")
+    print("Test combined features and labels")
+    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
+    data_sources = {
+        "COMBINED": {
+            "filename": "grain_maize_US_train.csv",
+            "index_cols": ["COUNTY_ID", "FYEAR"],
+            "label_col": "YIELD",
+        },
+    }
+
+    _dataset = CropYieldDataset(
+        data_sources,
+        spatial_id_col="COUNTY_ID",
+        year_col="FYEAR",
+        data_path=data_path,
+        combined_features_labels=True,
+    )
     print(_dataset["AL_LAWRENCE", 2000])
 
     dataset_train, dataset_test = _dataset.split_on_years(([2000], [2001]))
+    print(dataset_train["AL_LAWRENCE", 2000])

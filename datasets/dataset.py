@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+
 class AgMLBaseDataset(ABC):
     @abstractmethod
     def __len__(self) -> int:
