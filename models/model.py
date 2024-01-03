@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import overload
 
+
 class AgMLBaseModel(ABC):
     @abstractmethod
     def fit(self, train_dataset):
