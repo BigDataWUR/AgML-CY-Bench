@@ -7,49 +7,50 @@ from util.data_util import dataset_to_pandas
 
 
 class LinearTrendModel(AgMLBaseModel):
-    def __init__(self, trend_window=5):
-        self.trend_df = None
-        self.train_labels = None
-        self.trend_window = trend_window
+    def __init__(
+        self, spatial_id_col, year_col="YEAR", label_col="YIELD", trend_window=5
+    ):
+        self._id_col = spatial_id_col
+        self._year_col = year_col
+        self._label_col = label_col
+        self._data_cols = [self._id_col, self._year_col, self._label_col]
+        self._train_labels = None
+        self._trend_window = trend_window
 
     def fit(self, train_dataset):
-        data_cols = ["COUNTY_ID", "FYEAR", "YIELD"]
-        self.train_labels = dataset_to_pandas(train_dataset, data_cols)
+        self._train_labels = dataset_to_pandas(train_dataset, self._data_cols)
 
     def predict(self, data):
-        data_cols = ["COUNTY_ID", "FYEAR", "YIELD"]
-        test_labels = dataset_to_pandas(data, data_cols)
+        test_labels = dataset_to_pandas(data, self._data_cols)
 
         return self._get_trend_predictions(test_labels)
 
     def predict(self, test_dataset):
-        data_cols = ["COUNTY_ID", "FYEAR", "YIELD"]
-        test_labels = dataset_to_pandas(test_dataset, data_cols)
+        test_labels = dataset_to_pandas(test_dataset, self._data_cols)
 
         return self._get_trend_predictions(test_labels)
 
     def _get_trend_predictions(self, test_labels):
-        id_col = "COUNTY_ID"  # test_dataset.getRegionColumn()
-        year_col = "FYEAR"  # test_dataset.getYearColumn()
-        label_col = "YIELD"  # test_dataset.getLabelColumn()
-        test_years = test_labels[year_col].unique()
-        trend_fts = pd.concat([self.train_labels, test_labels], axis=0)
-        trend_fts = trend_fts.sort_values(by=[id_col, year_col])
-        for i in range(self.trend_window, 0, -1):
-            trend_fts["YEAR-" + str(i)] = trend_fts.groupby([id_col])[year_col].shift(i)
-        for i in range(self.trend_window, 0, -1):
-            trend_fts["YIELD-" + str(i)] = trend_fts.groupby([id_col])[label_col].shift(
-                i
-            )
+        test_years = test_labels[self._year_col].unique()
+        trend_fts = pd.concat([self._train_labels, test_labels], axis=0)
+        trend_fts = trend_fts.sort_values(by=[self._id_col, self._year_col])
+        for i in range(self._trend_window, 0, -1):
+            trend_fts["YEAR-" + str(i)] = trend_fts.groupby([self._id_col])[
+                self._year_col
+            ].shift(i)
+        for i in range(self._trend_window, 0, -1):
+            trend_fts["YIELD-" + str(i)] = trend_fts.groupby([self._id_col])[
+                self._label_col
+            ].shift(i)
 
         trend_fts = trend_fts.dropna(axis=0)
-        trend_fts = trend_fts[trend_fts[year_col].isin(test_years)].copy()
+        trend_fts = trend_fts[trend_fts[self._year_col].isin(test_years)].copy()
         # linear fit between years and yields
         trend_fts[["SLOPE", "COEFF"]] = trend_fts.apply(
             (
                 lambda row: np.polyfit(
-                    [row["YEAR-" + str(i)] for i in range(self.trend_window, 0, -1)],
-                    [row["YIELD-" + str(i)] for i in range(self.trend_window, 0, -1)],
+                    [row["YEAR-" + str(i)] for i in range(self._trend_window, 0, -1)],
+                    [row["YIELD-" + str(i)] for i in range(self._trend_window, 0, -1)],
                     1,
                 )
             ),
@@ -58,11 +59,13 @@ class LinearTrendModel(AgMLBaseModel):
         )
         # predict
         trend_fts["PREDICTION"] = (
-            trend_fts["COEFF"] + trend_fts["SLOPE"] * trend_fts[year_col]
+            trend_fts["COEFF"] + trend_fts["SLOPE"] * trend_fts[self._year_col]
         )
-        predictions_df = trend_fts[[id_col, year_col, label_col, "PREDICTION"]]
+        predictions_df = trend_fts[
+            [self._id_col, self._year_col, self._label_col, "PREDICTION"]
+        ]
         # round values: it does not make sense to give more precision than the original values.
-        # TODO: figure out the argument to round based on precision of yield data.
+        # TODO: figure out rounding based on precision of yield data.
         # predictions_df["PREDICTION"] = predictions_df["PREDICTION"].round(1)
 
         return predictions_df
@@ -115,7 +118,7 @@ if __name__ == "__main__":
     dataset = CropYieldDataset(data_sources, data_path=data_path)
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
-    trend_model = LinearTrendModel()
+    trend_model = LinearTrendModel("COUNTY_ID", year_col="FYEAR", trend_window=5)
     trend_model.fit(train_dataset)
     test_preds = trend_model.predict(test_dataset)
     print(test_preds.head(5).to_string())
