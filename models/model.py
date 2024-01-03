@@ -19,7 +19,7 @@ class AgMLBaseModel(ABC):
         Args:
           test_dataset: The test dataset.
         Returns:
-          An numpy ndarray of predictions.
+          A pandas dataframe including a PREDICTION column.
         """
         raise NotImplementedError
 
@@ -31,7 +31,7 @@ class AgMLBaseModel(ABC):
         Args:
           items: Data items that include predictors and labels.
         Returns:
-          An numpy ndarray of predictions.
+          A pandas dataframe including a PREDICTION column.
         """
         raise NotImplementedError
 
