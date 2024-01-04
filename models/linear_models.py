@@ -5,7 +5,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 from models.model import AgMLBaseModel
-from util.data_util import dataset_to_pandas
+from util.data import dataset_to_pandas
 
 
 class RidgeModel(AgMLBaseModel):
