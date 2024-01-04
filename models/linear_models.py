@@ -50,7 +50,7 @@ class RidgeModel(AgMLBaseModel):
 
 import os
 
-from datasets.crop_yield_dataset import CropYieldDataset
+from datasets.dataset import CropYieldDataset
 from config import PATH_DATA_DIR
 from config import PATH_OUTPUT_DIR
 

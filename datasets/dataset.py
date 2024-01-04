@@ -44,19 +44,26 @@ class CropYieldDataset:
             self._feature_cols = [c for c in data_df.columns if (c != self._label_col)]
 
         else:
+            self._feature_cols = []
             if data_dfs is None:
                 data_dfs = {}
-                self._feature_cols = []
                 for src in data_sources:
                     filename = data_sources[src]["filename"]
                     index_cols = data_sources[src]["index_cols"]
-                    sel_cols = data_sources[src]["sel_cols"]
                     src_df = csv_to_pandas(data_path, filename, index_cols)
                     data_dfs[src] = src_df
-                    self._feature_cols += sel_cols
 
-                    if src == self._label_key:
-                        self._index_cols = index_cols
+            self._time_series_cols = []
+            for src in data_sources:
+                if src == self._label_key:
+                    index_cols = data_sources[src]["index_cols"]
+                    self._index_cols = index_cols
+                    continue
+
+                sel_cols = data_sources[src]["sel_cols"]
+                self._feature_cols += sel_cols
+                if data_dfs[src].index.nlevels == 3:
+                    self._time_series_cols += sel_cols
 
             # TODO -- align data
             # For now, only use counties that are present everywhere
@@ -64,24 +71,42 @@ class CropYieldDataset:
             #   - Start date, end date of season?
             #   - Missing data?
 
-            spatial_units = None
-            for src in data_dfs:
-                src_units = set(data_dfs[src].index.get_level_values(0))
-                if spatial_units is None:
-                    spatial_units = src_units
-                else:
-                    spatial_units = set.intersection(spatial_units, src_units)
+            self._data_dfs = data_dfs
+            self._align_spatial_units()
+            self._align_years()
 
-            for src in data_dfs:
-                src_df = CropYieldDataset._filter_df_on_index(
-                    data_dfs[src], list(spatial_units), level=0
-                )
+            for src in self._data_dfs:
                 # Sort the data for faster lookups
-                src_df.sort_index(inplace=True)
-                data_dfs[src] = src_df
+                self._data_dfs[src].sort_index(inplace=True)
 
             self._data_y = data_dfs[self._label_key]
-            self._data_dfs = data_dfs
+
+    def _align_spatial_units(self):
+        self._align_data(index_level=0)
+
+    def _align_years(self):
+        self._align_data(index_level=1)
+
+    def _align_data(self, index_level):
+        common_values = None
+        for src in self._data_dfs:
+            if index_level >= self._data_dfs[src].index.nlevels:
+                continue
+
+            src_values = set(self._data_dfs[src].index.get_level_values(index_level))
+            if common_values is None:
+                common_values = src_values
+            else:
+                common_values = set.intersection(common_values, src_values)
+
+        for src in self._data_dfs:
+            if index_level >= self._data_dfs[src].index.nlevels:
+                continue
+
+            src_df = CropYieldDataset._filter_df_on_index(
+                self._data_dfs[src], list(common_values), level=index_level
+            )
+            self._data_dfs[src] = src_df
 
     def __getitem__(self, index) -> dict:
         # Index is either integer or tuple of (location, year)
@@ -146,6 +171,10 @@ class CropYieldDataset:
     @property
     def featureCols(self) -> list:
         return self._feature_cols
+
+    @property
+    def timeSeriesCols(self) -> list:
+        return self._time_series_cols
 
     @property
     def labelCol(self) -> str:
