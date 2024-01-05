@@ -48,6 +48,60 @@ class AverageYieldModel(AgMLBaseModel):
         return saved_model
 
 
+import random
+
+class RandomAverageYieldModel(AgMLBaseModel):
+    def __init__(self, index_cols=["REGION", "YEAR"], label_col="YIELD", num_samples=20):
+        self._max_value = None
+        self._min_value = None
+        self._num_samples = num_samples
+        self._index_cols = index_cols
+        self._label_col = label_col
+
+    def fit(self, train_dataset):
+        data_cols = self._index_cols + [self._label_col]
+        train_df = dataset_to_pandas(train_dataset, data_cols)
+        self._max_value = train_df[self._label_col].max()
+        self._min_value = train_df[self._label_col].min()
+
+    def predict(self, data):
+        data_cols = self._index_cols + [self._label_col]
+        test_df = dataset_to_pandas(data, data_cols)
+        test_df["PREDICTION"] = self._getRandomAverage(len(test_df.index))
+
+        return test_df
+
+    def predict(self, test_dataset):
+        data_cols = self._index_cols + [self._label_col]
+        test_df = dataset_to_pandas(test_dataset, data_cols)
+        test_df["PREDICTION"] = self._getRandomAverage(len(test_df.index))
+
+        return test_df
+
+    def _getRandomAverage(self, num_predictions):
+        predictions = []
+        for i in range(num_predictions):
+            avg_value = 0.0
+            for j in range(self._num_samples):
+                sample = random.uniform(self._min_value, self._max_value)
+                avg_value += sample
+            
+            avg_value /= self._num_samples
+            predictions.append(avg_value)
+
+        return predictions
+
+    def save(self, model_name):
+        with open(model_name, "wb") as f:
+            pickle.dump(self, f)
+
+    @classmethod
+    def load(cls, model_name):
+        with open(model_name, "rb") as f:
+            saved_model = pickle.load(f)
+
+        return saved_model
+
 import os
 
 from datasets.dataset import CropYieldDataset
@@ -103,4 +157,11 @@ if __name__ == "__main__":
     test_preds = saved_model.predict(test_dataset)
     print("\n")
     print("Predictions of saved model. Should match earlier output.")
+    print(test_preds.head(5).to_string())
+
+    print("\n")
+    print("Predictions of random average model.")
+    random_model = RandomAverageYieldModel()
+    random_model.fit(train_dataset)
+    test_preds = random_model.predict(test_dataset)
     print(test_preds.head(5).to_string())

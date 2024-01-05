@@ -82,8 +82,8 @@ class LSTMModel(AgMLBaseModel):
                     y_all = torch.cat([y_all, y], dim=0)
                     y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
 
-            nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
-            print(epoch, "loss:", epoch_loss / num_elems, "NRMSE:", nrmse.item())
+            # nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
+            # print(epoch, "loss:", epoch_loss / num_elems, "NRMSE:", nrmse.item())
 
     def predict(self, test_dataset):
         self._model.eval()
@@ -127,10 +127,10 @@ class LSTMModel(AgMLBaseModel):
             else:
                 predictions_df = pd.concat([predictions_df, batch_preds], axis=0)
 
-        y_true = predictions_df[label_col].values
-        y_pred = predictions_df["PREDICTION"].values
-        nrmse = 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
-        print("Normalized RMSE:", nrmse)
+        # y_true = predictions_df[label_col].values
+        # y_pred = predictions_df["PREDICTION"].values
+        # nrmse = 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
+        # print("Normalized RMSE:", nrmse)
 
         return predictions_df
 
@@ -211,9 +211,3 @@ if __name__ == "__main__":
     # os.makedirs(output_path, exist_ok=True)
 
     # # Test saving and loading
-    # ridge_model.save(output_path + "/saved_ridge_model.pkl")
-    # saved_model = RidgeModel.load(output_path + "/saved_ridge_model.pkl")
-    # test_preds = saved_model.predict(test_dataset)
-    # print("\n")
-    # print("Predictions of saved model. Should match earlier output.")
-    # print(test_preds.head(5).to_string())
