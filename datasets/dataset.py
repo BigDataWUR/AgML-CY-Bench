@@ -4,7 +4,7 @@ from pandas import MultiIndex
 from data_preparation.county_us import get_yield_data, get_meteo_data, get_soil_data, get_remote_sensing_data
 
 
-class AgMLDataset:
+class Dataset:
 
     YEARS_TRAIN = tuple(range(2000, 2011 + 1))
     YEARS_TEST = tuple(range(2012, 2018 + 1))
