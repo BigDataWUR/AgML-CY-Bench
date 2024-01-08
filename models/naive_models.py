@@ -164,8 +164,8 @@ if __name__ == "__main__":
     print(test_preds.head(5).to_string())
 
     print("\n")
-    print("Predictions of random average model.")
-    random_model = RandomAverageYieldModel()
+    print("Predictions of random model.")
+    random_model = RandomYieldModel(index_cols=["COUNTY_ID", "FYEAR"])
     random_model.fit(train_dataset)
     test_preds = random_model.predict(test_dataset)
     print(test_preds.head(5).to_string())
