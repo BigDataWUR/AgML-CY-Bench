@@ -43,7 +43,8 @@ if __name__ == "__main__":
     train_years = [y for y in range(2000, 2012)]
     test_years = [y for y in range(2012, 2019)]
     dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path
+        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
+        lead_time=6
     )
 
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))

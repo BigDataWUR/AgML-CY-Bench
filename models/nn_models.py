@@ -82,8 +82,8 @@ class LSTMModel(AgMLBaseModel):
                     y_all = torch.cat([y_all, y], dim=0)
                     y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
 
-            # nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
-            # print(epoch, "loss:", epoch_loss / num_elems, "NRMSE:", nrmse.item())
+            nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
+            print(epoch, "loss:", epoch_loss / num_elems, "NRMSE:", nrmse.item())
 
     def predict(self, test_dataset):
         self._model.eval()
@@ -186,7 +186,8 @@ if __name__ == "__main__":
     train_years = [y for y in range(2000, 2012)]
     test_years = [y for y in range(2012, 2019)]
     dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path
+        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
+        lead_time=6
     )
 
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))

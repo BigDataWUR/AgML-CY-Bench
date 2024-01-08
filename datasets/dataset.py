@@ -15,6 +15,7 @@ class CropYieldDataset:
         label_col="YIELD",
         data_dfs=None,
         data_path=None,
+        lead_time=0,
         combined_features_labels=False,
     ):
         assert (data_dfs is not None) or (data_path is not None)
@@ -51,6 +52,15 @@ class CropYieldDataset:
                     filename = data_sources[src]["filename"]
                     index_cols = data_sources[src]["index_cols"]
                     src_df = csv_to_pandas(data_path, filename, index_cols)
+                    if ("DEKAD" in index_cols):
+                        if (lead_time == 0):
+                            end_dekad = 36
+                        else:
+                            end_dekad = 36 - lead_time
+
+                        sel_dekads = [d for d in range(1, end_dekad + 1)]
+                        src_df = self._filter_df_on_index(src_df, sel_dekads, 2)
+
                     data_dfs[src] = src_df
 
             self._time_series_cols = []
@@ -276,7 +286,8 @@ if __name__ == "__main__":
     }
 
     _dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path
+        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
+        lead_time=6
     )
     print(_dataset["AL_LAWRENCE", 2000])
 
