@@ -21,17 +21,17 @@ class TorchDataset(torch.utils.data.Dataset):
     @classmethod
     def _cast_to_tensor(cls, sample: dict) -> dict:
         return {
-            **{key: sample[key] for key in AgMLDataset.INDEX_NAME},
-            **{key: torch.tensor(sample[key]) for key in sample.keys() if key not in AgMLDataset.INDEX_NAME}
+            **{key: sample[key] for key in AgMLDataset.INDEX_KEYS},
+            **{key: torch.tensor(sample[key]) for key in sample.keys() if key not in AgMLDataset.INDEX_KEYS}
         }
 
     @classmethod
     def collate_fn(cls, samples: list) -> dict:
-        key_y = AgMLDataset.target_key()
+        key_y = AgMLDataset.TARGET_KEY
 
         batched_samples = {
-            **{key: [sample[key] for sample in samples] for key in AgMLDataset.INDEX_NAME},
-            **{key: batch_tensors(*[sample[key] for sample in samples]) for key in AgMLDataset.feature_keys()},
+            **{key: [sample[key] for sample in samples] for key in AgMLDataset.INDEX_KEYS},
+            **{key: batch_tensors(*[sample[key] for sample in samples]) for key in AgMLDataset.FEATURE_KEYS},
             key_y: batch_tensors(*[sample[key_y] for sample in samples]),
         }
 

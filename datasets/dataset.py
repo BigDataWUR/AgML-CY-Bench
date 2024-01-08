@@ -6,10 +6,17 @@ from data_preparation.county_us import get_yield_data, get_meteo_data, get_soil_
 
 class AgMLDataset:
 
-    YEARS_TRAIN = [2000, 2001]  # TODO -- define
-    YEARS_TEST = [2002]
+    YEARS_TRAIN = tuple(range(2000, 2011 + 1))
+    YEARS_TEST = tuple(range(2012, 2018 + 1))
 
-    INDEX_NAME = ('COUNTY_ID', 'FYEAR')
+    INDEX_KEYS = ('COUNTY_ID', 'FYEAR')
+
+    TARGET_KEY = 'YIELD'
+
+    FEATURE_KEYS_METEO = 'TMAX', 'TMIN', 'TAVG', 'VPRES', 'WSPD', 'PREC', 'ET0', 'RAD'
+    FEATURE_KEYS_SOIL = 'SM_WHC', 'SM_DEPTH'
+    FEATURE_KEYS_RS = 'FAPAR',
+    FEATURE_KEYS = FEATURE_KEYS_METEO + FEATURE_KEYS_SOIL + FEATURE_KEYS_RS
 
     def __init__(self,
                  df_yield: pd.DataFrame = None,
@@ -71,26 +78,6 @@ class AgMLDataset:
         """
         return list(set([loc for loc, _ in self._data_y.index.values]))
 
-    @staticmethod
-    def target_key() -> str:
-        return 'YIELD'
-
-    @staticmethod
-    def feature_keys() -> tuple:
-        return AgMLDataset.feature_keys_meteo() + AgMLDataset.feature_keys_soil() + AgMLDataset.feature_keys_remote_sensing()
-
-    @staticmethod
-    def feature_keys_meteo() -> tuple:
-        return 'TMAX', 'TMIN', 'TAVG', 'VPRES', 'WSPD', 'PREC', 'ET0', 'RAD'
-
-    @staticmethod
-    def feature_keys_soil() -> tuple:
-        return 'SM_WHC', 'SM_DEPTH'
-
-    @staticmethod
-    def feature_keys_remote_sensing() -> tuple:
-        return 'FAPAR',
-
     def __getitem__(self, index) -> dict:
         # Index is either integer or tuple of (year, location)
 
@@ -128,7 +115,7 @@ class AgMLDataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in self.feature_keys_meteo()
+            key: df[key].values for key in AgMLDataset.FEATURE_KEYS_METEO
         }
 
     def _get_soil_data(self, county_id: str) -> dict:
@@ -137,7 +124,7 @@ class AgMLDataset:
         df = self._data_soil.loc[county_id]
 
         return {
-            key: df[key] for key in self.feature_keys_soil()
+            key: df[key] for key in AgMLDataset.FEATURE_KEYS_SOIL
         }
 
     def _get_remote_sensing_data(self, county_id: str, year: int) -> dict:
@@ -149,7 +136,7 @@ class AgMLDataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in self.feature_keys_remote_sensing()
+            key: df[key].values for key in AgMLDataset.FEATURE_KEYS_RS
         }
 
     def __len__(self) -> int:
