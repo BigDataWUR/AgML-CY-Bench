@@ -86,8 +86,11 @@ if __name__ == "__main__":
     }
 
     _dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
-        lead_time=6
+        data_sources,
+        spatial_id_col="COUNTY_ID",
+        year_col="FYEAR",
+        data_path=data_path,
+        lead_time=6,
     )
     # print(_dataset["AL_LAWRENCE", 2000])
 

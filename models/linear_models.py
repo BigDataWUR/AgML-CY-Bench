@@ -53,6 +53,7 @@ import os
 from datasets.dataset import CropYieldDataset
 from config import PATH_DATA_DIR
 from config import PATH_OUTPUT_DIR
+import pandas as pd
 
 if __name__ == "__main__":
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")

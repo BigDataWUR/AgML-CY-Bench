@@ -52,8 +52,8 @@ class CropYieldDataset:
                     filename = data_sources[src]["filename"]
                     index_cols = data_sources[src]["index_cols"]
                     src_df = csv_to_pandas(data_path, filename, index_cols)
-                    if ("DEKAD" in index_cols):
-                        if (lead_time == 0):
+                    if "DEKAD" in index_cols:
+                        if lead_time == 0:
                             end_dekad = 36
                         else:
                             end_dekad = 36 - lead_time
@@ -286,8 +286,11 @@ if __name__ == "__main__":
     }
 
     _dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
-        lead_time=6
+        data_sources,
+        spatial_id_col="COUNTY_ID",
+        year_col="FYEAR",
+        data_path=data_path,
+        lead_time=6,
     )
     print(_dataset["AL_LAWRENCE", 2000])
 

@@ -50,8 +50,11 @@ class AverageYieldModel(AgMLBaseModel):
 
 import random
 
-class RandomAverageYieldModel(AgMLBaseModel):
-    def __init__(self, index_cols=["REGION", "YEAR"], label_col="YIELD", num_samples=20):
+
+class RandomYieldModel(AgMLBaseModel):
+    def __init__(
+        self, index_cols=["REGION", "YEAR"], label_col="YIELD", num_samples=20
+    ):
         self._max_value = None
         self._min_value = None
         self._num_samples = num_samples
@@ -67,25 +70,25 @@ class RandomAverageYieldModel(AgMLBaseModel):
     def predict(self, data):
         data_cols = self._index_cols + [self._label_col]
         test_df = dataset_to_pandas(data, data_cols)
-        test_df["PREDICTION"] = self._getRandomAverage(len(test_df.index))
+        test_df["PREDICTION"] = self._getPredictions(len(test_df.index))
 
         return test_df
 
     def predict(self, test_dataset):
         data_cols = self._index_cols + [self._label_col]
         test_df = dataset_to_pandas(test_dataset, data_cols)
-        test_df["PREDICTION"] = self._getRandomAverage(len(test_df.index))
+        test_df["PREDICTION"] = self._getPredictions(len(test_df.index))
 
         return test_df
 
-    def _getRandomAverage(self, num_predictions):
+    def _getPredictions(self, num_predictions):
         predictions = []
         for i in range(num_predictions):
             avg_value = 0.0
             for j in range(self._num_samples):
                 sample = random.uniform(self._min_value, self._max_value)
                 avg_value += sample
-            
+
             avg_value /= self._num_samples
             predictions.append(avg_value)
 
@@ -101,6 +104,7 @@ class RandomAverageYieldModel(AgMLBaseModel):
             saved_model = pickle.load(f)
 
         return saved_model
+
 
 import os
 

@@ -8,7 +8,11 @@ from util.data import dataset_to_pandas
 
 class LinearTrendModel(AgMLBaseModel):
     def __init__(
-        self, spatial_id_col="REGION", year_col="YEAR", label_col="YIELD", trend_window=5
+        self,
+        spatial_id_col="REGION",
+        year_col="YEAR",
+        label_col="YIELD",
+        trend_window=5,
     ):
         self._id_col = spatial_id_col
         self._year_col = year_col

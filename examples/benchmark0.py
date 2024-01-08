@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn.metrics import mean_squared_error, r2_score
 
 from datasets.dataset import CropYieldDataset
-from models.naive_models import AverageYieldModel, RandomAverageYieldModel
+from models.naive_models import AverageYieldModel, RandomYieldModel
 from models.trend_models import LinearTrendModel
 from models.linear_models import RidgeModel
 from models.nn_models import LSTMModel
@@ -56,8 +56,8 @@ if __name__ == "__main__":
     ]
 
     models = {
-        "RandomAverageYieldModel" : RandomAverageYieldModel(index_cols=["COUNTY_ID", "FYEAR"],
-                                                            label_col="YIELD"),
+        "RandomYieldModel" : RandomYieldModel(index_cols=["COUNTY_ID", "FYEAR"],
+                                              label_col="YIELD"),
         "AverageYieldModel" : AverageYieldModel(
             group_cols=["COUNTY_ID"], year_col="FYEAR", label_col="YIELD"
         ),
