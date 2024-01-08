@@ -43,10 +43,10 @@ class Dataset:
         counties_rs = set(df_remote_sensing.index.get_level_values(0))
         counties = set.intersection(counties_yield, counties_soil, counties_meteo, counties_rs)
 
-        df_yield = AgMLDataset._filter_df_on_index(df_yield, list(counties), level=0)
-        df_soil = AgMLDataset._filter_df_on_index(df_soil, list(counties), level=0)
-        df_meteo = AgMLDataset._filter_df_on_index(df_meteo, list(counties), level=0)
-        df_remote_sensing = AgMLDataset._filter_df_on_index(df_remote_sensing, list(counties), level=0)
+        df_yield = Dataset._filter_df_on_index(df_yield, list(counties), level=0)
+        df_soil = Dataset._filter_df_on_index(df_soil, list(counties), level=0)
+        df_meteo = Dataset._filter_df_on_index(df_meteo, list(counties), level=0)
+        df_remote_sensing = Dataset._filter_df_on_index(df_remote_sensing, list(counties), level=0)
 
         # TODO -- data preprocessing:
         #   - Start date, end date of season?
@@ -115,7 +115,7 @@ class Dataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in AgMLDataset.FEATURE_KEYS_METEO
+            key: df[key].values for key in Dataset.FEATURE_KEYS_METEO
         }
 
     def _get_soil_data(self, county_id: str) -> dict:
@@ -124,7 +124,7 @@ class Dataset:
         df = self._data_soil.loc[county_id]
 
         return {
-            key: df[key] for key in AgMLDataset.FEATURE_KEYS_SOIL
+            key: df[key] for key in Dataset.FEATURE_KEYS_SOIL
         }
 
     def _get_remote_sensing_data(self, county_id: str, year: int) -> dict:
@@ -136,7 +136,7 @@ class Dataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in AgMLDataset.FEATURE_KEYS_RS
+            key: df[key].values for key in Dataset.FEATURE_KEYS_RS
         }
 
     def __len__(self) -> int:
@@ -149,13 +149,13 @@ class Dataset:
         df_rs_1, df_rs_2 = self._split_df_on_index(self._data_remote_sensing, years_split, level=1)
 
         return (
-            AgMLDataset(
+            Dataset(
                 df_yield=df_yield_1,
                 df_meteo=df_meteo_1,
                 df_soil=self._data_soil,  # No split required
                 df_remote_sensing=df_rs_1,
             ),
-            AgMLDataset(
+            Dataset(
                 df_yield=df_yield_2,
                 df_meteo=df_meteo_2,
                 df_soil=self._data_soil,  # No split required
@@ -171,13 +171,13 @@ class Dataset:
         df_rs_1, df_rs_2 = self._split_df_on_index(self._data_remote_sensing, county_ids_split, level=0)
 
         return (
-            AgMLDataset(
+            Dataset(
                 df_yield=df_yield_1,
                 df_meteo=df_meteo_1,
                 df_soil=df_soil_1,
                 df_remote_sensing=df_rs_1,
             ),
-            AgMLDataset(
+            Dataset(
                 df_yield=df_yield_2,
                 df_meteo=df_meteo_2,
                 df_soil=df_soil_2,
@@ -191,8 +191,8 @@ class Dataset:
 
         keys1, keys2 = split
 
-        df_1 = AgMLDataset._filter_df_on_index(df, keys1, level)
-        df_2 = AgMLDataset._filter_df_on_index(df, keys2, level)
+        df_1 = Dataset._filter_df_on_index(df, keys1, level)
+        df_2 = Dataset._filter_df_on_index(df, keys2, level)
 
         return df_1, df_2
 
@@ -207,21 +207,21 @@ class Dataset:
 
     @staticmethod
     def train_test_datasets() -> tuple:  # TODO -- define the splits
-        dataset = AgMLDataset()
+        dataset = Dataset()
         return dataset.split_on_years(
-            years_split=(AgMLDataset.YEARS_TRAIN, AgMLDataset.YEARS_TEST),
+            years_split=(Dataset.YEARS_TRAIN, Dataset.YEARS_TEST),
         )
 
 
 if __name__ == '__main__':
 
-    _dataset = AgMLDataset()
+    _dataset = Dataset()
 
     # print(_dataset.years)
     # print(_dataset.locations)
     print(_dataset['AL_LAWRENCE', 2000])
 
-    dataset_train, dataset_test = AgMLDataset.train_test_datasets()
+    dataset_train, dataset_test = Dataset.train_test_datasets()
 
     print(dataset_train.years)
 
