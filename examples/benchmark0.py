@@ -130,7 +130,6 @@ if __name__ == "__main__":
        r2 = r2_score(model_preds["YIELD"].values,
                      model_preds["PREDICTION"].values)
        performance_data.append([model_name, nrmse, r2])
-       print(model_name, "NRMSE:")
     
     data_cols = ["Model", "NRMSE", "R2"]
     performance_df = pd.DataFrame(performance_data, columns=data_cols)
