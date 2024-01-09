@@ -1,66 +1,61 @@
 from abc import ABC, abstractmethod
-from typing import overload
-import pickle
-import numpy as np
 
-class AgMLBaseModel(ABC):
+from datasets.dataset import Dataset
 
-  @abstractmethod
-  def fit(self, train_dataset):
-    """
-    Fit or train the model.
 
-    Args:
-      train_dataset: The training dataset.
-    """
-    raise NotImplementedError
+class BaseModel(ABC):
+    @abstractmethod
+    def fit(self, dataset: Dataset):
+        """
+        Fit or train the model.
 
-  @abstractmethod
-  @overload
-  def predict(self, test_dataset):
-    """
-    Run the model on the entire test set.
+        Args:
+          train_dataset: The training dataset.
+        """
+        raise NotImplementedError
 
-    Args:
-      test_dataset: The test dataset.
+    @abstractmethod
+    def predict(self, data: dict) -> tuple:
+        """
+        Perform inference on data. The data may be batched.
 
-    Returns:
-      An numpy ndarray of predictions.
-    """
-    raise NotImplementedError
+        Args:
+          data: Predictors for one or more data items. May include labels.
 
-  @abstractmethod
-  @overload
-  def predict(self, data):
-    """
-    Run the model on selected data items.
+        Returns:
+          A tuple including predictions.
+        """
+        raise NotImplementedError
 
-    Args:
-      items: Data items that include predictors and labels.
+    def _set_training(self, training: bool = True):
+        """
+        Set training or evaluation mode.
 
-    Returns:
-      An numpy ndarray of predictions.
-    """
-    raise NotImplementedError
+        Args:
+          training: bool (default=True)
+          Whether to set the training mode (True) or evaluation model (False).
+        """
+        raise NotImplementedError
 
-  @abstractmethod
-  def save(self, model_name):
-    """
-    Saves model, e.g. using pickle.
+    @abstractmethod
+    def save(self, save_path):
+        """
+        Saves model, e.g. using pickle.
 
-    Args:
-      model_name: Name of the file that will be used to pickle the model.
-    """
-    raise NotImplementedError
+        Args:
+          save_path: File path that will be used to pickle the model.
+        """
+        raise NotImplementedError
 
-  @abstractmethod
-  def load(cls, model_name):
-    """
-    Deserializes or unpickles a model saved using pickle.
+    @abstractmethod
+    def load(cls, load_path):
+        """
+        Deserializes or unpickles a model saved using pickle.
 
-    Args:
-      model_name: The name that was used to save the model.
+        Args:
+          load_path: File path that was used to save the model.
 
-    Returns:
-      The unpickled model.
-    """
+        Returns:
+          The unpickled model.
+        """
+        raise NotImplementedError
