@@ -1,35 +1,60 @@
-from abc import ABC, abstractmethod
+"""Model base class
 
-from datasets.dataset import Dataset
+The API takes some ideas from skorch (https://github.com/skorch-dev/skorch/).
+"""
+
+from abc import ABC, abstractmethod
 
 
 class BaseModel(ABC):
     @abstractmethod
-    def fit(self, dataset: Dataset):
-        """
-        Fit or train the model.
+    def fit(self, X, y=None, epochs=None, **fit_params):
+        """Fit or train the model.
 
         Args:
-          train_dataset: The training dataset.
+          X: Input data, which can be
+            * numpy array
+            * torch tensor
+            * a dictionary of numpy array or torch tensor
+            * pandas DataFrame
+            * Dataset
+          
+          y: Target data. Supported data types are the same as for ``X``.
+            If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
+
+          epochs: int or None (default=None)
+            If not None, train for this many epochs.
+          
+          **fit_params: Additional parameters.
+
+          Returns:
+            self: Fitted model.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def predict(self, data: dict) -> tuple:
-        """
-        Perform inference on data. The data may be batched.
+    def predict(self, X):
+        """Run fitted model on data.
 
         Args:
-          data: Predictors for one or more data items. May include labels.
+          X: Input data, which can be
+            * numpy array
+            * torch tensor
+            * a dictionary of numpy array or torch tensor
+            * pandas DataFrame
+            * Dataset
 
         Returns:
-          A tuple including predictions.
+          Predictions, which can be
+            * numpy array
+            * torch tensor
+            * pandas DataFrame
         """
         raise NotImplementedError
 
+    @abstractmethod
     def _set_training(self, training: bool = True):
-        """
-        Set training or evaluation mode.
+        """Set training or evaluation mode.
 
         Args:
           training: bool (default=True)
@@ -38,24 +63,41 @@ class BaseModel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def save(self, save_path):
-        """
-        Saves model, e.g. using pickle.
+    def _get_data_splits(self, X, y=None, **split_params):
+        """Get training and validation splits for internal validation.
 
         Args:
-          save_path: File path that will be used to pickle the model.
+          X: Input data, which can be
+            * numpy array
+            * torch tensor
+            * a dictionary of numpy array or torch tensor
+            * pandas DataFrame
+            * Dataset
+          
+          y: Target data. Supported data types are the same as for ``X``.
+            If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
+          
+          **split_params: Additional parameters for splitting data.
+      """
+        raise NotImplementedError
+
+    @abstractmethod
+    def save(self, model_name):
+        """Save model, e.g. using pickle.
+
+        Args:
+          model_name: Filename that will be used to save the model.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def load(cls, load_path):
-        """
-        Deserializes or unpickles a model saved using pickle.
+    def load(cls, model_name):
+        """Deserialize a saved model.
 
         Args:
-          load_path: File path that was used to save the model.
+          model_name: Filename that was used to save the model.
 
         Returns:
-          The unpickled model.
+          The deserialized model.
         """
         raise NotImplementedError
