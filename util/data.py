@@ -8,14 +8,16 @@ def csv_to_pandas(data_path, filename, index_cols):
 
     return df
 
+def trend_features(df, group_col, year_col, value_col, trend_window):
+    trend_fts = df.sort_values(by=[group_col, year_col])
+    for i in range(trend_window, 0, -1):
+        trend_fts[year_col + "-" + str(i)] = trend_fts.groupby([group_col])[
+            year_col
+        ].shift(i)
+    for i in range(trend_window, 0, -1):
+        trend_fts[value_col + "-" + str(i)] = trend_fts.groupby([group_col])[
+            value_col
+        ].shift(i)
 
-def dataset_to_pandas(dataset, data_cols=None):
-    data = []
-    for i in range(len(dataset)):
-        data_item = dataset[i]
-        if (data_cols is None) and (i == 0):
-            data_cols = list(data_item.keys())
-
-        data.append([data_item[c] for c in data_cols])
-
-    return pd.DataFrame(data, columns=data_cols)
+    # print(trend_fts.head(10).to_string())
+    return trend_fts

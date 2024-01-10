@@ -1,40 +1,30 @@
 import pickle
+import pandas as pd
 
-from models.model import AgMLBaseModel
-from util.data import dataset_to_pandas
+from models.model import BaseModel
 
 
-class AverageYieldModel(AgMLBaseModel):
+class AverageYieldModel(BaseModel):
     def __init__(self, group_cols, year_col, label_col):
         self._averages = None
         self._group_cols = group_cols
         self._year_col = year_col
         self._label_col = label_col
 
-    def fit(self, train_dataset):
-        data_cols = self._group_cols + [self._year_col, self._label_col]
-        train_df = dataset_to_pandas(train_dataset, data_cols)
+    def fit(self, train_df: pd.DataFrame):
         # print(train_df.head(5))
         self._averages = (
             train_df.groupby(self._group_cols)
-            .agg(PREDICTION=(self._label_col, "mean"))
+            .agg(GROUP_AVG=(self._label_col, "mean"))
             .reset_index()
         )
         # print(self.averages.head(5))
 
-    def predict(self, data):
-        data_cols = self._group_cols + [self._year_col, self._label_col]
-        test_df = dataset_to_pandas(data, data_cols)
-        test_preds = test_df.merge(self._averages, on=self._group_cols)
+    def predict(self, test_df):
+        predictions_df = test_df.merge(self._averages, on=self._group_cols)
+        predictions_df = predictions_df.rename(columns={"GROUP_AVG": "PREDICTION"})
 
-        return test_preds
-
-    def predict(self, test_dataset):
-        data_cols = self._group_cols + [self._year_col, self._label_col]
-        test_df = dataset_to_pandas(test_dataset, data_cols)
-        test_preds = test_df.merge(self._averages, on=self._group_cols)
-
-        return test_preds
+        return predictions_df
 
     def save(self, model_name):
         with open(model_name, "wb") as f:
@@ -51,35 +41,22 @@ class AverageYieldModel(AgMLBaseModel):
 import random
 
 
-class RandomYieldModel(AgMLBaseModel):
-    def __init__(
-        self, index_cols=["REGION", "YEAR"], label_col="YIELD", num_samples=20
-    ):
+class RandomYieldModel(BaseModel):
+    def __init__(self, label_col="YIELD", num_samples=20):
         self._max_value = None
         self._min_value = None
         self._num_samples = num_samples
-        self._index_cols = index_cols
         self._label_col = label_col
 
-    def fit(self, train_dataset):
-        data_cols = self._index_cols + [self._label_col]
-        train_df = dataset_to_pandas(train_dataset, data_cols)
+    def fit(self, train_df):
         self._max_value = train_df[self._label_col].max()
         self._min_value = train_df[self._label_col].min()
 
-    def predict(self, data):
-        data_cols = self._index_cols + [self._label_col]
-        test_df = dataset_to_pandas(data, data_cols)
-        test_df["PREDICTION"] = self._getPredictions(len(test_df.index))
+    def predict(self, test_df):
+        predictions_df = test_df.copy()
+        predictions_df["PREDICTION"] = self._getPredictions(len(test_df.index))
 
-        return test_df
-
-    def predict(self, test_dataset):
-        data_cols = self._index_cols + [self._label_col]
-        test_df = dataset_to_pandas(test_dataset, data_cols)
-        test_df["PREDICTION"] = self._getPredictions(len(test_df.index))
-
-        return test_df
+        return predictions_df
 
     def _getPredictions(self, num_predictions):
         predictions = []
@@ -114,42 +91,19 @@ from config import PATH_OUTPUT_DIR
 
 if __name__ == "__main__":
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
-    data_sources = {
-        "YIELD": {
-            "filename": "YIELD_COUNTY_US.csv",
-            "index_cols": ["COUNTY_ID", "FYEAR"],
-            "sel_cols": ["YIELD"],
-        },
-        "METEO": {
-            "filename": "METEO_COUNTY_US.csv",
-            "index_cols": ["COUNTY_ID", "FYEAR", "DEKAD"],
-            "sel_cols": ["TMAX", "TMIN", "TAVG", "PREC", "ET0", "RAD"],
-        },
-        "SOIL": {
-            "filename": "SOIL_COUNTY_US.csv",
-            "index_cols": ["COUNTY_ID"],
-            "sel_cols": ["SM_WHC"],
-        },
-        "REMOTE_SENSING": {
-            "filename": "REMOTE_SENSING_COUNTY_US.csv",
-            "index_cols": ["COUNTY_ID", "FYEAR", "DEKAD"],
-            "sel_cols": ["FAPAR"],
-        },
-    }
+    yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
+    yield_df = pd.read_csv(yield_csv, header=0)
 
-    train_years = [y for y in range(2000, 2012)]
-    test_years = [y for y in range(2012, 2019)]
-    dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path
-    )
-
-    train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
-
+    all_years = list(yield_df["FYEAR"].unique())
+    test_years = [2012, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_df = yield_df[yield_df["FYEAR"].isin(train_years)]
+    test_df = yield_df[yield_df["FYEAR"].isin(test_years)]
     average_model = AverageYieldModel(
         group_cols=["COUNTY_ID"], year_col="FYEAR", label_col="YIELD"
     )
-    average_model.fit(train_dataset)
-    test_preds = average_model.predict(test_dataset)
+    average_model.fit(train_df)
+    test_preds = average_model.predict(test_df)
     print(test_preds.head(5).to_string())
 
     output_path = os.path.join(PATH_OUTPUT_DIR, "saved_models")
@@ -158,14 +112,14 @@ if __name__ == "__main__":
     # Test saving and loading
     average_model.save(output_path + "/saved_average_model.pkl")
     saved_model = AverageYieldModel.load(output_path + "/saved_average_model.pkl")
-    test_preds = saved_model.predict(test_dataset)
+    test_preds = saved_model.predict(test_df)
     print("\n")
     print("Predictions of saved model. Should match earlier output.")
     print(test_preds.head(5).to_string())
 
     print("\n")
     print("Predictions of random model.")
-    random_model = RandomYieldModel(index_cols=["COUNTY_ID", "FYEAR"])
-    random_model.fit(train_dataset)
-    test_preds = random_model.predict(test_dataset)
+    random_model = RandomYieldModel()
+    random_model.fit(train_df)
+    test_preds = random_model.predict(test_df)
     print(test_preds.head(5).to_string())

@@ -1,56 +1,74 @@
+"""Model base class
+
+The API takes some ideas from skorch (https://github.com/skorch-dev/skorch/).
+"""
+
 from abc import ABC, abstractmethod
-from typing import overload
 
 
-class AgMLBaseModel(ABC):
+class BaseModel(ABC):
     @abstractmethod
-    def fit(self, train_dataset):
-        """
-        Fit or train the model.
+    def fit(self, X, y=None, epochs=None, **fit_params):
+        """Fit or train the model.
+
         Args:
-          train_dataset: The training dataset.
+          X: Input data, which can be
+            * numpy array
+            * torch tensor
+            * a dictionary of numpy array or torch tensor
+            * pandas DataFrame
+            * Dataset
+
+          y: Target data. Supported data types are the same as for ``X``.
+            If ``X`` is a dictionary or a Dataset, ``y`` may be None.
+
+          epochs: int or None (default=None)
+            If not None, train for this many epochs.
+
+          **fit_params: Additional parameters.
+
+          Returns:
+            self (fitted model).
         """
         raise NotImplementedError
 
     @abstractmethod
-    @overload
-    def predict(self, test_dataset):
-        """
-        Run the model on the entire test set.
-        Args:
-          test_dataset: The test dataset.
-        Returns:
-          A pandas dataframe including a PREDICTION column.
-        """
-        raise NotImplementedError
+    def predict(self, X):
+        """Run fitted model on data.
 
-    @abstractmethod
-    @overload
-    def predict(self, data):
-        """
-        Run the model on selected data items.
         Args:
-          items: Data items that include predictors and labels.
+          X: Input data, which can be
+            * numpy array
+            * torch tensor
+            * a dictionary of numpy array or torch tensor
+            * pandas DataFrame
+            * Dataset
+
         Returns:
-          A pandas dataframe including a PREDICTION column.
+          Predictions, which can be
+            * numpy array
+            * torch tensor
+            * pandas DataFrame
         """
         raise NotImplementedError
 
     @abstractmethod
     def save(self, model_name):
-        """
-        Saves model, e.g. using pickle.
+        """Save model, e.g. using pickle.
+
         Args:
-          model_name: Name of the file that will be used to pickle the model.
+          model_name: Filename that will be used to save the model.
         """
         raise NotImplementedError
 
     @abstractmethod
     def load(cls, model_name):
-        """
-        Deserializes or unpickles a model saved using pickle.
+        """Deserialize a saved model.
+
         Args:
-          model_name: The name that was used to save the model.
+          model_name: Filename that was used to save the model.
+
         Returns:
-          The unpickled model.
+          The deserialized model.
         """
+        raise NotImplementedError
