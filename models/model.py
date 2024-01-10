@@ -53,40 +53,6 @@ class BaseModel(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _set_training(self, training: bool = True):
-        """Set training or evaluation mode.
-
-        Args:
-          training: bool (default=True)
-          Whether to set the training mode (True) or evaluation model (False).
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def _get_data_splits(self, X, y=None, **split_params):
-        """Get training and validation splits for internal validation.
-
-        Args:
-          X: Input data, which can be
-            * numpy array
-            * torch tensor
-            * a dictionary of numpy array or torch tensor
-            * pandas DataFrame
-            * Dataset
-
-          y: Target data. Supported data types are the same as for ``X``.
-            If ``X`` is a dictionary or a Dataset, ``y`` may be None.
-
-          **split_params: Additional parameters for splitting data.
-
-        Returns:
-          A tuple of training and validation splits.
-            If ``y`` is None, the tuple is (X_train, X_valid).
-            If ``y`` is not None, the tuple is ((X_train, y_train), (X_valid, y_valid)).
-        """
-        raise NotImplementedError
-
-    @abstractmethod
     def save(self, model_name):
         """Save model, e.g. using pickle.
 
