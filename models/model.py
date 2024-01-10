@@ -20,7 +20,7 @@ class BaseModel(ABC):
             * Dataset
 
           y: Target data. Supported data types are the same as for ``X``.
-            If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
+            If ``X`` is a dictionary or a Dataset, ``y`` may be None.
 
           epochs: int or None (default=None)
             If not None, train for this many epochs.
@@ -28,7 +28,7 @@ class BaseModel(ABC):
           **fit_params: Additional parameters.
 
           Returns:
-            self: Fitted model.
+            self (fitted model).
         """
         raise NotImplementedError
 
@@ -75,9 +75,14 @@ class BaseModel(ABC):
             * Dataset
 
           y: Target data. Supported data types are the same as for ``X``.
-            If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
+            If ``X`` is a dictionary or a Dataset, ``y`` may be None.
 
           **split_params: Additional parameters for splitting data.
+
+        Returns:
+          A tuple of training and validation splits.
+            If ``y`` is None, the tuple is (X_train, X_valid).
+            If ``y`` is not None, the tuple is ((X_train, y_train), (X_valid, y_valid)).
         """
         raise NotImplementedError
 
