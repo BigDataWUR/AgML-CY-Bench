@@ -18,13 +18,13 @@ class BaseModel(ABC):
             * a dictionary of numpy array or torch tensor
             * pandas DataFrame
             * Dataset
-          
+
           y: Target data. Supported data types are the same as for ``X``.
             If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
 
           epochs: int or None (default=None)
             If not None, train for this many epochs.
-          
+
           **fit_params: Additional parameters.
 
           Returns:
@@ -73,12 +73,12 @@ class BaseModel(ABC):
             * a dictionary of numpy array or torch tensor
             * pandas DataFrame
             * Dataset
-          
+
           y: Target data. Supported data types are the same as for ``X``.
             If ``X`` is a dictionary or Dataset that contains the target, ``y`` may be None.
-          
+
           **split_params: Additional parameters for splitting data.
-      """
+        """
         raise NotImplementedError
 
     @abstractmethod
