@@ -12,10 +12,60 @@ from models.nn_models import LSTMModel
 
 from config import PATH_DATA_DIR
 
+
 def normalized_rmse(y_true, y_pred):
-   return 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
+    return 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
+
 
 if __name__ == "__main__":
+    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
+    yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
+    yield_df = pd.read_csv(yield_csv, header=0)
+
+    all_years = list(yield_df["FYEAR"].unique())
+    test_years = [2012, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_df = yield_df[yield_df["FYEAR"].isin(train_years)]
+    test_df = yield_df[yield_df["FYEAR"].isin(test_years)]
+
+    # AverageYieldModel
+    average_model = AverageYieldModel(
+        group_cols=["COUNTY_ID"], year_col="FYEAR", label_col="YIELD"
+    )
+    average_model.fit(train_df)
+    avg_preds = average_model.predict(test_df)
+
+    # RandomYieldModel
+    random_model = RandomYieldModel()
+    random_model.fit(train_df)
+    random_preds = random_model.predict(test_df)
+
+    # LinearTrendModel
+    trend_model = LinearTrendModel("COUNTY_ID", year_col="FYEAR", trend_window=5)
+    trend_model.fit(train_df)
+    trend_preds = trend_model.predict(test_df)
+
+    # RidgeModel: We need to switch to county_features
+    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
+    data_file = os.path.join(data_path, "grain_maize_US.csv")
+    data_df = pd.read_csv(data_file, header=0)
+    all_years = list(data_df["FYEAR"].unique())
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_df = data_df[data_df["FYEAR"].isin(train_years)]
+    test_df = data_df[data_df["FYEAR"].isin(test_years)]
+    ridge_model = RidgeModel(region_col="COUNTY_ID", year_col="FYEAR")
+    ridge_model.fit(train_df)
+
+    ridge_preds = ridge_model.predict(test_df)
+
+    test_preds = {
+        "AverageYieldModel": avg_preds,
+        "RandomYieldModel": random_preds,
+        "LinearTrendModel": trend_preds,
+        "RidgeModel": ridge_preds,
+    }
+
+    # LSTMModel: We need to switch to county_data
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     data_sources = {
         "YIELD": {
@@ -40,11 +90,12 @@ if __name__ == "__main__":
         },
     }
 
-    train_years = [y for y in range(2000, 2012)]
-    test_years = [y for y in range(2012, 2019)]
     dataset = CropYieldDataset(
-        data_sources, spatial_id_col="COUNTY_ID", year_col="FYEAR", data_path=data_path,
-        lead_time=6
+        data_sources,
+        spatial_id_col="COUNTY_ID",
+        year_col="FYEAR",
+        data_path=data_path,
+        lead_time=6,
     )
 
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
@@ -55,82 +106,25 @@ if __name__ == "__main__":
         c for c in all_inputs if ((c not in ts_inputs) and ("YIELD-" not in c))
     ]
 
-    models = {
-        "RandomYieldModel" : RandomYieldModel(index_cols=["COUNTY_ID", "FYEAR"],
-                                              label_col="YIELD"),
-        "AverageYieldModel" : AverageYieldModel(
-            group_cols=["COUNTY_ID"], year_col="FYEAR", label_col="YIELD"
-        ),
-        "LinearTrendModel" : LinearTrendModel(spatial_id_col="COUNTY_ID", year_col="FYEAR", trend_window=5),
-        "LSTMModel" : LSTMModel(
-            num_ts_inputs=len(ts_inputs),
-            num_trend_features=len(trend_features),
-            num_other_features=len(other_features),
-        )
-    }
-    test_preds = {}
-
-    for model_name in models:  
-      print("\n")
-      print("Predictions of ", model_name)
-      model = models[model_name]
-      model.fit(train_dataset)
-      preds_df = model.predict(test_dataset)
-      test_preds[model_name] = preds_df
-      print(preds_df.head(5).to_string())
-
-    # For RidgeModel we need to use feature and labels
-    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
-    train_source = {
-        "COMBINED": {
-            "filename": "grain_maize_US_train.csv",
-            "index_cols": ["COUNTY_ID", "FYEAR"],
-            "label_col": "YIELD",
-        },
-    }
-
-    test_source = {
-        "COMBINED": {
-            "filename": "grain_maize_US_test.csv",
-            "index_cols": ["COUNTY_ID", "FYEAR"],
-            "label_col": "YIELD",
-        },
-    }
-
-    train_dataset = CropYieldDataset(
-        train_source,
-        spatial_id_col="COUNTY_ID",
-        year_col="FYEAR",
-        data_path=data_path,
-        combined_features_labels=True,
-    )
-
-    ridge_model = RidgeModel(weight_decay=1.0)
-    ridge_model.fit(train_dataset)
-
-    test_dataset = CropYieldDataset(
-        test_source,
-        spatial_id_col="COUNTY_ID",
-        year_col="FYEAR",
-        data_path=data_path,
-        combined_features_labels=True,
-    )
-
-    print("\n")
-    print("Predictions of RidgeModel")
-    preds_df = ridge_model.predict(test_dataset)
-    print(preds_df.head(5).to_string())
-    test_preds["RidgeModel"] = preds_df
+    lstm_model = LSTMModel(len(ts_inputs), 0, len(other_features))
+    lstm_model.fit(train_dataset)
+    lstm_preds = lstm_model.predict(test_dataset)
+    test_preds["LSTMModel"] = lstm_preds
 
     performance_data = []
     for model_name in test_preds:
-       model_preds = test_preds[model_name]
-       nrmse = normalized_rmse(model_preds["YIELD"].values,
-                               model_preds["PREDICTION"].values)
-       r2 = r2_score(model_preds["YIELD"].values,
-                     model_preds["PREDICTION"].values)
-       performance_data.append([model_name, nrmse, r2])
-    
+        print("\n")
+        print("Predictions of ", model_name)
+        model_preds = test_preds[model_name]
+        print(model_preds.head(5).to_string())
+
+        nrmse = normalized_rmse(
+            model_preds["YIELD"].values, model_preds["PREDICTION"].values
+        )
+        r2 = r2_score(model_preds["YIELD"].values, model_preds["PREDICTION"].values)
+        performance_data.append([model_name, nrmse, r2])
+
     data_cols = ["Model", "NRMSE", "R2"]
     performance_df = pd.DataFrame(performance_data, columns=data_cols)
+    print("\n")
     print(performance_df.head())

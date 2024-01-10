@@ -8,6 +8,7 @@ def csv_to_pandas(data_path, filename, index_cols):
 
     return df
 
+
 def trend_features(df, group_col, year_col, value_col, trend_window):
     trend_fts = df.sort_values(by=[group_col, year_col])
     for i in range(trend_window, 0, -1):

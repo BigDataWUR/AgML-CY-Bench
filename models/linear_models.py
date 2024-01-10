@@ -9,15 +9,16 @@ from models.model import BaseModel
 
 
 class RidgeModel(BaseModel):
-    def __init__(self, region_col="REGION", year_col="YEAR", label_col="YIELD",
-                 scaler=None):
+    def __init__(
+        self, region_col="REGION", year_col="YEAR", label_col="YIELD", scaler=None
+    ):
         self._region_col = region_col
         self._year_col = year_col
         self._label_col = label_col
         self._non_feature_cols = [self._region_col, self._year_col, self._label_col]
 
         self._ridge = Ridge(alpha=1.0)
-        if (scaler is None):
+        if scaler is None:
             self._scaler = StandardScaler()
         else:
             self._scaler = scaler
@@ -29,9 +30,7 @@ class RidgeModel(BaseModel):
 
     def fit(self, train_df):
         train_years = list(train_df[self._year_col].unique())
-        param_grid = {
-            "estimator__alpha" : [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]
-        }
+        param_grid = {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]}
 
         feature_cols = [c for c in train_df.columns if c not in self._non_feature_cols]
         X = train_df[feature_cols].values
@@ -41,14 +40,14 @@ class RidgeModel(BaseModel):
         cv = group_kfold.split(X, y, groups)
         grid_search = GridSearchCV(self._pipeline, param_grid=param_grid, cv=cv)
         grid_search.fit(X, y)
-        print("Optimal Hyperparameters:")
+        print("RidgeModel Optimal Hyperparameters:")
         print(grid_search.best_params_)
         print("\n")
 
         self._best_est = grid_search.best_estimator_
 
     def predict(self, test_df):
-        feature_cols = [c for c in train_df.columns if c not in self._non_feature_cols]
+        feature_cols = [c for c in test_df.columns if c not in self._non_feature_cols]
         X = test_df[feature_cols].values
         predictions_df = test_df[self._non_feature_cols].copy()
         predictions_df["PREDICTION"] = self._best_est.predict(X)

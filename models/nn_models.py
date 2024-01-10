@@ -4,12 +4,11 @@ import torch
 from torch import nn
 from sklearn.metrics import mean_squared_error
 
-from models.model import AgMLBaseModel
+from models.model import BaseModel
 from datasets.torch_dataset import TorchDataset
-from util.data import dataset_to_pandas
 
 
-class LSTMModel(AgMLBaseModel):
+class LSTMModel(BaseModel):
     def __init__(
         self,
         num_ts_inputs,
@@ -83,7 +82,15 @@ class LSTMModel(AgMLBaseModel):
                     y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
 
             nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
-            print(epoch, "loss:", epoch_loss / num_elems, "NRMSE:", nrmse.item())
+            print(
+                "LSTMModel",
+                "epoch:",
+                epoch,
+                "loss:",
+                epoch_loss / num_elems,
+                "NRMSE:",
+                nrmse.item(),
+            )
 
     def predict(self, test_dataset):
         self._model.eval()
