@@ -17,43 +17,28 @@ class TorchDataset(torch.utils.data.Dataset):
 
     def _cast_to_tensor(self, sample: dict) -> dict:
         index_cols = self._dataset.indexCols
+        feature_cols = self._dataset.featureCols
+        label_col = self._dataset.labelCol
         return {
             **{key: sample[key] for key in index_cols},
-            **{
-                key: torch.tensor(sample[key])
-                for key in sample.keys()
-                if key not in index_cols
-            },
+            **{key: torch.tensor(sample[key]) for key in feature_cols},
+            label_col: torch.tensor(sample[label_col]),
         }
 
-    @classmethod
-    def collate_fn(cls, samples: list) -> dict:
-        # TODO: How do we get these column names?
-        key_y = "YIELD"
-        index_cols = ["COUNTY_ID", "FYEAR"]
-        feature_cols = ["SM_WHC", "TMAX", "TMIN", "TAVG", "PREC", "ET0", "RAD", "FAPAR"]
-
+    def collate_fn(self, samples: list) -> dict:
+        index_cols = self._dataset.indexCols
+        feature_cols = self._dataset.featureCols
+        label_col = self._dataset.labelCol
         batched_samples = {
             **{key: [sample[key] for sample in samples] for key in index_cols},
             **{
                 key: batch_tensors(*[sample[key] for sample in samples])
                 for key in feature_cols
             },
-            key_y: batch_tensors(*[sample[key_y] for sample in samples]),
+            label_col: batch_tensors(*[sample[label_col] for sample in samples]),
         }
 
         return batched_samples
-
-    # TODO -- define transform for normalization
-
-    # @classmethod
-    # def _normalize(cls, sample: dict, parameters: dict = None,) -> dict:
-    #     raise NotImplementedError
-    #
-    # def get_normalization_parameters(self) -> dict:
-    #     raise NotImplementedError
-
-    pass
 
 
 import os

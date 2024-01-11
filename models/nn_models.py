@@ -1,14 +1,16 @@
 import pandas as pd
-import numpy as np
 import torch
 from torch import nn
+
 from sklearn.metrics import mean_squared_error
+from sklearn.preprocessing import StandardScaler
 
 from models.model import BaseModel
 from datasets.torch_dataset import TorchDataset
+from util.data import normalize_data
 
 
-class LSTMModel(BaseModel):
+class LSTMModel(BaseModel, nn.Module):
     def __init__(
         self,
         num_ts_inputs,
@@ -17,7 +19,11 @@ class LSTMModel(BaseModel):
         num_rnn_layers=1,
         rnn_hidden_size=64,
         num_outputs=1,
+        *args,
+        **kwargs
     ):
+        super().__init__(*args, **kwargs)
+        self._batch_norm1 = nn.BatchNorm1d(num_ts_inputs, dtype=torch.double)
         self._rnn = nn.LSTM(
             input_size=num_ts_inputs,
             hidden_size=rnn_hidden_size,
@@ -27,18 +33,21 @@ class LSTMModel(BaseModel):
         )
 
         num_all_features = rnn_hidden_size + num_trend_features + num_other_features
+        self._batch_norm2 = nn.BatchNorm1d(num_all_features, dtype=torch.double)
         self._fc = nn.Linear(num_all_features, num_outputs, dtype=torch.double)
-        self._model = nn.Sequential(self._rnn, self._fc)
         self._max_epochs = 10
+        # self._norm_params = None
+        # self._normalization = "standard"
 
     def fit(self, train_dataset, epochs=None):
-        self._model.train()
+        self.train()
         label_col = train_dataset.labelCol
         all_inputs = train_dataset.featureCols
         ts_inputs = train_dataset.timeSeriesCols
         other_features = [c for c in all_inputs if (c not in ts_inputs)]
         batch_size = 16
 
+        # self._norm_params = train_dataset.get_normalization_params(normalization=self._normalization)
         torch_dataset = TorchDataset(train_dataset)
         data_loader = torch.utils.data.DataLoader(
             torch_dataset,
@@ -51,9 +60,7 @@ class LSTMModel(BaseModel):
             epochs = self._max_epochs
 
         loss = nn.MSELoss()
-        trainer = torch.optim.Adam(
-            self._model.parameters(), lr=0.0001, weight_decay=0.0001
-        )
+        trainer = torch.optim.Adam(self.parameters(), lr=0.0001, weight_decay=0.0001)
 
         for epoch in range(epochs):
             epoch_loss = 0
@@ -61,6 +68,7 @@ class LSTMModel(BaseModel):
             y_all = None
             y_hat_all = None
             for batch in data_loader:
+                # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
                 y = torch.unsqueeze(batch[label_col], 1)
                 X_ts = torch.cat(
                     [torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1
@@ -69,7 +77,7 @@ class LSTMModel(BaseModel):
                 if len(X_rest.shape) == 1:
                     X_rest = torch.unsqueeze(X_rest, 1)
 
-                y_hat = self._forward(X_ts, X_rest)
+                y_hat = self(X_ts, X_rest)
                 l = loss(y_hat, y)
                 trainer.zero_grad()
                 l.backward()
@@ -96,7 +104,7 @@ class LSTMModel(BaseModel):
             )
 
     def predict(self, test_dataset):
-        self._model.eval()
+        self.eval()
         label_col = test_dataset.labelCol
         index_cols = test_dataset.indexCols
         all_inputs = test_dataset.featureCols
@@ -114,13 +122,14 @@ class LSTMModel(BaseModel):
         predictions_df = None
         data_cols = index_cols + [label_col, "PREDICTION"]
         for batch in data_loader:
+            # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
             y = torch.unsqueeze(batch[label_col], 1)
             X_ts = torch.cat([torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1)
             X_rest = torch.cat([batch[c] for c in other_features])
             if len(X_rest.shape) == 1:
                 X_rest = torch.unsqueeze(X_rest, 1)
 
-            y_hat = self._forward(X_ts, X_rest)
+            y_hat = self(X_ts, X_rest)
             data = []
             num_items = y.shape[0]
             for i in range(num_items):
@@ -144,12 +153,13 @@ class LSTMModel(BaseModel):
 
         return predictions_df
 
-    def _forward(self, X_ts, X_rest):
+    def forward(self, X_ts, X_rest):
+        X_ts_norm = self._batch_norm1(X_ts)
         # self._rnn expects (batch, sequence, input variables)
-        _, ts_state = self._rnn(X_ts.permute(0, 2, 1))
+        _, ts_state = self._rnn(X_ts_norm.permute(0, 2, 1))
         ts_h_out = ts_state[0][self._rnn.num_layers - 1].view(-1, self._rnn.hidden_size)
 
-        all_inputs = torch.cat([ts_h_out, X_rest], 1)
+        all_inputs = self._batch_norm2(torch.cat([ts_h_out, X_rest], 1))
         return self._fc(all_inputs)
 
     def save(self, model_name):
@@ -215,7 +225,7 @@ if __name__ == "__main__":
         num_trend_features=len(trend_features),
         num_other_features=len(other_features),
     )
-    lstm_model.fit(train_dataset, epochs=20)
+    lstm_model.fit(train_dataset, epochs=10)
 
     test_preds = lstm_model.predict(test_dataset)
     print(test_preds.head(5).to_string())

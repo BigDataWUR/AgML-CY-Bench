@@ -2,6 +2,31 @@ import pandas as pd
 import os
 
 
+def normalize_data(data, params, normalization="standard"):
+    exclude_keys = [k for k in data if k not in params]
+    if normalization == "standard":
+        return {
+            **{key: data[key] for key in exclude_keys},
+            **{
+                key: ((data[key] - params[key]["mean"]) / params[key]["std"])
+                for key in params
+            },
+        }
+    elif normalization == "min-max":
+        return {
+            **{key: data[key] for key in exclude_keys},
+            **{
+                key: (
+                    (data[key] - params[key]["min"])
+                    / (params[key]["max"] - params[key]["min"])
+                )
+                for key in params
+            },
+        }
+    else:
+        raise Exception(f"Unsupported normalization {normalization}")
+
+
 def csv_to_pandas(data_path, filename, index_cols):
     path = os.path.join(data_path, filename)
     df = pd.read_csv(path, index_col=index_cols)
