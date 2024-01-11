@@ -29,8 +29,9 @@ class LSTMModel(BaseModel):
         num_all_features = rnn_hidden_size + num_trend_features + num_other_features
         self._fc = nn.Linear(num_all_features, num_outputs, dtype=torch.double)
         self._model = nn.Sequential(self._rnn, self._fc)
+        self._max_epochs = 10
 
-    def fit(self, train_dataset):
+    def fit(self, train_dataset, epochs=None):
         self._model.train()
         label_col = train_dataset.labelCol
         all_inputs = train_dataset.featureCols
@@ -46,13 +47,15 @@ class LSTMModel(BaseModel):
             batch_size=batch_size,
         )
 
-        num_epochs = 10
+        if epochs is None:
+            epochs = self._max_epochs
+
         loss = nn.MSELoss()
         trainer = torch.optim.Adam(
             self._model.parameters(), lr=0.0001, weight_decay=0.0001
         )
 
-        for epoch in range(num_epochs):
+        for epoch in range(epochs):
             epoch_loss = 0
             num_elems = 0
             y_all = None
@@ -119,8 +122,8 @@ class LSTMModel(BaseModel):
 
             y_hat = self._forward(X_ts, X_rest)
             data = []
-            num_elems = y.shape[0]
-            for i in range(num_elems):
+            num_items = y.shape[0]
+            for i in range(num_items):
                 data_item = []
                 for c in index_cols:
                     data_item.append(batch[c][i])
@@ -188,8 +191,9 @@ if __name__ == "__main__":
         },
     }
 
-    train_years = [y for y in range(2000, 2012)]
-    test_years = [y for y in range(2012, 2019)]
+    all_years = [yr for yr in range(2000, 2019)]
+    test_years = [2012, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
     dataset = CropYieldDataset(
         data_sources,
         spatial_id_col="COUNTY_ID",
@@ -211,12 +215,18 @@ if __name__ == "__main__":
         num_trend_features=len(trend_features),
         num_other_features=len(other_features),
     )
-    lstm_model.fit(train_dataset)
+    lstm_model.fit(train_dataset, epochs=20)
 
     test_preds = lstm_model.predict(test_dataset)
     print(test_preds.head(5).to_string())
 
-    # output_path = os.path.join(PATH_OUTPUT_DIR, "saved_models")
-    # os.makedirs(output_path, exist_ok=True)
+    output_path = os.path.join(PATH_OUTPUT_DIR, "saved_models")
+    os.makedirs(output_path, exist_ok=True)
 
-    # # Test saving and loading
+    # Test saving and loading
+    lstm_model.save(output_path + "/saved_lstm_model.pkl")
+    saved_model = LSTMModel.load(output_path + "/saved_lstm_model.pkl")
+    test_preds = saved_model.predict(test_dataset)
+    print("\n")
+    print("Predictions of saved model. Should match earlier output.")
+    print(test_preds.head(5).to_string())

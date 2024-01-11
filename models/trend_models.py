@@ -86,12 +86,10 @@ class LinearTrendModel(BaseModel):
 
 import os
 
-from datasets.dataset import CropYieldDataset
 from config import PATH_DATA_DIR
 from config import PATH_OUTPUT_DIR
 
 if __name__ == "__main__":
-    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
     yield_df = pd.read_csv(yield_csv, header=0)

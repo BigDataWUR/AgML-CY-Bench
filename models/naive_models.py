@@ -85,7 +85,6 @@ class RandomYieldModel(BaseModel):
 
 import os
 
-from datasets.dataset import CropYieldDataset
 from config import PATH_DATA_DIR
 from config import PATH_OUTPUT_DIR
 
