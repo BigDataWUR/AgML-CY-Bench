@@ -95,7 +95,11 @@ class LSTMModel(BaseModel, nn.Module):
                     y_all = torch.cat([y_all, y], dim=0)
                     y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
 
-            nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
+            nrmse = (
+                100
+                * torch.sqrt(torch.mean((y_hat_all - y_all) ** 2))
+                / torch.mean(y_all)
+            )
             self._logger.info(
                 "LSTMModel epoch:%d, loss:%f, NRMSE:%f",
                 epoch,
