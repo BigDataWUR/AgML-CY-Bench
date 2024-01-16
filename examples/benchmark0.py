@@ -1,4 +1,5 @@
 import os
+import logging
 import numpy as np
 import pandas as pd
 
@@ -11,6 +12,7 @@ from models.linear_models import RidgeModel
 from models.nn_models import LSTMModel
 
 from config import PATH_DATA_DIR
+from config import PATH_LOGS_DIR, LOG_LEVEL, LOGGER_NAME, LOG_FILE
 
 
 def normalized_rmse(y_true, y_pred):
@@ -18,6 +20,14 @@ def normalized_rmse(y_true, y_pred):
 
 
 if __name__ == "__main__":
+    # set up logging
+    logger = logging.getLogger(LOGGER_NAME)
+    handler = logging.FileHandler(os.path.join(PATH_LOGS_DIR, LOG_FILE))
+    formatter = logging.Formatter("%(asctime)s %(name)-12s %(levelname)-8s %(message)s")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(LOG_LEVEL)
+
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
     yield_df = pd.read_csv(yield_csv, header=0)

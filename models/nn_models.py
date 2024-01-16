@@ -1,3 +1,4 @@
+import logging
 import pandas as pd
 import torch
 from torch import nn
@@ -8,6 +9,7 @@ from sklearn.preprocessing import StandardScaler
 from models.model import BaseModel
 from datasets.torch_dataset import TorchDataset
 from util.data import normalize_data
+from config import LOGGER_NAME
 
 
 class LSTMModel(BaseModel, nn.Module):
@@ -36,6 +38,7 @@ class LSTMModel(BaseModel, nn.Module):
         self._batch_norm2 = nn.BatchNorm1d(num_all_features, dtype=torch.double)
         self._fc = nn.Linear(num_all_features, num_outputs, dtype=torch.double)
         self._max_epochs = 10
+        self._logger = logging.getLogger(LOGGER_NAME)
         # self._norm_params = None
         # self._normalization = "standard"
 
@@ -93,13 +96,10 @@ class LSTMModel(BaseModel, nn.Module):
                     y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
 
             nrmse = torch.sqrt(torch.mean((y_hat_all - y_all) ** 2)) / torch.mean(y_all)
-            print(
-                "LSTMModel",
-                "epoch:",
+            self._logger.info(
+                "LSTMModel epoch:%d, loss:%f, NRMSE:%f",
                 epoch,
-                "loss:",
                 epoch_loss / num_elems,
-                "NRMSE:",
                 nrmse.item(),
             )
 

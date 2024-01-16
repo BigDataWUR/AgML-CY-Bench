@@ -1,9 +1,11 @@
+import logging
 import pickle
 import pandas as pd
 import numpy as np
 
 from models.model import BaseModel
 from util.data import trend_features
+from config import LOGGER_NAME
 
 
 class LinearTrendModel(BaseModel):
@@ -20,6 +22,7 @@ class LinearTrendModel(BaseModel):
         self._data_cols = [self._region_col, self._year_col, self._label_col]
         self._train_df = None
         self._trend_window = trend_window
+        self._logger = logging.getLogger(LOGGER_NAME)
 
     def fit(self, train_df):
         self._train_df = train_df.copy()

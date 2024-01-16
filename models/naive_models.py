@@ -1,7 +1,9 @@
+import logging
 import pickle
 import pandas as pd
 
 from models.model import BaseModel
+from config import LOGGER_NAME
 
 
 class AverageYieldModel(BaseModel):
@@ -10,6 +12,7 @@ class AverageYieldModel(BaseModel):
         self._group_cols = group_cols
         self._year_col = year_col
         self._label_col = label_col
+        self._logger = logging.getLogger(LOGGER_NAME)
 
     def fit(self, train_df: pd.DataFrame):
         # print(train_df.head(5))

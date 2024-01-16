@@ -1,4 +1,5 @@
 import pickle
+import logging
 
 from sklearn.linear_model import Ridge
 from sklearn.preprocessing import StandardScaler
@@ -27,22 +28,28 @@ class RidgeModel(BaseModel):
             [("scaler", self._scaler), ("estimator", self._ridge)]
         )
         self._best_est = None
+        self._logger = logging.getLogger("agml_cyf")
 
     def fit(self, train_df):
         train_years = list(train_df[self._year_col].unique())
+        # Hyperparameters to optimize
         param_grid = {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]}
 
         feature_cols = [c for c in train_df.columns if c not in self._non_feature_cols]
         X = train_df[feature_cols].values
         y = train_df[self._label_col].values
+
+        # GroupKFold to split by years, n_splits = 5 for 5-fold
+        # n_splits = number of years for leave-one-out
         group_kfold = GroupKFold(n_splits=len(train_years))
         groups = train_df[self._year_col].values
         cv = group_kfold.split(X, y, groups)
+
+        # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._pipeline, param_grid=param_grid, cv=cv)
         grid_search.fit(X, y)
-        print("RidgeModel Optimal Hyperparameters:")
-        print(grid_search.best_params_)
-        print("\n")
+        self._logger.info("RidgeModel Optimal Hyperparameters")
+        self._logger.info(grid_search.best_params_)
 
         self._best_est = grid_search.best_estimator_
 
