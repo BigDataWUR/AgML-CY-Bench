@@ -166,6 +166,10 @@ class CropYieldDataset:
         return len(self._data_y)
 
     @property
+    def years(self) -> list:
+        return list(set([year for _, year in self._data_y.index.values]))
+
+    @property
     def indexCols(self) -> list:
         return self._index_cols
 

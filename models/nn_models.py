@@ -1,5 +1,8 @@
 import logging
 import pandas as pd
+import numpy as np
+import random
+import comet_ml
 import torch
 from torch import nn
 
@@ -9,7 +12,8 @@ from sklearn.preprocessing import StandardScaler
 from models.model import BaseModel
 from datasets.torch_dataset import TorchDataset
 from util.data import normalize_data
-from config import LOGGER_NAME
+from evaluation.metrics import normalized_rmse
+from config import LOGGER_NAME, PATH_OUTPUT_DIR
 
 
 class LSTMModel(BaseModel, nn.Module):
@@ -38,6 +42,12 @@ class LSTMModel(BaseModel, nn.Module):
         self._batch_norm2 = nn.BatchNorm1d(num_all_features, dtype=torch.double)
         self._fc = nn.Linear(num_all_features, num_outputs, dtype=torch.double)
         self._max_epochs = 10
+
+        # self._logger = comet_ml.Experiment(
+        #     api_key="BOWpGkskV2k5sqRdYwrFGyp66",
+        #     project_name="agml-crop-yield-forecasting",
+        # )
+        # self._logger.set_name("python-package")
         self._logger = logging.getLogger(LOGGER_NAME)
         # self._norm_params = None
         # self._normalization = "standard"
@@ -51,61 +61,135 @@ class LSTMModel(BaseModel, nn.Module):
         batch_size = 16
 
         # self._norm_params = train_dataset.get_normalization_params(normalization=self._normalization)
-        torch_dataset = TorchDataset(train_dataset)
-        data_loader = torch.utils.data.DataLoader(
-            torch_dataset,
-            collate_fn=torch_dataset.collate_fn,
-            shuffle=True,
-            batch_size=batch_size,
-        )
-
         if epochs is None:
             epochs = self._max_epochs
 
         loss = nn.MSELoss()
-        trainer = torch.optim.Adam(self.parameters(), lr=0.0001, weight_decay=0.0001)
 
-        for epoch in range(epochs):
-            epoch_loss = 0
-            num_elems = 0
-            y_all = None
-            y_hat_all = None
-            for batch in data_loader:
-                # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
-                y = torch.unsqueeze(batch[label_col], 1)
-                X_ts = torch.cat(
-                    [torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1
+        # Hyperparameter optimization
+        param_grid = {
+            "lr" : [0.0001, 0.00005],
+            "weight_decay" : [0.0001, 0.00001]
+        }
+
+        train_years = train_dataset.years
+        year_splits = self._validation_splits(train_years, num_folds=1, num_valid_years=5)
+        for train_years2, valid_years in year_splits:
+            print(train_years2, valid_years)
+        # year_splits = [([yr for yr in range(2000, 2012)], [yr for yr in range(2013, 2018)])]
+        sel_lr = None
+        sel_wt_decay = None
+        lowest_nrmse = None
+        save_model_path = os.path.join(PATH_OUTPUT_DIR, "saved_models", "saved_lstm_model")
+        torch.save(self.state_dict(), save_model_path)
+        for lr in param_grid["lr"]:
+            for wt_decay in param_grid["weight_decay"]:
+                cv_nrmses = np.zeros(len(year_splits))
+                for i, (train_years2, valid_years) in enumerate(year_splits):
+                    train_dataset2, valid_dataset = train_dataset.split_on_years((train_years2, valid_years))
+                    torch_dataset = TorchDataset(train_dataset2)
+                    data_loader = torch.utils.data.DataLoader(
+                        torch_dataset,
+                        collate_fn=torch_dataset.collate_fn,
+                        shuffle=True,
+                        batch_size=batch_size,
+                    )
+                    trainer = torch.optim.Adam(self.parameters(), lr=lr, weight_decay=wt_decay)
+                    self.load_state_dict(torch.load(save_model_path))
+                    for epoch in range(epochs):
+                        self._train_epoch(data_loader, label_col, ts_inputs, other_features,
+                                        loss, trainer, epoch)
+
+                    predictions_df = self.predict(valid_dataset)
+                    y_true = predictions_df[label_col].values
+                    y_pred = predictions_df["PREDICTION"].values
+                    nrmse = normalized_rmse(y_true, y_pred)
+                    cv_nrmses[i] = nrmse
+
+                avg_nrmse = np.mean(cv_nrmses)
+                self._logger.info(
+                    "LSTMModel lr:%f, wt_decay:%f, avg NRMSE:%f",
+                    lr,
+                    wt_decay,
+                    avg_nrmse,
                 )
-                X_rest = torch.cat([batch[c] for c in other_features])
-                if len(X_rest.shape) == 1:
-                    X_rest = torch.unsqueeze(X_rest, 1)
+                if (lowest_nrmse is None) or (avg_nrmse < lowest_nrmse):
+                    lowest_nrmse = avg_nrmse
+                    sel_lr = lr
+                    sel_wt_decay = wt_decay
 
-                y_hat = self(X_ts, X_rest)
-                l = loss(y_hat, y)
-                trainer.zero_grad()
-                l.backward()
-                trainer.step()
-                epoch_loss += float(l)
-                num_elems += y.size().numel()
+        self._logger.info(
+            "LSTMModel Optimal lr:%f, wt_decay:%f",
+            sel_lr,
+            sel_wt_decay
+        )
 
-                if y_all is None:
-                    y_all = y
-                    y_hat_all = y_hat
-                else:
-                    y_all = torch.cat([y_all, y], dim=0)
-                    y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
+        # retrain with optimal hyperparameters
+        self.load_state_dict(torch.load(save_model_path))
+        trainer = torch.optim.Adam(self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay)
+        for epoch in range(epochs):
+            self._train_epoch(data_loader, label_col, ts_inputs, other_features,
+                              loss, trainer, epoch)
 
-            nrmse = (
-                100
-                * torch.sqrt(torch.mean((y_hat_all - y_all) ** 2))
-                / torch.mean(y_all)
+    def _train_epoch(self, data_loader,
+                     label_col, ts_inputs, other_features,
+                     loss, trainer, epoch):
+        epoch_loss = 0
+        num_elems = 0
+        y_all = None
+        y_hat_all = None
+        for batch in data_loader:
+            # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
+            y = torch.unsqueeze(batch[label_col], 1)
+            X_ts = torch.cat(
+                [torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1
             )
-            self._logger.info(
-                "LSTMModel epoch:%d, loss:%f, NRMSE:%f",
-                epoch,
-                epoch_loss / num_elems,
-                nrmse.item(),
-            )
+            X_rest = torch.cat([batch[c] for c in other_features])
+            if len(X_rest.shape) == 1:
+                X_rest = torch.unsqueeze(X_rest, 1)
+
+            y_hat = self(X_ts, X_rest)
+            l = loss(y_hat, y)
+            trainer.zero_grad()
+            l.backward()
+            trainer.step()
+            epoch_loss += float(l)
+            num_elems += y.size().numel()
+
+            if y_all is None:
+                y_all = y
+                y_hat_all = y_hat
+            else:
+                y_all = torch.cat([y_all, y], dim=0)
+                y_hat_all = torch.cat([y_hat_all, y_hat], dim=0)
+
+        nrmse = (
+            100
+            * torch.sqrt(torch.mean((y_hat_all - y_all) ** 2))
+            / torch.mean(y_all)
+        )
+        self._logger.info(
+            "LSTMModel epoch:%d, loss:%f, NRMSE:%f",
+            epoch,
+            epoch_loss / num_elems,
+            nrmse.item(),
+        )
+        # metrics = {
+        #     "loss" : epoch_loss / num_elems,
+        #     "Train NRMSE" : nrmse.item()
+        # }
+        # self._logger.log_metrics(metrics, step=epoch)
+
+    def _validation_splits(self, all_years, num_folds=1, num_valid_years=5):
+        year_splits = []
+        assert (len(all_years) >= (num_folds * num_valid_years))
+        random.shuffle(all_years)
+        for i in range(num_folds):
+            valid_years = all_years[i * num_valid_years:(i+1)*num_valid_years]
+            train_years = [yr for yr in all_years if yr not in valid_years]
+            year_splits.append((train_years, valid_years))
+
+        return year_splits
 
     def predict(self, test_dataset):
         self.eval()
@@ -149,11 +233,6 @@ class LSTMModel(BaseModel, nn.Module):
                 predictions_df = batch_preds
             else:
                 predictions_df = pd.concat([predictions_df, batch_preds], axis=0)
-
-        # y_true = predictions_df[label_col].values
-        # y_pred = predictions_df["PREDICTION"].values
-        # nrmse = 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
-        # print("Normalized RMSE:", nrmse)
 
         return predictions_df
 

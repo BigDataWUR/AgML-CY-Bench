@@ -10,13 +10,10 @@ from models.naive_models import AverageYieldModel, RandomYieldModel
 from models.trend_models import LinearTrendModel
 from models.linear_models import RidgeModel
 from models.nn_models import LSTMModel
+from evaluation.metrics import normalized_rmse
 
 from config import PATH_DATA_DIR
 from config import PATH_LOGS_DIR, LOG_LEVEL, LOGGER_NAME, LOG_FILE
-
-
-def normalized_rmse(y_true, y_pred):
-    return 100 * np.sqrt(mean_squared_error(y_true, y_pred)) / np.mean(y_true)
 
 
 if __name__ == "__main__":

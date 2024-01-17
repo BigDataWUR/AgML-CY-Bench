@@ -1,5 +1,6 @@
 import os
 import logging
+from datetime import datetime
 
 # Project root dir
 CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
@@ -18,5 +19,5 @@ os.makedirs(PATH_LOGS_DIR, exist_ok=True)
 
 # Logging level
 LOGGER_NAME = "agml_cyf"
-LOG_FILE = "agml_cyf.log"
+LOG_FILE = datetime.now().strftime('agml_cyf_%H_%M_%d_%m_%Y.log')
 LOG_LEVEL = logging.DEBUG
