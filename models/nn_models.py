@@ -67,27 +67,27 @@ class LSTMModel(BaseModel, nn.Module):
         loss = nn.MSELoss()
 
         # Hyperparameter optimization
-        save_model_path = os.path.join(
-            PATH_OUTPUT_DIR, "saved_models", "saved_lstm_model"
-        )
-        torch.save(self.state_dict(), save_model_path)
-        hparam_grid = {"lr": [0.0001, 0.00005], "weight_decay": [0.0001, 0.00001]}
-        optimal_hparams = self._optimize_hyperparameters(
-            train_dataset,
-            label_col,
-            ts_inputs,
-            other_features,
-            hparam_grid,
-            loss,
-            batch_size,
-            epochs,
-            save_model_path,
-        )
-        sel_lr = optimal_hparams["lr"]
-        sel_wt_decay = optimal_hparams["weight_decay"]
+        # save_model_path = os.path.join(
+        #     PATH_OUTPUT_DIR, "saved_models", "saved_lstm_model"
+        # )
+        # torch.save(self.state_dict(), save_model_path)
+        # hparam_grid = {"lr": [0.0001, 0.00005], "weight_decay": [0.0001, 0.00001]}
+        # optimal_hparams = self._optimize_hyperparameters(
+        #     train_dataset,
+        #     label_col,
+        #     ts_inputs,
+        #     other_features,
+        #     hparam_grid,
+        #     loss,
+        #     batch_size,
+        #     epochs,
+        #     save_model_path,
+        # )
+        # sel_lr = optimal_hparams["lr"]
+        # sel_wt_decay = optimal_hparams["weight_decay"]
 
-        # retrain with optimal hyperparameters
-        self.load_state_dict(torch.load(save_model_path))
+        # # retrain with optimal hyperparameters
+        # self.load_state_dict(torch.load(save_model_path))
         torch_dataset = TorchDataset(train_dataset)
         data_loader = torch.utils.data.DataLoader(
             torch_dataset,
@@ -95,8 +95,11 @@ class LSTMModel(BaseModel, nn.Module):
             shuffle=True,
             batch_size=batch_size,
         )
+        # trainer = torch.optim.Adam(
+        #     self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
+        # )
         trainer = torch.optim.Adam(
-            self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
+            self.parameters(), lr=0.0001, weight_decay=0.0001
         )
         for epoch in range(epochs):
             train_metrics = self._train_epoch(
