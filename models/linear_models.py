@@ -48,8 +48,8 @@ class RidgeModel(BaseModel):
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._pipeline, param_grid=param_grid, cv=cv)
         grid_search.fit(X, y)
-        self._logger.info("RidgeModel Optimal Hyperparameters")
-        self._logger.info(grid_search.best_params_)
+        self._logger.debug("RidgeModel Optimal Hyperparameters")
+        self._logger.debug(grid_search.best_params_)
 
         self._best_est = grid_search.best_estimator_
 

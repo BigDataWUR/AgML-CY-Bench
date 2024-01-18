@@ -1,9 +1,8 @@
 import os
 import logging
-import numpy as np
 import pandas as pd
 
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import r2_score
 
 from datasets.dataset import CropYieldDataset
 from models.naive_models import AverageYieldModel, RandomYieldModel

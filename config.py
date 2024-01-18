@@ -19,5 +19,12 @@ os.makedirs(PATH_LOGS_DIR, exist_ok=True)
 
 # Logging level
 LOGGER_NAME = "agml_cyf"
-LOG_FILE = datetime.now().strftime('agml_cyf_%H_%M_%d_%m_%Y.log')
+LOG_FILE = datetime.now().strftime("agml_cyf_%H_%M_%d_%m_%Y.log")
 LOG_LEVEL = logging.DEBUG
+
+# Comet API key
+api_key_path = os.path.join(CONFIG_DIR, "comet_api_key.txt")
+comet_api_key = None
+if os.path.isfile(api_key_path):
+    with open(api_key_path) as f:
+        comet_api_key = f.readline()
