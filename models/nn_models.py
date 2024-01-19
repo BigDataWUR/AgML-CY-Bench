@@ -51,7 +51,7 @@ class LSTMModel(BaseModel, nn.Module):
         # self._norm_params = None
         # self._normalization = "standard"
 
-    def fit(self, train_dataset, epochs=None):
+    def fit(self, train_dataset, epochs=None, **fit_params):
         self.train()
         label_col = train_dataset.labelCol
         all_inputs = train_dataset.featureCols
@@ -65,29 +65,35 @@ class LSTMModel(BaseModel, nn.Module):
 
         loss = nn.MSELoss()
 
-        # Hyperparameter optimization
-        os.makedirs(os.path.join(PATH_OUTPUT_DIR, "saved_models"), exist_ok=True)
-        save_model_path = os.path.join(
-            PATH_OUTPUT_DIR, "saved_models", "saved_lstm_model"
-        )
-        torch.save(self.state_dict(), save_model_path)
-        hparam_grid = {"lr": [0.0001, 0.00005], "weight_decay": [0.0001, 0.00001]}
-        optimal_hparams = self._optimize_hyperparameters(
-            train_dataset,
-            label_col,
-            ts_inputs,
-            other_features,
-            hparam_grid,
-            loss,
-            batch_size,
-            epochs,
-            save_model_path,
-        )
-        sel_lr = optimal_hparams["lr"]
-        sel_wt_decay = optimal_hparams["weight_decay"]
+        if (("optimize_hyperparameters" in fit_params) and
+            fit_params["optimize_hyperparameters"]):
+            # Hyperparameter optimization
+            os.makedirs(os.path.join(PATH_OUTPUT_DIR, "saved_models"), exist_ok=True)
+            save_model_path = os.path.join(
+                PATH_OUTPUT_DIR, "saved_models", "saved_lstm_model"
+            )
+            torch.save(self.state_dict(), save_model_path)
+            hparam_grid = {"lr": [0.0001, 0.00005], "weight_decay": [0.0001, 0.00001]}
+            optimal_hparams = self._optimize_hyperparameters(
+                train_dataset,
+                label_col,
+                ts_inputs,
+                other_features,
+                hparam_grid,
+                loss,
+                batch_size,
+                epochs,
+                save_model_path,
+            )
+            sel_lr = optimal_hparams["lr"]
+            sel_wt_decay = optimal_hparams["weight_decay"]
 
-        # retrain with optimal hyperparameters
-        self.load_state_dict(torch.load(save_model_path))
+            # load saved model to retrain with optimal hyperparameters
+            self.load_state_dict(torch.load(save_model_path))
+        else:
+            sel_lr = 0.0001
+            sel_wt_decay = 0.0001
+
         torch_dataset = TorchDataset(train_dataset)
         data_loader = torch.utils.data.DataLoader(
             torch_dataset,
@@ -294,6 +300,8 @@ class LSTMModel(BaseModel, nn.Module):
                 predictions_df = batch_preds
             else:
                 predictions_df = pd.concat([predictions_df, batch_preds], axis=0)
+
+        # set mode to train
         self.train()
         return predictions_df
 

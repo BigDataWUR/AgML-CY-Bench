@@ -113,7 +113,10 @@ if __name__ == "__main__":
     ]
 
     lstm_model = LSTMModel(len(ts_inputs), 0, len(other_features))
-    lstm_model.fit(train_dataset, epochs=10)
+    fit_params = {
+        "optimize_hyperparameters" : False
+    }
+    lstm_model.fit(train_dataset, epochs=10, **fit_params)
     lstm_preds = lstm_model.predict(test_dataset)
     test_preds["LSTMModel"] = lstm_preds
 
