@@ -7,9 +7,6 @@ https://cds.climate.copernicus.eu/cdsapp#!/dataset/10.24381/cds.6c68c9bb?tab=ove
 ## PUBLISHER
 European Centre for Medium-Range Weather Forecasts (ECMWF)
 
-## CONTACT NAME
-Marijn van der Velde
-
 ## DATASET DESCRIPTION
 
 | Attribute                | Description                                          |
