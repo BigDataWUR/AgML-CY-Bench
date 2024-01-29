@@ -29,6 +29,7 @@ class CropYieldDataset:
 
         self._feature_cols = []
         self._time_series_cols = []
+        # Load data if necessary
         if data_dfs is None:
             data_dfs = {}
             for src in data_sources:
@@ -66,19 +67,13 @@ class CropYieldDataset:
         self._align_spatial_units()
         self._align_years()
 
-        # reindex label data to match other yearly data
+        # Reindex label data to match data sources with the same index
         label_df = self._data_dfs[self._label_key]
         for src in self._data_dfs:
             index_cols = self._data_sources[src]["index_cols"]
-            if (
-                (src == self._label_key)
-                or (self._year_col not in index_cols)
-                or (time_step_col in index_cols)
-            ):
-                continue
-
-            src_df = self._data_dfs[src]
-            label_df = label_df.loc[src_df.index]
+            if (src != self._label_key) and (index_cols == self._index_cols):
+                src_df = self._data_dfs[src]
+                label_df = label_df.loc[src_df.index]
 
         self._data_dfs[self._label_key] = label_df
         # Sort the data for faster lookups
