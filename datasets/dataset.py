@@ -13,9 +13,11 @@ class CropYieldDataset:
         spatial_id_col="REGION",
         year_col="YEAR",
         label_col="YIELD",
+        time_step_col="DEKAD",
+        max_time_steps=36,
+        lead_time=0,
         data_dfs=None,
         data_path=None,
-        lead_time=0,
     ):
         assert (data_dfs is not None) or (data_path is not None)
 
@@ -33,38 +35,54 @@ class CropYieldDataset:
                 filename = data_sources[src]["filename"]
                 index_cols = data_sources[src]["index_cols"]
                 src_df = csv_to_pandas(data_path, filename, index_cols)
-                if "DEKAD" in index_cols:
+                if time_step_col in index_cols:
                     if lead_time == 0:
-                        end_dekad = 36
+                        end_time_step = max_time_steps
                     else:
-                        end_dekad = 36 - lead_time
+                        end_time_step = max_time_steps - lead_time
 
-                    sel_dekads = [d for d in range(1, end_dekad + 1)]
-                    src_df = self._filter_df_on_index(src_df, sel_dekads, 2)
+                    sel_time_steps = [d for d in range(1, end_time_step + 1)]
+                    src_df = self._filter_df_on_index(src_df, sel_time_steps, 2)
 
                 data_dfs[src] = src_df
 
+        # Set index_cols, feature_cols, time_series_cols
         for src in data_sources:
+            index_cols = data_sources[src]["index_cols"]
             if src == self._label_key:
-                index_cols = data_sources[src]["index_cols"]
                 self._index_cols = index_cols
-                continue
+            else:
+                sel_cols = data_sources[src]["sel_cols"]
+                self._feature_cols += sel_cols
+                if time_step_col in index_cols:
+                    self._time_series_cols += sel_cols
 
-            sel_cols = data_sources[src]["sel_cols"]
-            self._feature_cols += sel_cols
-            if data_dfs[src].index.nlevels == 3:
-                self._time_series_cols += sel_cols
+        # TODO -- data preprocessing:
+        #   - Start date, end date of season?
+        #   - Missing data?
 
-            # TODO -- data preprocessing:
-            #   - Start date, end date of season?
-            #   - Missing data?
-
+        # data alignment
         self._data_dfs = data_dfs
         self._align_spatial_units()
         self._align_years()
 
+        # reindex label data to match other yearly data
+        label_df = self._data_dfs[self._label_key]
         for src in self._data_dfs:
-            # Sort the data for faster lookups
+            index_cols = self._data_sources[src]["index_cols"]
+            if (
+                (src == self._label_key)
+                or (self._year_col not in index_cols)
+                or (time_step_col in index_cols)
+            ):
+                continue
+
+            src_df = self._data_dfs[src]
+            label_df = label_df.loc[src_df.index]
+
+        self._data_dfs[self._label_key] = label_df
+        # Sort the data for faster lookups
+        for src in self._data_dfs:
             self._data_dfs[src].sort_index(inplace=True)
 
         self._data_y = data_dfs[self._label_key]
@@ -155,10 +173,18 @@ class CropYieldDataset:
             df = self._data_dfs[src].loc[spatial_unit]
             sample = {key: df[key] for key in sel_cols}
 
-        # time series data
         else:
-            df = self._data_dfs[src].xs((spatial_unit, year), drop_level=True)
-            sample = {key: df[key].values for key in sel_cols}
+            # yearly data
+            index_cols = self._data_sources[src]["index_cols"]
+            if index_cols == self.indexCols:
+                df = self._data_dfs[src].loc[spatial_unit, year]
+                sample = {key: df[key] for key in sel_cols}
+            elif len(index_cols) > len(self.indexCols):
+                # time series data
+                df = self._data_dfs[src].xs((spatial_unit, year), drop_level=True)
+                sample = {key: df[key].values for key in sel_cols}
+            else:
+                raise Exception(f"Unsupported data source{src}")
 
         return sample
 

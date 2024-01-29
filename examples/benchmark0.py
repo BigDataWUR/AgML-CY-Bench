@@ -100,14 +100,16 @@ if __name__ == "__main__":
         data_sources,
         spatial_id_col="COUNTY_ID",
         year_col="FYEAR",
-        data_path=data_path,
+        time_step_col="DEKAD",
+        max_time_steps=36,
         lead_time=6,
+        data_path=data_path,
     )
 
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
     all_inputs = train_dataset.featureCols
     ts_inputs = train_dataset.timeSeriesCols
-    trend_features = [c for c in all_inputs if "YIELD-" in c]
+    trend_inputs = [c for c in all_inputs if "YIELD-" in c]
     other_features = [
         c for c in all_inputs if ((c not in ts_inputs) and ("YIELD-" not in c))
     ]

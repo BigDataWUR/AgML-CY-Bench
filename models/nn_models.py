@@ -11,21 +11,22 @@ from datasets.torch_dataset import TorchDataset
 from evaluation.metrics import normalized_rmse
 from config import LOGGER_NAME, comet_api_key
 
-if comet_api_key is not None:
-    experiment = comet_ml.Experiment(
-        api_key=comet_api_key,
-        project_name="agml-crop-yield-forecasting",
-    )
-    experiment.set_name("python-package")
-else:
-    experiment = None
+# if comet_api_key is not None:
+#     experiment = comet_ml.Experiment(
+#         api_key=comet_api_key,
+#         project_name="agml-crop-yield-forecasting",
+#     )
+#     experiment.set_name("python-package")
+# else:
+#     experiment = None
+experiment = None
 
 
 class LSTMModel(BaseModel, nn.Module):
     def __init__(
         self,
         num_ts_inputs,
-        num_trend_features,
+        num_trend_inputs,
         num_other_features,
         num_rnn_layers=1,
         rnn_hidden_size=64,
@@ -43,7 +44,7 @@ class LSTMModel(BaseModel, nn.Module):
             dtype=torch.double,
         )
 
-        num_all_features = rnn_hidden_size + num_trend_features + num_other_features
+        num_all_features = rnn_hidden_size + num_trend_inputs + num_other_features
         self._batch_norm2 = nn.BatchNorm1d(num_all_features, dtype=torch.double)
         self._fc = nn.Linear(num_all_features, num_outputs, dtype=torch.double)
         self._max_epochs = 10
@@ -65,8 +66,9 @@ class LSTMModel(BaseModel, nn.Module):
 
         loss = nn.MSELoss()
 
-        if (("optimize_hyperparameters" in fit_params) and
-            fit_params["optimize_hyperparameters"]):
+        if ("optimize_hparameters" in fit_params) and fit_params[
+            "optimize_hyperparameters"
+        ]:
             # Hyperparameter optimization
             os.makedirs(os.path.join(PATH_OUTPUT_DIR, "saved_models"), exist_ok=True)
             save_model_path = os.path.join(
@@ -129,9 +131,9 @@ class LSTMModel(BaseModel, nn.Module):
             # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
             y = torch.unsqueeze(batch[label_col], 1)
             X_ts = torch.cat([torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1)
-            X_rest = torch.cat([batch[c] for c in other_features])
-            if len(X_rest.shape) == 1:
-                X_rest = torch.unsqueeze(X_rest, 1)
+            X_rest = torch.cat(
+                [torch.unsqueeze(batch[c], 1) for c in other_features], dim=1
+            )
 
             y_hat = self(X_ts, X_rest)
             l = loss(y_hat, y)
@@ -280,10 +282,9 @@ class LSTMModel(BaseModel, nn.Module):
             # batch = normalize_data(batch, self._norm_params, normalization=self._normalization)
             y = torch.unsqueeze(batch[label_col], 1)
             X_ts = torch.cat([torch.unsqueeze(batch[c], 1) for c in ts_inputs], dim=1)
-            X_rest = torch.cat([batch[c] for c in other_features])
-            if len(X_rest.shape) == 1:
-                X_rest = torch.unsqueeze(X_rest, 1)
-
+            X_rest = torch.cat(
+                [torch.unsqueeze(batch[c], 1) for c in other_features], dim=1
+            )
             y_hat = self(X_ts, X_rest)
             data = []
             num_items = y.shape[0]
@@ -325,8 +326,9 @@ class LSTMModel(BaseModel, nn.Module):
 import os
 
 from datasets.dataset import CropYieldDataset
-from config import PATH_DATA_DIR
-from config import PATH_OUTPUT_DIR
+from util.data import trend_features
+from config import PATH_DATA_DIR, PATH_OUTPUT_DIR
+
 
 if __name__ == "__main__":
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
@@ -360,21 +362,23 @@ if __name__ == "__main__":
         data_sources,
         spatial_id_col="COUNTY_ID",
         year_col="FYEAR",
-        data_path=data_path,
+        time_step_col="DEKAD",
+        max_time_steps=36,
         lead_time=6,
+        data_path=data_path,
     )
 
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
     all_inputs = train_dataset.featureCols
     ts_inputs = train_dataset.timeSeriesCols
-    trend_features = [c for c in all_inputs if "YIELD-" in c]
+    trend_inputs = [c for c in all_inputs if "YIELD-" in c]
     other_features = [
         c for c in all_inputs if ((c not in ts_inputs) and ("YIELD-" not in c))
     ]
 
     lstm_model = LSTMModel(
         num_ts_inputs=len(ts_inputs),
-        num_trend_features=len(trend_features),
+        num_trend_inputs=len(trend_inputs),
         num_other_features=len(other_features),
     )
     lstm_model.fit(train_dataset, epochs=10)
@@ -382,13 +386,86 @@ if __name__ == "__main__":
     test_preds = lstm_model.predict(test_dataset)
     print(test_preds.head(5).to_string())
 
+    # Test saving and loading
     output_path = os.path.join(PATH_OUTPUT_DIR, "saved_models")
     os.makedirs(output_path, exist_ok=True)
 
-    # Test saving and loading
     lstm_model.save(output_path + "/saved_lstm_model.pkl")
     saved_model = LSTMModel.load(output_path + "/saved_lstm_model.pkl")
     test_preds = saved_model.predict(test_dataset)
     print("\n")
     print("Predictions of saved model. Should match earlier output.")
+    print(test_preds.head(5).to_string())
+
+    # Test with yield trend
+    trend_window = 5
+    all_years = list(range(2000, 2019))
+    test_years = [2012, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+
+    yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
+    yield_df = pd.read_csv(yield_csv, header=0)
+
+    # NOTE: we don't use train_years here
+    # because yield data may have years earlier than 2000.
+    train_df = yield_df[~yield_df["FYEAR"].isin(test_years)]
+    test_df = yield_df[yield_df["FYEAR"].isin(test_years)]
+
+    # For training, we can only use training data to create yield trend features
+    train_trend = trend_features(train_df, "COUNTY_ID", "FYEAR", "YIELD", trend_window)
+    train_trend = train_trend.dropna(axis=0)
+    train_trend = train_trend.drop(
+        columns=["YIELD"] + ["FYEAR-" + str(i) for i in range(1, trend_window + 1)]
+    )
+
+    # For test data, we can combine train_df and test_df to get trend features
+    combined_df = pd.concat([train_df, test_df], axis=0)
+    test_trend = trend_features(
+        combined_df, "COUNTY_ID", "FYEAR", "YIELD", trend_window
+    )
+    test_trend = test_trend.dropna(axis=0)
+    test_trend = test_trend[test_trend["FYEAR"].isin(test_years)]
+    test_trend = test_trend.drop(
+        columns=["YIELD"] + ["FYEAR-" + str(i) for i in range(1, trend_window + 1)]
+    )
+
+    # Combine the two.
+    # NOTE: we cannot create trend features on the full yield data
+    # because training set should not use test data.
+    trend_data = pd.concat([train_trend, test_trend], axis=0)
+    trend_csv = os.path.join(data_path, "YIELD_TREND_COUNTY_US.csv")
+    # print(trend_data.head(5))
+    trend_data.to_csv(trend_csv, index=False)
+    data_sources["YIELD_TREND"] = {
+        "filename": "YIELD_TREND_COUNTY_US.csv",
+        "index_cols": ["COUNTY_ID", "FYEAR"],
+        "sel_cols": ["YIELD-" + str(i) for i in range(1, trend_window + 1)],
+    }
+
+    dataset = CropYieldDataset(
+        data_sources,
+        spatial_id_col="COUNTY_ID",
+        year_col="FYEAR",
+        time_step_col="DEKAD",
+        max_time_steps=36,
+        lead_time=6,
+        data_path=data_path,
+    )
+
+    train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
+    all_inputs = train_dataset.featureCols
+    ts_inputs = train_dataset.timeSeriesCols
+    trend_inputs = [c for c in all_inputs if "YIELD-" in c]
+    other_features = [
+        c for c in all_inputs if ((c not in ts_inputs) and ("YIELD-" not in c))
+    ]
+
+    lstm_trend_model = LSTMModel(
+        num_ts_inputs=len(ts_inputs),
+        num_trend_inputs=len(trend_inputs),
+        num_other_features=len(other_features),
+    )
+    lstm_trend_model.fit(train_dataset, epochs=10)
+
+    test_preds = lstm_trend_model.predict(test_dataset)
     print(test_preds.head(5).to_string())
