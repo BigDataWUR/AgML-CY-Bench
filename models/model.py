@@ -29,7 +29,7 @@ class BaseModel(ABC):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        raise NotImplementedError
+        return self.predict_batch([d for d in dataset])
 
     @abstractmethod
     def predict_batch(self, X:list):
