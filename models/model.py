@@ -1,56 +1,60 @@
 """Model base class
-
-The API takes some ideas from skorch (https://github.com/skorch-dev/skorch/).
 """
 
 from abc import ABC, abstractmethod
 
+from datasets.dataset import Dataset
 
 class BaseModel(ABC):
     @abstractmethod
-    def fit(self, X, y=None, epochs=None, **fit_params):
+    def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
 
         Args:
-          X: Input data, which can be
-            * numpy array
-            * torch tensor
-            * a dictionary of numpy array or torch tensor
-            * pandas DataFrame
-            * Dataset
-
-          y: Target data. Supported data types are the same as for ``X``.
-            If ``X`` is a dictionary or a Dataset, ``y`` may be None.
-
-          epochs: int or None (default=None)
-            If not None, train for this many epochs.
+          dataset: Dataset
 
           **fit_params: Additional parameters.
 
-          Returns:
-            self (fitted model).
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        raise NotImplementedError
+
+    def predict(self, dataset: Dataset) -> tuple:
+        """Run fitted model on data.
+
+        Args:
+          dataset: Dataset
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
         """
         raise NotImplementedError
 
     @abstractmethod
-    def predict(self, X):
+    def predict_batch(self, X:list):
         """Run fitted model on data.
 
         Args:
-          X: Input data, which can be
-            * numpy array
-            * torch tensor
-            * a dictionary of numpy array or torch tensor
-            * pandas DataFrame
-            * Dataset
+          X: a list of data items, each of which is a dict
 
         Returns:
-          Predictions, which can be
-            * numpy array
-            * torch tensor
-            * pandas DataFrame
+          A tuple containing a np.ndarray and a dict with additional information.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def predict_item(self, X:dict):
+        """Run fitted model on data.
+
+        Args:
+          X: a data item
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
+        batch = [X]
+        return self.predict_batch(batch)
 
     @abstractmethod
     def save(self, model_name):
