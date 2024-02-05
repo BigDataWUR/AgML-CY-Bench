@@ -2,10 +2,13 @@
 This dataset provides daily surface meteorological data for the period from 1979 to present as input for agriculture and agro-ecological studies.This dataset is based on the hourly ECMWF ERA5 data at surface level and is referred to as AgERA5.
 
 ## DATASET LINK
-https://cds.climate.copernicus.eu/cdsapp#!/dataset/10.24381/cds.6c68c9bb?tab=overview
+https://doi.org/10.24381/cds.6c68c9bb
 
 ## PUBLISHER
 European Centre for Medium-Range Weather Forecasts (ECMWF)
+
+## CONTACT NAME
+Allard de Wit, Abdelrahman Amr Ali
 
 ## DATASET DESCRIPTION
 
