@@ -1,6 +1,6 @@
-data/
-output/
-comet*
+data
+output
 __pycache__
+api_keys
 .vscode
 *~
