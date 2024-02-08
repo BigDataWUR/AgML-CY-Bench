@@ -57,9 +57,9 @@ The sixth and final image stored every dekad corresponds to the black dot in the
 ## Data Preparation For Machine Learning
 the streamlined workflow for preparing FPAR data using a series of Jupyter notebooks. The workflow is divided into three primary steps: downloading, clipping, and aggregating the FPAR data. Each notebook is designed to guide you through a specific part of the data preparation process:
 
-1_FPAR_Download_Data.ipynb - Automates the download of high-resolution FPAR data for a user-defined period and saves it to a specified folder.
-2_FPAR_Clip_Data.ipynb - Clips the FPAR data to your specified Area of Interest (AOI) using shapefiles, reducing the dataset size and focusing on the region relevant to your study.
-3_FPAR_Aggregation.ipynb - Aggregates the clipped FPAR data into a CSV file.
+* 1_FPAR_Download_Data.ipynb - Automates the download of high-resolution FPAR data for a user-defined period and saves it to a specified folder.
+* 2_FPAR_Clip_Data.ipynb - Clips the FPAR data to your specified Area of Interest (AOI) using shapefiles, reducing the dataset size and focusing on the region relevant to your study.
+* 3_FPAR_Aggregation.ipynb - Aggregates the clipped FPAR data into a CSV file.
 
 <img src="FPAR_Data_preparation_steps.png" alt="FPAR For ML" width="400"/>
 Notebooks prepared by Abdelrahman Amr Ali
