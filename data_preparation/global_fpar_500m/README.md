@@ -61,7 +61,7 @@ the streamlined workflow for preparing FPAR data using a series of Jupyter noteb
 2_FPAR_Clip_Data.ipynb - Clips the FPAR data to your specified Area of Interest (AOI) using shapefiles, reducing the dataset size and focusing on the region relevant to your study.
 3_FPAR_Aggregation.ipynb - Aggregates the clipped FPAR data into a CSV file.
 
-<img src="FPAR_Data_preparation_steps.png" alt="FPAR For ML" width="800"/>
+<img src="FPAR_Data_preparation_steps.png" alt="FPAR For ML" width="400"/>
 Notebooks prepared by Abdelrahman Amr Ali
 
 ## REFERENCES: 
