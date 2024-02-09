@@ -37,11 +37,11 @@ get_items <- map(nass_data_items, get_params)
 raw_data <- map_dfr(get_items, nassqs)
 
 old_names <-  c("year", "commodity_desc", "state_name", "county_name", 
-                "YIELD", "AREA HARVESTED", "PRODUCTION")
-new_names <- c("Year", "Crop", "State", "County", "Yield", "Area", "Production")
+                "YIELD", "AREA HARVESTED", "PRODUCTION", "state_fips_code", "county_code")
+new_names <- c("Year", "Crop", "State", "County", "Yield", "Area", "Production", "statefp", "countyfp")
 
 select_stats <- raw_data |> 
-  select('year', 'commodity_desc', 'county_name', 'state_name', 'statisticcat_desc', 'Value') |> 
+  select('year', 'commodity_desc', 'state_name', 'county_name', 'statisticcat_desc', 'Value', 'state_fips_code', 'county_code') |> 
   filter(county_name != "OTHER (COMBINED) COUNTIES") |>
   type_convert() |> 
   pivot_wider(names_from="statisticcat_desc", values_from=c("Value")) |> 
