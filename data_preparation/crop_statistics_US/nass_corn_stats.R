@@ -1,23 +1,25 @@
 library(rnassqs)
-#library(tidyUSDA)
 library(tidyverse)
 
-#api_key = readLines("nass_api.txt", warn = F)
+api_key = readLines("nass_api.txt", warn = F) #Modify "nass_api.txt" to provide your api file.
 nassqs_auth(key = api_key)
 
-## Using package rnassqs
+#Add more commodities here. Should match the Commodity field in NASS QuickStats.
+commodities <- c("CORN" ,"WHEAT")
 
-nass_crops <- "CORN"
+#Add more "types" of crops here, e.g. "WHEAT, SPRING" for spring wheat or "WHEAT" for all types of wheat combined.
+crops <- c("CORN, GRAIN", "WHEAT, WINTER")
+
 years <- 2000:2022
 
-nass_data_items <- c("CORN, GRAIN - ACRES HARVESTED",
-                     "CORN, GRAIN - YIELD, MEASURED IN BU / ACRE",
-                     "CORN, GRAIN - PRODUCTION, MEASURED IN BU")
+nass_data_items <- c(paste0(crops, " - ACRES HARVESTED"),
+                     paste0(crops, " - YIELD, MEASURED IN BU / ACRE"),
+                     paste0(crops, " - PRODUCTION, MEASURED IN BU"))
 
 get_params <- function(data_item){
   params <- list(
   source_desc = "SURVEY",
-  commodity_desc = nass_crops,
+  commodity_desc = commodities,
   domaincat_desc="NOT SPECIFIED",
   agg_level_desc = "COUNTY",
   year = years,
@@ -34,17 +36,17 @@ get_items <- map(nass_data_items, get_params)
 
 raw_data <- map_dfr(get_items, nassqs)
 
+old_names <-  c("year", "commodity_desc", "state_name", "county_name", 
+                "YIELD", "AREA HARVESTED", "PRODUCTION")
+new_names <- c("Year", "Crop", "State", "County", "Yield", "Area", "Production")
+
 select_stats <- raw_data |> 
-  select('year', 'commodity_desc', 'county_code', 'county_name', 'state_name', 'statisticcat_desc', 'unit_desc', 'Value', 'CV (%)', 'short_desc') |> 
-  filter(county_name != "OTHER (COMBINED) COUNTIES")
+  select('year', 'commodity_desc', 'county_name', 'state_name', 'statisticcat_desc', 'Value') |> 
+  filter(county_name != "OTHER (COMBINED) COUNTIES") |>
+  type_convert() |> 
+  pivot_wider(names_from="statisticcat_desc", values_from=c("Value")) |> 
+  rename_with(~ new_names, all_of(old_names))
 
-if (!file.exists(nass_stats_file)) {
-  write.csv(select_stats, file=nass_stats_file, row.names=FALSE)
-} else {
-  write.table(select_stats, file=nass_stats_file, sep = ",", 
-              append=TRUE, quote=FALSE,
-              col.names=FALSE, row.names=FALSE)
-}
-
+write_csv(select_stats, "datasets/nass_stats.csv")
 
 
