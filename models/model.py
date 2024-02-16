@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 from datasets.dataset import Dataset
 
+
 class BaseModel(ABC):
     @abstractmethod
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
@@ -32,8 +33,8 @@ class BaseModel(ABC):
         return self.predict_batch([d for d in dataset])
 
     @abstractmethod
-    def predict_batch(self, X:list):
-        """Run fitted model on data.
+    def predict_batch(self, X: list):
+        """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
@@ -43,9 +44,8 @@ class BaseModel(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def predict_item(self, X:dict):
-        """Run fitted model on data.
+    def predict_item(self, X: dict):
+        """Run fitted model on one data item.
 
         Args:
           X: a data item
