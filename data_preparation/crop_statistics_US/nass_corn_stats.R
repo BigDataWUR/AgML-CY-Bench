@@ -1,5 +1,5 @@
-library(rnassqs)
-library(tidyverse)
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(rnassqs, tidyverse)
 
 api_key = readLines("nass_api.txt", warn = F) #Modify "nass_api.txt" to provide your api file.
 nassqs_auth(key = api_key)
@@ -36,15 +36,18 @@ get_items <- map(nass_data_items, get_params)
 
 raw_data <- map_dfr(get_items, nassqs)
 
-old_names <-  c("year", "commodity_desc", "state_name", "county_name", 
-                "YIELD", "AREA HARVESTED", "PRODUCTION", "state_fips_code", "county_code")
-new_names <- c("Year", "Crop", "State", "County", "Yield", "Area", "Production", "statefp", "countyfp")
+old_names <-  c("year", "state_name", "county_name", 
+                "YIELD, MEASURED IN BU / ACRE", "ACRES HARVESTED", 
+                "PRODUCTION, MEASURED IN BU", "state_fips_code", "county_code")
+new_names <- c("Year", "State", "County", "Yield", "Area", "Production", "statefp", "countyfp")
 
 select_stats <- raw_data |> 
-  select('year', 'commodity_desc', 'state_name', 'county_name', 'statisticcat_desc', 'Value', 'state_fips_code', 'county_code') |> 
+  select('year', 'state_name', 'county_name', 'Value', 'state_fips_code', 'county_code', 'short_desc') |> 
   filter(county_name != "OTHER (COMBINED) COUNTIES") |>
   type_convert() |> 
-  pivot_wider(names_from="statisticcat_desc", values_from=c("Value")) |> 
+  separate(short_desc, c("Crop", "Var_name"), "- ") |> 
+  mutate(Crop = map_chr(str_split(tolower(Crop), ", "), ~paste0((.), collapse = "_"))) |> 
+  pivot_wider(names_from="Var_name", values_from=c("Value")) |> 
   rename_with(~ new_names, all_of(old_names))
 
 write_csv(select_stats, "datasets/nass_stats.csv")
