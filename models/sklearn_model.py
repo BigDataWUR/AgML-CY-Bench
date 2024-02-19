@@ -2,6 +2,7 @@ import pickle
 import numpy as np
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import GroupKFold
+from sklearn.linear_model import LinearRegression
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
@@ -13,7 +14,7 @@ class SklearnBaseModel(BaseModel):
         self._index_cols = index_cols
         self._feature_cols = feature_cols
         self._label_col = label_col
-        self._est = None
+        self._est = LinearRegression()
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -32,9 +33,19 @@ class SklearnBaseModel(BaseModel):
             (fit_params["optimize_hyperparameters"])):
             assert ("param_space" in fit_params)
             param_space = fit_params["param_space"]
+
+            # NOTE: optimize hyperparameters refits the estimator
+            # with the optimal hyperparameter values.
             self._est = self.optimize_hyperparameters(train_df, param_space,
                                                       train_years=train_years,
                                                       kfolds=5)
+
+        else:
+            X = train_df[self._feature_cols].values
+            y = train_df[self._label_col].values
+            self._est.fit(X, y)
+
+        return self._est
 
     def optimize_hyperparameters(self, train_df, param_space, train_years=None,
                                  kfolds=None):
@@ -96,3 +107,5 @@ class SklearnBaseModel(BaseModel):
         """
         with open(model_name, "rb") as f:
             saved_model = pickle.load(f)
+
+        return saved_model

@@ -72,3 +72,5 @@ class AverageYieldModel(BaseModel):
         """
         with open(model_name, "rb") as f:
             saved_model = pickle.load(f)
+
+        return saved_model
