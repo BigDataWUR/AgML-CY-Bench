@@ -45,7 +45,7 @@ class SklearnBaseModel(BaseModel):
             y = train_df[self._label_col].values
             self._est.fit(X, y)
 
-        return self._est
+        return self
 
     def optimize_hyperparameters(self, train_df, param_space, train_years=None,
                                  kfolds=None):
