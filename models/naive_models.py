@@ -30,6 +30,8 @@ class AverageYieldModel(BaseModel):
             .reset_index()
         )
 
+        return self
+
     def predict_batch(self, X: list):
         """Run fitted model on batched data items.
 

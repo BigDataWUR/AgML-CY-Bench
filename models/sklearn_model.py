@@ -29,7 +29,7 @@ class SklearnBaseModel(BaseModel):
         """
         train_df = data_to_pandas(dataset)
         train_years = dataset.years
-        if (("optimize_hyperparameters" in fit_params) &
+        if (("optimize_hyperparameters" in fit_params) and
             (fit_params["optimize_hyperparameters"])):
             assert ("param_space" in fit_params)
             param_space = fit_params["param_space"]
@@ -89,6 +89,8 @@ class SklearnBaseModel(BaseModel):
 
     def save(self, model_name):
         """Save model, e.g. using pickle.
+        Check here for options to save and load scikit-learn models:
+        https://scikit-learn.org/stable/model_persistence.html
 
         Args:
           model_name: Filename that will be used to save the model.
