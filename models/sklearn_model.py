@@ -29,6 +29,8 @@ class SklearnBaseModel(BaseModel):
         """
         train_df = data_to_pandas(dataset)
         train_years = dataset.years
+        X = train_df[self._feature_cols].values
+        y = train_df[self._label_col].values
         if (("optimize_hyperparameters" in fit_params) and
             (fit_params["optimize_hyperparameters"])):
             assert ("param_space" in fit_params)
@@ -36,18 +38,16 @@ class SklearnBaseModel(BaseModel):
 
             # NOTE: optimize hyperparameters refits the estimator
             # with the optimal hyperparameter values.
-            self._est = self.optimize_hyperparameters(train_df, param_space,
+            self._est = self.optimize_hyperparameters(X, y, param_space,
                                                       train_years=train_years,
                                                       kfolds=5)
 
         else:
-            X = train_df[self._feature_cols].values
-            y = train_df[self._label_col].values
             self._est.fit(X, y)
 
         return self
 
-    def optimize_hyperparameters(self, train_df, param_space, train_years=None,
+    def optimize_hyperparameters(self, X, y, param_space, train_years=None,
                                  kfolds=None):
         """
         Pass kfolds = len(train_years) for leave-one-out
@@ -61,9 +61,6 @@ class SklearnBaseModel(BaseModel):
         else:
             # regular k-fold cv
             cv = kfolds
-  
-        X = train_df[self._feature_cols].values
-        y = train_df[self._label_col].values
 
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._pipeline, param_grid=param_space, cv=cv)
