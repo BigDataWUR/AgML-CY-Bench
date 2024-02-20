@@ -33,7 +33,7 @@ Please prepare or provide the yield data in the following format:
 **source**: data source with version
 
 ### Notes
-Please provide the planting_year, planting_date and harvest_date in case this information is provided as part of the yield data set. If this information is not available, we will use a crop calendar to get this information.
+Please provide the `planting_year`, `planting_date` and `harvest_date` in case this information is provided as part of the yield data set. If this information is not available, we will use a crop calendar to get this information.
 
 This format was proposed by Rahel, Weston, Donghoon and Dilli. Please get in touch with us (laudien@pik-potsdam.de) in case you have questions or other suggestions. 
 
