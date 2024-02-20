@@ -9,7 +9,10 @@ class Dataset:
     YEARS_TRAIN = tuple(range(2000, 2011 + 1))
     YEARS_TEST = tuple(range(2012, 2018 + 1))
 
-    INDEX_KEYS = ('COUNTY_ID', 'FYEAR')
+    INDEX_KEY_LOCATION = 'COUNTY_ID'
+    INDEX_KEY_TIME = 'FYEAR'
+
+    INDEX_KEYS = (INDEX_KEY_LOCATION, INDEX_KEY_TIME)
 
     TARGET_KEY = 'YIELD'
 
@@ -17,6 +20,9 @@ class Dataset:
     FEATURE_KEYS_SOIL = 'SM_WHC', 'SM_DEPTH'
     FEATURE_KEYS_RS = 'FAPAR',
     FEATURE_KEYS = FEATURE_KEYS_METEO + FEATURE_KEYS_SOIL + FEATURE_KEYS_RS
+
+    SEASON_START = 0  # dekad nr.
+    SEASON_END = None  # TODO -- define as date?
 
     def __init__(self,
                  df_yield: pd.DataFrame = None,
@@ -105,6 +111,10 @@ class Dataset:
             **data_remote_sensing,
         }
 
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
     def _get_meteo_data(self, county_id: str, year: int) -> dict:
 
         # Select data matching the location and year
@@ -115,7 +125,7 @@ class Dataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in Dataset.FEATURE_KEYS_METEO
+            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_METEO
         }
 
     def _get_soil_data(self, county_id: str) -> dict:
@@ -136,7 +146,7 @@ class Dataset:
         #  key -> np.ndarray
         #  where the array contains data for all DEKADs
         return {
-            key: df[key].values for key in Dataset.FEATURE_KEYS_RS
+            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_RS
         }
 
     def __len__(self) -> int:
@@ -211,6 +221,15 @@ class Dataset:
         return dataset.split_on_years(
             years_split=(Dataset.YEARS_TRAIN, Dataset.YEARS_TEST),
         )
+
+    def get_feature_mean(self, key: str) -> float:  # TODO
+        raise NotImplementedError
+
+    def get_feature_std(self, key: str) -> float:
+        raise NotImplementedError
+
+    def get_feature_range(self, key: str) -> tuple:
+        raise NotImplementedError
 
 
 if __name__ == '__main__':
