@@ -8,5 +8,3 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, 'data')
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
-
-

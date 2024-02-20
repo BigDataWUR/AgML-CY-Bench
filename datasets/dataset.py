@@ -3,150 +3,42 @@ from pandas import MultiIndex
 
 from data_preparation.county_us import get_yield_data, get_meteo_data, get_soil_data, get_remote_sensing_data
 
-
 class Dataset:
-
-    YEARS_TRAIN = tuple(range(2000, 2011 + 1))
-    YEARS_TEST = tuple(range(2012, 2018 + 1))
-
-    INDEX_KEY_LOCATION = 'COUNTY_ID'
-    INDEX_KEY_TIME = 'FYEAR'
-
-    INDEX_KEYS = (INDEX_KEY_LOCATION, INDEX_KEY_TIME)
-
-    TARGET_KEY = 'YIELD'
-
-    FEATURE_KEYS_METEO = 'TMAX', 'TMIN', 'TAVG', 'VPRES', 'WSPD', 'PREC', 'ET0', 'RAD'
-    FEATURE_KEYS_SOIL = 'SM_WHC', 'SM_DEPTH'
-    FEATURE_KEYS_RS = 'FAPAR',
-    FEATURE_KEYS = FEATURE_KEYS_METEO + FEATURE_KEYS_SOIL + FEATURE_KEYS_RS
-
-    SEASON_START = 0  # dekad nr.
-    SEASON_END = None  # TODO -- define as date?
-
-    def __init__(self,
-                 df_yield: pd.DataFrame = None,
-                 df_meteo: pd.DataFrame = None,
-                 df_soil: pd.DataFrame = None,
-                 df_remote_sensing: pd.DataFrame = None,
-                 ):
-
-        # Load the data from disk if necessary
-        if df_yield is None:
-            df_yield = get_yield_data()
-        if df_meteo is None:
-            df_meteo = get_meteo_data()
-        if df_soil is None:
-            df_soil = get_soil_data()
-        if df_remote_sensing is None:
-            df_remote_sensing = get_remote_sensing_data()
-
-        # TODO -- align data
-        # For now, only use counties that are present everywhere
-        counties_yield = set(df_yield.index.get_level_values(0))
-        counties_soil = set(df_soil.index.values)
-        counties_meteo = set(df_meteo.index.get_level_values(0))
-        counties_rs = set(df_remote_sensing.index.get_level_values(0))
-        counties = set.intersection(counties_yield, counties_soil, counties_meteo, counties_rs)
-
-        df_yield = Dataset._filter_df_on_index(df_yield, list(counties), level=0)
-        df_soil = Dataset._filter_df_on_index(df_soil, list(counties), level=0)
-        df_meteo = Dataset._filter_df_on_index(df_meteo, list(counties), level=0)
-        df_remote_sensing = Dataset._filter_df_on_index(df_remote_sensing, list(counties), level=0)
-
-        # TODO -- data preprocessing:
-        #   - Start date, end date of season?
-        #   - Missing data?
-
-        self._data_y = df_yield  # Filter from raw data based on inputs/selection
-
-        self._data_soil = df_soil
-        self._data_meteo = df_meteo
-        self._data_remote_sensing = df_remote_sensing
-
+    def __init__(
+        self,
+        data_dfs,
+        data_sources,
+        spatial_id_col="REGION",
+        year_col="YEAR",
+    ):
+        self._data_sources = data_sources
+        self._spatial_id_col = spatial_id_col
+        self._year_col = year_col
+        self._index_cols = data_sources["YIELD"]["index_cols"]
+        self._data_dfs = data_dfs
         # Sort the data for faster lookups
-        self._data_y.sort_index(inplace=True)
-        self._data_soil.sort_index(inplace=True)
-        self._data_meteo.sort_index(inplace=True)
-        self._data_remote_sensing.sort_index(inplace=True)
+        for src in self._data_dfs:
+            self._data_dfs[src].sort_index(inplace=True)
 
-    @property
-    def years(self) -> list:
-        """
-        Obtain a list containing all years occurring in the dataset
-        """
-        return list(set([year for _, year in self._data_y.index.values]))
-
-    @property
-    def county_ids(self) -> list:
-        """
-        Obtain a list containing all county ids occurring in the dataset
-        """
-        return list(set([loc for loc, _ in self._data_y.index.values]))
+        self._data_y = data_dfs["YIELD"]
 
     def __getitem__(self, index) -> dict:
-        # Index is either integer or tuple of (year, location)
-
+        # Index is either integer or tuple of (location, year)
         if isinstance(index, int):
             sample_y = self._data_y.iloc[index]
-            county_id, year = sample_y.name
+            spatial_unit, year = sample_y.name
 
         elif isinstance(index, tuple):
-            county_id, year = index
+            spatial_unit, year = index
             sample_y = self._data_y.loc[index]
 
         else:
-            raise Exception(f'Unsupported index type {type(index)}')
-
-        data_meteo = self._get_meteo_data(county_id, year)
-        data_soil = self._get_soil_data(county_id)
-        data_remote_sensing = self._get_remote_sensing_data(county_id, year)
+            raise Exception(f"Unsupported index type {type(index)}")
 
         return {
-            'FYEAR': year,
-            'COUNTY_ID': county_id,
-            'YIELD': sample_y.YIELD,
-            **data_meteo,
-            **data_soil,
-            **data_remote_sensing,
-        }
-
-    def __iter__(self):
-        for i in range(len(self)):
-            yield self[i]
-
-    def _get_meteo_data(self, county_id: str, year: int) -> dict:
-
-        # Select data matching the location and year
-        # Sort the index for improved lookup speed
-        df = self._data_meteo.xs((county_id, year), drop_level=True)
-
-        # Return the data as dict mapping
-        #  key -> np.ndarray
-        #  where the array contains data for all DEKADs
-        return {
-            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_METEO
-        }
-
-    def _get_soil_data(self, county_id: str) -> dict:
-
-        # Select the data matching the location
-        df = self._data_soil.loc[county_id]
-
-        return {
-            key: df[key] for key in Dataset.FEATURE_KEYS_SOIL
-        }
-
-    def _get_remote_sensing_data(self, county_id: str, year: int) -> dict:
-        # Select data matching the location and year
-        # Sort the index for improved lookup speed
-        df = self._data_remote_sensing.xs((county_id, year), drop_level=True)
-
-        # Return the data as dict mapping
-        #  key -> np.ndarray
-        #  where the array contains data for all DEKADs
-        return {
-            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_RS
+            self._spatial_id_col: spatial_unit,
+            self._year_col: year,
+            "YIELD": sample_y["YIELD"],
         }
 
     def __len__(self) -> int:
@@ -231,6 +123,17 @@ class Dataset:
     def get_feature_range(self, key: str) -> tuple:
         raise NotImplementedError
 
+    @property
+    def years(self) -> list:
+        return list(set([year for _, year in self._data_y.index.values]))
+
+    @property
+    def indexCols(self) -> list:
+        return self._index_cols
+
+    @property
+    def labelCol(self) -> str:
+        return "YIELD"
 
 if __name__ == '__main__':
 
