@@ -29,7 +29,7 @@ class AverageYieldModel(BaseModel):
             .agg(GROUP_AVG=(self._label_col, "mean"))
             .reset_index()
         )
-  
+
         return self
 
     def predict_batch(self, X: list):
