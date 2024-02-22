@@ -66,11 +66,8 @@ ww | Winter wheat
 
 **Date Published**: 17/11/2023
 
-## Data access API
-Not available.
-
 ## Provenance 
-The dataset available via OpenAgrar is peer reviewed in 2023 and will be maintained.
+The dataset was peer reviewed in 2023 and will be maintained according to the authors. 
 
 # License 
 CC-BY 4.0 
@@ -78,11 +75,6 @@ CC-BY 4.0
 
 ## How to cite
 Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 to 2021 at a harmonized district-level. OpenAgrar https://doi.org/10.3220/DATA20231117103252-0 (2023).
-
-## Additional information
-*Optional*.
-
-data cleaning 1 and 0 
 
 ## References
 Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 to 2021 at a harmonized district-level. OpenAgrar https://doi.org/10.3220/DATA20231117103252-0 (2023).
