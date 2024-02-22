@@ -4,6 +4,8 @@
 
 This dataset includes crop yield and area for Germany from 1979 to 2021. The data are spatially resolved to 397 districts with an average size of 900 km2 and include the crops spring barley, winter barley, grain maize, silage maize, oats, potatoes, winter rape, rye, sugarbeet, triticale and winter wheat. The crop-yield data cover on average about 9.5 million hectares per year and 80% of Germany’s total arable land. The final dataset contains 214,820 yield and area data points. These were obtained by collecting and digitizing crop data from multiple statistical sources and transforming the data to match the district boundaries in 2020.
 
+To download the data, go to the link: https://www.openagrar.de/receive/openagrar_mods_00092044, scroll down and download the file called 'Final_data.csv'. 
+
 ## Link
 https://doi.org/10.1038/s41597-024-02951-8
 
