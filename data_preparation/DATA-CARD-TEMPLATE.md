@@ -3,7 +3,7 @@
 ## Short description
 
 ## Link
-Include the paper link and citation if the data is documented in a paper.
+Include the link to the data website and paper (if there is one).
 
 ## Publisher
 
@@ -40,7 +40,7 @@ Dataset version and maintenance
 *Mandatory*. If not sure, we only provide a link for download instead of redistributing it ourselves. Field should be filled even if no license is stated. Point to any platform where the data has been redistributed.
 
 ## How to cite
-Include the expected citation for the data here. References can be more general (including citations to other data or papers).
+Include the expected citation for the data and paper (if available) here. References can be more general (including citations to other data or papers).
 
 ## Additional information
 *Optional*.
