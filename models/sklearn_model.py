@@ -57,7 +57,7 @@ class SklearnModel(BaseModel):
         else:
             self._est.fit(X, y)
 
-        return self
+        return self, {}
 
     def optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=None):
         """
