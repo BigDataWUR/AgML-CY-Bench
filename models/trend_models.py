@@ -42,12 +42,21 @@ class TrendModel(BaseModel):
 
         return predictions, {}
 
-    def _get_trend(trend_x, trend_y, pred_y):
+    def _get_trend(self, trend_x, trend_y, pred_x):
+        """Implements a linear trend.
+
+        Args:
+          trend_x: a list of years.
+
+          trend_y: a list of values (e.g. yields)
+
+          pred_x: year for which to predict trend
+
+        Returns:
+          The trend based on linear trend of years and values
         """
-        Now this implements a linear trend.
-        """
-        slope, coeff = np.polyfit(trend_x, trend_y)
-        return (pred_y * slope + coeff)
+        slope, coeff = np.polyfit(trend_x, trend_y, 1)
+        return (pred_x * slope + coeff)
 
     def save(self, model_name):
         """Save model, e.g. using pickle.
