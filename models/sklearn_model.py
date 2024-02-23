@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, GroupKFold
-from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 
 from models.model import BaseModel
@@ -10,17 +9,16 @@ from datasets.dataset import Dataset
 from util.data import data_to_pandas
 
 
-class SklearnBaseModel(BaseModel):
-    def __init__(self, index_cols, feature_cols, label_col):
+class SklearnModel(BaseModel):
+    def __init__(self, sklearn_est, index_cols, feature_cols, label_col, scaler=None):
         self._index_cols = index_cols
         self._feature_cols = feature_cols
         self._label_col = label_col
 
-        self._est = None
-        # uncomment the following to run tests.
-        # self._est = Pipeline(
-        #     [("scaler", StandardScaler()), ("estimator", Ridge(alpha=0.5))]
-        # )
+        if scaler is None:
+            scaler = StandardScaler()
+
+        self._est = Pipeline([("scaler", scaler), ("estimator", sklearn_est)])
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.

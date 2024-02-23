@@ -1,10 +1,11 @@
 import os
 import pandas as pd
 import numpy as np
+from sklearn.linear_model import Ridge
 
 from datasets.dataset import Dataset
 from models.naive_models import AverageYieldModel
-from models.sklearn_model import SklearnBaseModel
+from models.sklearn_model import SklearnModel
 from config import PATH_DATA_DIR
 
 
@@ -27,7 +28,7 @@ def test_average_yield_model():
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 
-def test_sklearn_base_model():
+def test_sklearn_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
@@ -45,8 +46,12 @@ def test_sklearn_base_model():
     test_dataset = Dataset(test_yields, [test_features])
 
     # Model
-    model = SklearnBaseModel(
-        index_cols=["COUNTY_ID", "FYEAR"], feature_cols=feature_cols, label_col="YIELD"
+    ridge = Ridge(alpha=0.5)
+    model = SklearnModel(
+        ridge,
+        index_cols=["COUNTY_ID", "FYEAR"],
+        feature_cols=feature_cols,
+        label_col="YIELD",
     )
     model.fit(train_dataset)
     test_preds, _ = model.predict(test_dataset)
