@@ -114,6 +114,37 @@ class Dataset:
 
         return sample
 
+        data_x = self._get_feature_data(loc_id, year)
+        return {**data_x, **data_y}
+
+    def _get_feature_data(self, loc_id: str, year: int) -> dict:
+        data = dict()
+        for df in self._dfs_x:
+            n_levels = len(df.index.names)
+            assert 1 <= n_levels <= 3
+            if n_levels == 1:
+                data = {
+                    **df.loc[loc_id].to_dict(),
+                    **data,
+                }
+
+            if n_levels == 2:
+                data = {
+                    **df.loc[loc_id, year].to_dict(),
+                    **data,
+                }
+
+            if n_levels == 3:
+                df_loc = df.xs((loc_id, year), drop_level=True)
+                data_loc = {key: df_loc[key].values for key in df_loc.columns}
+
+                data = {
+                    **data_loc,
+                    **data,
+                }
+
+        return data
+
     def __len__(self) -> int:
         """
         Get the number of samples in the dataset
