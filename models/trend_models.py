@@ -38,10 +38,16 @@ class TrendModel(BaseModel):
         for i, item in enumerate(X):
             trend_x = [item[y] for y in self._x_cols]
             trend_y = [item[c] for c in self._y_cols]
-            slope, coeff = np.polyfit(trend_x, trend_y)
-            predictions[i] = item[self._year_col] * slope + coeff
+            predictions[i] = self._get_trend(trend_x, trend_y, item[self._year_col])
 
         return predictions, {}
+
+    def _get_trend(trend_x, trend_y, pred_y):
+        """
+        Now this implements a linear trend.
+        """
+        slope, coeff = np.polyfit(trend_x, trend_y)
+        return (pred_y * slope + coeff)
 
     def save(self, model_name):
         """Save model, e.g. using pickle.
