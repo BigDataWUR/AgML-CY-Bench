@@ -24,6 +24,8 @@ Example for crop yield, area and production statistics
 
 **Temporal resolution**:
 
+**Spatial resolution**:
+
 **Date Published**:
 
 **Data Modality**:

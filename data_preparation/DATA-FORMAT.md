@@ -16,11 +16,11 @@ Please prepare or provide the yield data in the following format:
 
 **planting_year**: in YYYY format (if available)
 
-**planting_date**: in YYYY-MM-DD format (if available)
+**planting_date**: in YYYY-MM-DD format (if available). NOTE: If no exact date is available, we can specify if planting/harvest usually starts at the beginning, middle or end of a month, e.g. "2022-05-01", "2022-05-15" or "2022-05-31".
 
 **harvest_year**: in YYYY format
 
-**harvest_date**: in YYYY-MM-DD format (if available)
+**harvest_date**: in YYYY-MM-DD format (if available). NOTE: If no exact date is available, we can specify if planting/harvest usually starts at the beginning, middle or end of a month, e.g. "2022-05-01", "2022-05-15" or "2022-05-31".
 
 **yield**: crop yield in mt/ha
 
