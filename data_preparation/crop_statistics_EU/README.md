@@ -8,7 +8,7 @@ Harmonized sub-national crop statistics on area, production, and yield, collecte
 
 The data or resource appears as "Harmonised sub-national crop statistics of the European Union".
 
-The harmonization method is described in [Ronchetti et al, 2023](https://essd.copernicus.org/preprints/essd-2023-439/essd-2023-439.pdf)
+The harmonization method is described in [Ronchetti et al, 2023 (preprint)](https://essd.copernicus.org/preprints/essd-2023-439/essd-2023-439.pdf)
 
 ## Publisher
 European Commission’s Joint Research Centre
@@ -53,4 +53,4 @@ Ronchetti, Giulia; Nisini-Scacchiafichi, Luigi; Seguini, Lorenzo; Cerrani, Iacop
 ## References
 EC-JRC, 2024. JRC Agri4Cast Data Portal. https://agri4cast.jrc.ec.europa.eu/DataPortal/, Last accessed: Feb 22, 2024.
 
-Ronchetti, G., Nisini Scacchiafichi, L., Seguini, L., Cerrani, I., and van der Velde, M.: Harmonized European Union subnational crop statistics., https://doi.org/10.2905/685949ff-56de-4646-a8df-844b5bb5f835, [Dataset], 2023.
+Ronchetti, G., Nisini Scacchiafichi, L., Seguini, L., Cerrani, I., and van der Velde, M.: Harmonized European Union subnational crop statistics reveal climate impacts and crop cultivation shifts, Earth Syst. Sci. Data Discuss. [preprint], https://doi.org/10.5194/essd-2023-439, in review, 2023.
