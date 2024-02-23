@@ -30,6 +30,8 @@ class AverageYieldModel(BaseModel):
             .reset_index()
         )
 
+        return self
+
     def predict_batch(self, X: list):
         """Run fitted model on batched data items.
 
@@ -72,3 +74,5 @@ class AverageYieldModel(BaseModel):
         """
         with open(model_name, "rb") as f:
             saved_model = pickle.load(f)
+
+        return saved_model
