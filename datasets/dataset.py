@@ -27,7 +27,7 @@ class Dataset:
 
         elif isinstance(index, tuple):
             loc_id, year = index
-            sample_y = self._data_y.loc[index]
+            sample_y = self._df_y.loc[index]
 
         else:
             raise Exception(f"Unsupported index type {type(index)}")
