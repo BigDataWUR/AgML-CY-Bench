@@ -32,7 +32,7 @@ class Dataset:
         else:
             raise Exception(f"Unsupported index type {type(index)}")
 
-        data_y =  {
+        data_y = {
             self._loc_id_col: loc_id,
             self._year_col: year,
             "YIELD": sample_y["YIELD"],
@@ -60,9 +60,7 @@ class Dataset:
 
             if n_levels == 3:
                 df_loc = df.xs((loc_id, year), drop_level=True)
-                data_loc = {
-                    key: df_loc[key].values for key in df_loc.columns
-                }
+                data_loc = {key: df_loc[key].values for key in df_loc.columns}
 
                 data = {
                     **data_loc,

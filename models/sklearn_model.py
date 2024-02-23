@@ -1,8 +1,9 @@
 import pickle
 import numpy as np
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import GroupKFold
-from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV, GroupKFold
+from sklearn.linear_model import Ridge
+from sklearn.pipeline import Pipeline
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
@@ -14,7 +15,12 @@ class SklearnBaseModel(BaseModel):
         self._index_cols = index_cols
         self._feature_cols = feature_cols
         self._label_col = label_col
-        self._est = LinearRegression()
+
+        self._est = None
+        # uncomment the following to run tests.
+        # self._est = Pipeline(
+        #     [("scaler", StandardScaler()), ("estimator", Ridge(alpha=0.5))]
+        # )
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -31,31 +37,37 @@ class SklearnBaseModel(BaseModel):
         train_years = dataset.years
         X = train_df[self._feature_cols].values
         y = train_df[self._label_col].values
-        if (("optimize_hyperparameters" in fit_params) and
-            (fit_params["optimize_hyperparameters"])):
-            assert ("param_space" in fit_params)
+        if ("optimize_hyperparameters" in fit_params) and (
+            fit_params["optimize_hyperparameters"]
+        ):
+            assert "param_space" in fit_params
             param_space = fit_params["param_space"]
 
             # NOTE: optimize hyperparameters refits the estimator
             # with the optimal hyperparameter values.
-            self._est = self.optimize_hyperparameters(X, y, param_space,
-                                                      train_years=train_years,
-                                                      kfolds=5)
+            # TODO: We may need to pass year_col explicitly to constructor
+            cv_groups = train_df[self._index_cols[1]].values
+            self._est = self.optimize_hyperparameters(
+                X,
+                y,
+                param_space,
+                groups=cv_groups,
+                # kfolds=len(train_years)
+                kfolds=5,
+            )
 
         else:
             self._est.fit(X, y)
 
         return self
 
-    def optimize_hyperparameters(self, X, y, param_space, train_years=None,
-                                 kfolds=None):
+    def optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=None):
         """
-        Pass kfolds = len(train_years) for leave-one-out
+        For leave-one-out, kfolds = len(train_years)
         """
-        # GroupKFold to split by years, n_splits = 5 for 5-fold
-        if (train_years is not None):
+        # GroupKFold to split by years
+        if groups is not None:
             group_kfold = GroupKFold(n_splits=kfolds)
-            groups = train_years
             # cv is here a list of tuples (train split, validation split)
             cv = group_kfold.split(X, y, groups)
         else:
@@ -63,7 +75,7 @@ class SklearnBaseModel(BaseModel):
             cv = kfolds
 
         # Search for optimal value of hyperparameters
-        grid_search = GridSearchCV(self._pipeline, param_grid=param_space, cv=cv)
+        grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
 
         return grid_search.best_estimator_

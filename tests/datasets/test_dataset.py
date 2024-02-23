@@ -9,6 +9,7 @@ yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
 yield_df = pd.read_csv(yield_csv, index_col=["COUNTY_ID", "FYEAR"])
 dataset = Dataset(yield_df, feature_dfs=[])
 
+
 def test_dataset_length():
     assert len(dataset) == len(yield_df.index)
 

@@ -26,6 +26,7 @@ def test_average_yield_model():
     test_preds, _ = model.predict_item(test_data)
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
+
 def test_sklearn_base_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
     # Training dataset
@@ -44,9 +45,18 @@ def test_sklearn_base_model():
     test_dataset = Dataset(test_yields, [test_features])
 
     # Model
-    model = SklearnBaseModel(index_cols=["COUNTY_ID", "FYEAR"],
-                             feature_cols=feature_cols,
-                             label_col="YIELD")
+    model = SklearnBaseModel(
+        index_cols=["COUNTY_ID", "FYEAR"], feature_cols=feature_cols, label_col="YIELD"
+    )
     model.fit(train_dataset)
     test_preds, _ = model.predict(test_dataset)
-    assert (test_preds.shape[0] == len(test_dataset))
+    assert test_preds.shape[0] == len(test_dataset)
+
+    # Model with hyperparameter optimization
+    fit_params = {
+        "optimize_hyperparameters": True,
+        "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+    }
+    model.fit(train_dataset, **fit_params)
+    test_preds, _ = model.predict(test_dataset)
+    assert test_preds.shape[0] == len(test_dataset)
