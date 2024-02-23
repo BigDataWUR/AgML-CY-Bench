@@ -59,7 +59,7 @@ class SklearnModel(BaseModel):
 
         return self, {}
 
-    def _optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=None):
+    def _optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=5):
         """
         For leave-one-out, kfolds = len(train_years)
         """
