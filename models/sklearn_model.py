@@ -41,16 +41,18 @@ class SklearnModel(BaseModel):
             assert "param_space" in fit_params
             param_space = fit_params["param_space"]
 
-            # NOTE: optimize hyperparameters refits the estimator
-            # with the optimal hyperparameter values.
-            # TODO: We may need to pass year_col explicitly to constructor
+            # NOTE: 1. optimize hyperparameters refits the estimator
+            #          with the optimal hyperparameter values.
+            #       2. use kfolds=len(train_years) for leave-one-out
+            #
+            # TODO: Currently using self._index_cols[1] as year column.
+            # We may need to pass year_col explicitly to constructor.
             cv_groups = train_df[self._index_cols[1]].values
             self._est = self._optimize_hyperparameters(
                 X,
                 y,
                 param_space,
                 groups=cv_groups,
-                # kfolds=len(train_years)
                 kfolds=5,
             )
 
@@ -60,8 +62,21 @@ class SklearnModel(BaseModel):
         return self, {}
 
     def _optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=5):
-        """
-        For leave-one-out, kfolds = len(train_years)
+        """Optimize hyperparameters
+
+        Args:
+          X: np.ndarray of training features
+
+          y: np.ndarray of training labels
+
+          param_space: a dict of parameters to optimize
+
+          groups: np.ndarray with group values (e.g year values) for each row in X and y
+
+          kfolds: number of splits cross validation
+
+        Returns:
+          A sklearn pipeline refitted with the optimal hyperparameters.
         """
         # GroupKFold to split by years
         if groups is not None:
