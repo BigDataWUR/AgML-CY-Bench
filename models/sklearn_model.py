@@ -45,7 +45,7 @@ class SklearnModel(BaseModel):
             # with the optimal hyperparameter values.
             # TODO: We may need to pass year_col explicitly to constructor
             cv_groups = train_df[self._index_cols[1]].values
-            self._est = self.optimize_hyperparameters(
+            self._est = self._optimize_hyperparameters(
                 X,
                 y,
                 param_space,
@@ -59,7 +59,7 @@ class SklearnModel(BaseModel):
 
         return self, {}
 
-    def optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=None):
+    def _optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=None):
         """
         For leave-one-out, kfolds = len(train_years)
         """
