@@ -1,51 +1,55 @@
-##################################################################################
-# R script to download USDA NASS data                                            #
-# See here for a guide:                                                          #
-# https://cran.r-project.org/web/packages/tidyUSDA/vignettes/using_tidyusda.html #
-##################################################################################
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(rnassqs, tidyverse)
 
-if(!"tidyUSDA" %in% installed.packages()){install.packages("tidyUSDA")}
-library(tidyUSDA)
+api_key = readLines("nass_api.txt", warn = F) #Modify "nass_api.txt" to provide your api file.
+nassqs_auth(key = api_key)
 
-api_key <- "<your api key>""
+#Add more commodities here. Should match the Commodity field in NASS QuickStats.
+commodities <- c("CORN" ,"WHEAT")
 
-years <- seq(2000, 2022)
-nass_crop <- "CORN"
-csv_filenames <- c("CROP_AREA_COUNTY_US.csv",
-                   "PRODUCTION_COUNTY_US.csv",
-                   "YIELD_COUNTY_US.csv")
-nass_categories <- c("AREA HARVESTED",
-                     "PRODUCTION",
-                     "YIELD")
-nass_data_items <- c("CORN, GRAIN - ACRES HARVESTED",
-                     "CORN, GRAIN - YIELD MEASURED IN BU/ACRE",
-                     "CORN, GRAIN - PRODUCTION MEASURED IN BU")
+#Add more "types" of crops here, e.g. "WHEAT, SPRING" for spring wheat or "WHEAT" for all types of wheat combined.
+crops <- c("CORN, GRAIN", "WHEAT, WINTER")
 
-for (i in seq_along(nass_categories)){
-  category <- nass_categories[i]
-  data_item <- nass_data_items[i]
-  nass_stats_file <- csv_filenames[i]
-  for (yr in years) {
-    nass_stats <- tidyUSDA::getQuickstat(
-      program ="SURVEY",
-      sector="CROPS",
-      group="FIELD CROPS",
-      commodity=nass_crop,
-      category=nass_category,
-      data_item = nass_data_item,
-      domain="TOTAL",
-      geographic_level = "COUNTY",
-      state=NULL,
-      key = api_key,
-      year = as.character(yr))
+years <- 2000:2022
 
-    nass_stats <- nass_stats[,c('county_code', 'county_name', 'state_name', 'commodity_desc', 'year', 'Value', 'CV (%)')]
-    if (!file.exists(nass_stats_file)) {
-      write.csv(nass_stats, file=nass_stats_file, row.names=FALSE)
-    } else {
-      write.table(nass_stats, file=nass_stats_file, sep = ",", 
-                  append=TRUE, quote=FALSE,
-                  col.names=FALSE, row.names=FALSE)
-    }
-  }
+nass_data_items <- c(paste0(crops, " - ACRES HARVESTED"),
+                     paste0(crops, " - YIELD, MEASURED IN BU / ACRE"),
+                     paste0(crops, " - PRODUCTION, MEASURED IN BU"))
+
+get_params <- function(data_item){
+  params <- list(
+  source_desc = "SURVEY",
+  commodity_desc = commodities,
+  domaincat_desc="NOT SPECIFIED",
+  agg_level_desc = "COUNTY",
+  year = years,
+  short_desc = data_item
+)
 }
+
+# Testing the function
+# test <- get_params(nass_data_items[1])
+# nassqs_record_count(test) # Counting records because NASS only allows 50k records at a time.
+# test2 <- nassqs(test)
+
+get_items <- map(nass_data_items, get_params)
+
+raw_data <- map_dfr(get_items, nassqs)
+
+old_names <-  c("year", "state_name", "county_name", 
+                "YIELD, MEASURED IN BU / ACRE", "ACRES HARVESTED", 
+                "PRODUCTION, MEASURED IN BU", "state_fips_code", "county_code")
+new_names <- c("Year", "State", "County", "Yield", "Area", "Production", "statefp", "countyfp")
+
+select_stats <- raw_data |> 
+  select('year', 'state_name', 'county_name', 'Value', 'state_fips_code', 'county_code', 'short_desc') |> 
+  filter(county_name != "OTHER (COMBINED) COUNTIES") |>
+  type_convert() |> 
+  separate(short_desc, c("Crop", "Var_name"), "- ") |> 
+  mutate(Crop = map_chr(str_split(tolower(Crop), ", "), ~paste0((.), collapse = "_"))) |> 
+  pivot_wider(names_from="Var_name", values_from=c("Value")) |> 
+  rename_with(~ new_names, all_of(old_names))
+
+write_csv(select_stats, "datasets/nass_stats.csv")
+
+
