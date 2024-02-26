@@ -17,9 +17,6 @@ s.nedumaran@cgiar.org, sbdm@cgiar.org
 ## Data card author
 Stella Ofori-Ampofo
 
-## CONTACT NAME
-s.nedumaran@cgiar.org, sbdm@cgiar.org
-
 ## Dataset overview
 **Crops**: Rice, Wheat, Karif Sorghum, Rabi Sorghum ,Sorghum, Pearl Millet, Maize, Finger Millet, Barley, Chickpea, Pigeonpea, Minor Pulses, Groundnut, Sesamum, Rapeseed and Mustard, Safflower, Castor, Linseed, Sunflower, Soyabeans, Oilseeds, Sugercane, Cotton, Fruits, Vegetables, Fruits and Vegetables, Potatoes, Onion, Fodder 
 
