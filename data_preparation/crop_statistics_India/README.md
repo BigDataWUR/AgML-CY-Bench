@@ -45,4 +45,4 @@ Redistribution and reuse is possible with proper attribution
 While great effort was taken to obtain high-quality data, the accuracy or reliability of the data is not guaranteed or warranted in any way. The data are provided ‘as is’ and in no event shall ICRISAT, GLDC, PIM, TCI and CGIAR doesn’t bear responsibility for any nonconformities, defects and errors in the data and be liable for any damages resulting from use of the data
 
 ## References
-ICRISAT, 2024. JRC Agri4Cast Data Portal. http://data.icrisat.org/dld/src/crops.html, Last accessed: Feb 9, 2024.
+ICRISAT, 2024. District Level Database Portal. http://data.icrisat.org/dld/src/crops.html, Last accessed: Feb 9, 2024.
