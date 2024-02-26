@@ -1,40 +1,47 @@
 # Province-Level Yield Statistics of China
+
+## Short description
 Sub-national crop statistics on area, production, and yield, collected for India.
 
-## DATASET LINK
+## Link
 https://data.stats.gov.cn
 
-## PAPER
-N/A
 
-## PUBLISHER
+## Publisher
 National Bureau of Statistics of China (NBS)
-
-## CONTACT NAME
 info@stats.gov.cn, 010-68520066/68576320
 
-## DATASET OVERVIEW
+## Dataset owner
+National Bureau of Statistics of China (NBS)
+info@stats.gov.cn, 010-68520066/68576320
+
+## Data card author
+Stella Ofori-Ampofo
+
+## Dataset overview
 **Crops**: Rice, Wheat, Corn
 
-**Variables** [unit]: Area [ha], Production [t], Yield [kg/ha].
+**Variables** [unit]: Region [-], Sown Area [ha], Output [t], Yield [kg/ha].
 
 **Temporal coverage**: From: 1990 - To: 2022
 
 **Temporal resolution**: Yearly
 
-**Spatial resolution**: Province
-
-**Version**: N/A
+**Spatial resolution**: Subnational (province)
 
 **Date Published**: N/A
 
 **Data Modality**: Tabular data
 
-## PROVENANCE
-The [FAQ page](https://data.stats.gov.cn/english/staticreq.htm?m=aboutctryinfo) provides a guide to the statistical database in general and not specific sectors such as agriculture. 
+## Provenance
+**Version**: N/A
+The [FAQ page](https://data.stats.gov.cn/english/staticreq.htm?m=aboutctryinfo) provides a guide to the statistical database in general but not specific sectors such as agriculture. 
 
-## LICENSE
+## License
 N/A
 
-## DISCLAIMER
-According to the results of the Third National Agricultural Census, data on agricultural production from 2007 to 2017 were revised.
+## Additional information
+According to the results of the Third National Agricultural Census, data on agricultural production from 2007 to 2017 were revised
+
+## References
+National Bureau Statistics of China, 2024. National Data Portal. https://data.stats.gov.cn, Last accessed: Feb 18, 2024.
