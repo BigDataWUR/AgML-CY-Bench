@@ -31,7 +31,7 @@ The dataset considers 20 soil properties that are commonly required for global a
 | BSAT  | Base saturation (as % of CECsoil)   | - | Calculated from other measured soil properties |
 | BULK  | Bulk density | $kg$ $dm^{-3}$ |
 | CECC  | Cation exchange capacity of clay size fraction ($CEC_{clay}$) | $cmol_c$ $kg^{-1}$ | $CEC_{clay}$ is calculated from $CEC_{soil}$ by correcting for contribution of organic matter |
-| CECS  | Cation exchange capacity (CECsoil) | $cmol_c$ $kg^{-1}$ | |
+| CECS  | Cation exchange capacity ($CEC_{soil}$) | $cmol_c$ $kg^{-1}$ | |
 | CFRAG | Coarse fragments (> 2 mm; volume %) | - | |
 | CLPC  | Clay (mass %) | - | |
 | CNrt  | $C/N$ ratio | - | Calculated from other measured soil properties |
@@ -44,7 +44,7 @@ The dataset considers 20 soil properties that are commonly required for global a
 | PHAQ | pH measured in water | - | |
 | SDTO | Sand (mass %) | - | |
 | STPC | Silt (mass %) | - | |
-| TAWC | Available water capacity (from -33 to -1500 kPa) | $cm m^{-1}$ | Calculated from other measured soil properties. Soil water potential limits for AWC conform to USDA standards (Soil Survey Staff 1983); these values have not yet been corrected for the presence of fragments > 2 mm |
+| TAWC | Available water capacity (from -33 to -1500 kPa) | $cm$ $m^{-1}$ | Calculated from other measured soil properties. Soil water potential limits for AWC conform to USDA standards (Soil Survey Staff 1983); these values have not yet been corrected for the presence of fragments > 2 mm |
 | TCEQ | Total carbonate equivalent | $g$ $kg^{-1}$ | |
 | TEB  | Total exchangeable bases | $cmol_c$ $kg^{-1}$ | |
 | TOTN | Total nitrogen | $g$ $kg^{-1}$ | |
