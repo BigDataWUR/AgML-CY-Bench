@@ -11,7 +11,7 @@ AgML aspires to
 The objective of AgML Crop Yield Forecasting task is to create a benchmark to compare models for crop yield forecasting across countries and crops. The models and forecasts can be used for food security planning or famine early warning.
 
 ## How to contribute
-Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please check [Contributing guidelines](CONTRIBUTING.md) for how to get involved and contribute.
+Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please check [contributing guidelines](CONTRIBUTING.md) for how to get involved and contribute.
 
 ## Additional information
 For more information please visit [the AgML website](https://www.agml.org/).
