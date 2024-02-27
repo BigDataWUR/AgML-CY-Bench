@@ -1,18 +1,18 @@
 # Province-Level Yield Statistics of China
 
 ## Short description
-Sub-national crop statistics on area, production, and yield, collected for India.
+Sub-national crop statistics on area, production, and yield, collected for China.
 
 ## Link
 https://data.stats.gov.cn
 
 
 ## Publisher
-National Bureau of Statistics of China (NBS)
+National Bureau of Statistics of China (NBS) <br>
 info@stats.gov.cn, 010-68520066/68576320
 
 ## Dataset owner
-National Bureau of Statistics of China (NBS)
+National Bureau of Statistics of China (NBS) <br>
 info@stats.gov.cn, 010-68520066/68576320
 
 ## Data card author
@@ -34,7 +34,7 @@ Stella Ofori-Ampofo
 **Data Modality**: Tabular data
 
 ## Provenance
-**Version**: N/A
+**Version**: N/A <br>
 The [FAQ page](https://data.stats.gov.cn/english/staticreq.htm?m=aboutctryinfo) provides a guide to the statistical database in general but not specific sectors such as agriculture. 
 
 ## License
