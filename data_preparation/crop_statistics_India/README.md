@@ -7,11 +7,11 @@ Sub-national crop statistics on area, production, and yield collected for India 
 http://data.icrisat.org/dld/src/crops.html 
 
 ## Publisher
-International Crops Research Institute for the Semi-Arid Tropics (ICRISAT)
+International Crops Research Institute for the Semi-Arid Tropics (ICRISAT) <br>
 s.nedumaran@cgiar.org, sbdm@cgiar.org
 
 ## Dataset owner 
-International Crops Research Institute for the Semi-Arid Tropics (ICRISAT)
+International Crops Research Institute for the Semi-Arid Tropics (ICRISAT) <br>
 s.nedumaran@cgiar.org, sbdm@cgiar.org
 
 ## Data card author
