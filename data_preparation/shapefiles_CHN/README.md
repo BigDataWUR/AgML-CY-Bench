@@ -1,17 +1,16 @@
-# Global Administrative Areas (GADM) - China (Level 1)
+# China - Subnational Administrative Boundaries (Level 1)
 
-## Short description
-GADM, the Database of Global Administrative Areas, is a high-resolution database of country administrative areas <br> 
-The Administrative level 1 distinguishes States, Provinces and equivalent.
+## Short description 
+The Administrative level 1 distinguishes province, autonomous region, municipality, or special administrative regions.
 
 ## Link
-https://gadm.org/
+https://data.humdata.org/dataset/cod-ab-chn
 
 ## Publisher
-GADM
+OCHA Regional Office for Asia and the Pacific (ROAP)
 
 ## Dataset owner
-GADM
+OCHA Regional Office for Asia and the Pacific (ROAP)
 
 ## Data card author
 Stella Ofori-Ampofo
@@ -20,10 +19,10 @@ Stella Ofori-Ampofo
 **Crops**: N/A
 
 **Variables**: The following columns contain information required to join administrative unit to yield table <br>
-GID_0 - 3 character country code e.g. CHN <br>
-COUNTRY - country name <br>
-NAME_1 - name of level-1 unit <br>
-ENGTYPE_1 - type of level-1 administrative unit (e.g. Province, Municipality, Autonomous Region)
+ADM1_EN - name of administrative level 1 (province name) in english <br>
+ADM1_PCODE - 5-character unique code to distinguish province <br>
+ADMO_EN - country name <br>
+ADMO_PCODE - 2-character iso code for the country
 
 **Temporal coverage**: N/A
 
@@ -36,18 +35,14 @@ ENGTYPE_1 - type of level-1 administrative unit (e.g. Province, Municipality, Au
 **Data Modality**: Shapefile
 
 ## Provenance
-**Version**: 4.1 
+**Version**: September, 2020
 
 ## License
-The data are freely available for academic use and other non-commercial use <br>
-Redistribution or commercial use is not allowed without prior permission <br>
-
-Using the data to create maps for publishing of academic research articles is allowed <br>
-Thus you can use the maps you made with GADM data for figures in articles published by PLoS, Springer Nature, Elsevier, MDPI, etc. <br>
-You are allowed (but not required) to publish these articles (and the maps they contain) under an open license <br>
-such as CC-BY as is the case with PLoS journals and may be the case with other open access articles <br>
+Creative Commons Attribution for Intergovernmental Organisations
 
 ## Additional information
+Shapefiles sourced and translated by Chinese volunteers. Data compiled and cleaned by OCHA<br>
+These boundaries were not derived from an official government source, but do appear to correspond to government policy and include the entity referred to by the government as ‘Taiwan Province’<br>
 Coordinate references system is EPSG:4326
 
 ## References
