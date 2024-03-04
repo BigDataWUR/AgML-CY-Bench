@@ -13,40 +13,43 @@ def load_data_csv(data_path, data_sources):
 
     return data_dfs
 
-def align_data(data_sources, label_df, feature_dfs, label_key="YIELD"):
-    # align label data
+def merge_data(data_sources, label_df, feature_dfs, update_labels=False, label_key="YIELD"):
     for src in feature_dfs:
         df = feature_dfs[src]
         index_cols = data_sources[src]["index_cols"]
 
         # static data
         if (len(index_cols) == 1):
+            # use location column
             index_cols = data_sources[src]["index_cols"]
         else:
+            # use location and year column
             index_cols = data_sources[label_key]["index_cols"]
 
-        label_df = label_df.merge(df[index_cols].drop_duplicates(), on=index_cols, how="inner")
-        print("after merging", len(label_df.index))
-        print(label_df.sort_values(by=["COUNTY_ID", "FYEAR"]).head())
-
-    # align feature data
-    for src in feature_dfs:
-        df = feature_dfs[src]
-        print("before merging", src, len(df.index))
-        index_cols = data_sources[src]["index_cols"]
-
-        # static data
-        if (len(index_cols) == 1):
-            index_cols = data_sources[src]["index_cols"]
+        # first step to update label data based on features
+        if (update_labels):
+            label_df = label_df.merge(df[index_cols].drop_duplicates(), on=index_cols, how="inner")
+        # update feature data based on labels
         else:
-            index_cols = data_sources[label_key]["index_cols"]
-
-        df = df.merge(label_df[index_cols].drop_duplicates(), on=index_cols, how="inner")
-        print("after merging", len(df.index))
-        print(df.sort_values(by=index_cols).head())
+            df = df.merge(label_df[index_cols].drop_duplicates(), on=index_cols, how="inner")
+            feature_dfs[src] = df
 
     return label_df, feature_dfs
 
+def align_data(data_sources, label_df, feature_dfs, label_key="YIELD"):
+    # align label data
+    label_df, feature_dfs = merge_data(data_sources, label_df, feature_dfs, update_labels=True)
+    # align feature data
+    label_df, feature_dfs = merge_data(data_sources, label_df, feature_dfs)
+
+    return label_df, feature_dfs
+
+# def validate_times_series_data(df, group_cols, time_step_col, max_time_steps):
+#     df = df.groupby(group_cols).agg(NUM_TIME_STEPS=(time_step_col, "count")).reset_index()
+    # df = df[df["NUM_TIME_STEPS"] == max_time_steps]
+    # print(len(df[df["NUM_TIME_STEPS"] == max_time_steps].index))
+
+    # return df
 
 data_sources = {
     "YIELD" : {
@@ -73,4 +76,18 @@ feature_dfs = {
     ft_key : data_dfs[ft_key] for ft_key in data_dfs if ft_key != "YIELD"
 }
 
+before_and_after = {}
+for src in data_dfs:
+    before_and_after[src] = [len(data_dfs[src].index)]
+
 label_df, feature_dfs = align_data(data_sources, label_df, feature_dfs)
+
+before_and_after["YIELD"].append(len(label_df.index))
+for src in feature_dfs:
+    before_and_after[src].append(len(feature_dfs[src].index))
+
+for src in before_and_after:
+    print(src, "before:", before_and_after[src][0], "after:", before_and_after[src][1])
+
+# validate_times_series_data(rs_df, group_cols=["COUNTY_ID", "FYEAR"],
+#                            time_step_col="DEKAD", max_time_steps=36)
