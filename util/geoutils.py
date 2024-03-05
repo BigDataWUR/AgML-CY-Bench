@@ -153,7 +153,7 @@ def rescaleResampleCropMask(crop_mask_path, raster_data_path, scale_factor=(0, 1
 
     with rasterio.open(crop_mask_path) as crop_mask:
         crop_mask_data = crop_mask.read(1)
-        old_min, old_max = 0, 10000
+        old_min, old_max = crop_mask_data.min(), crop_mask_data.max()
         new_min, new_max = scale_factor
 
         rescaled_data = ((crop_mask_data - old_min) / (old_max - old_min)) * (new_max - new_min) + new_min
