@@ -6,14 +6,32 @@ from data_preparation.county_us import get_meteo_data, get_soil_data, get_remote
 
 class Dataset:
 
+    # Name of the location id index
     KEY_LOC = 'loc_id'  # TODO -- should be defined outside this class!! Global property of project
+    # Key used for
     KEY_YEAR = 'year'
+    # Key used for yield targets
     KEY_TARGET = 'yield'
 
     def __init__(self,
                  data_target: pd.DataFrame = None,
                  data_features: list = None,
                  ):
+        """
+        Dataset class for regional yield forecasting
+
+        :param data_target: pandas.DataFrame that contains yield statistics
+                            Dataframe should meet the following requirements:
+                                - The column containing yield targets should be named properly
+                                  Expected column name is stored in `Dataset.KEY_TARGET`
+                                - The dataframe is indexed by (location id, year) using the correct naming
+                                  Expected names are stored in `Dataset.KEY_LOC`, `Dataset.KEY_YEAR`, resp.
+        :param data_features: list of pandas.Dataframe objects each containing features
+                            Dataframes should meet the following requirements:
+                                - Columns should be named by their respective feature names
+                                - The dataframe is indexed by (location id, year) using the correct naming
+                                  Expected names are stored in `Dataset.KEY_LOC`, `Dataset.KEY_YEAR`, resp.
+        """
         if data_target is None:
             data_target = self._empty_df_target()
         if data_features is None:
