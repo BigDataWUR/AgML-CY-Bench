@@ -42,8 +42,10 @@ class TorchDataset(torch.utils.data.Dataset):
             KEY_YEAR: sample[KEY_YEAR],
             KEY_TARGET: torch.tensor(sample[KEY_TARGET]),
             **{
-                key: torch.tensor(sample[key]) for key in sample.keys() if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET]
-              }  # TODO -- support nonnumeric data?
+                key: torch.tensor(sample[key])
+                for key in sample.keys()
+                if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET]
+            },  # TODO -- support nonnumeric data?
         }
 
     @classmethod
@@ -65,8 +67,10 @@ class TorchDataset(torch.utils.data.Dataset):
             KEY_TARGET: batch_tensors(*[sample[KEY_TARGET] for sample in samples]),
             KEY_LOC: [sample[KEY_LOC] for sample in samples],
             KEY_YEAR: [sample[KEY_YEAR] for sample in samples],
-            **{key: batch_tensors(*[sample[key] for sample in samples]) for key in feature_names}
+            **{
+                key: batch_tensors(*[sample[key] for sample in samples])
+                for key in feature_names
+            },
         }
 
         return batched_samples
-

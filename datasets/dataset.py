@@ -1,17 +1,15 @@
-
 import pandas as pd
 
-import config
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
-from data_preparation.county_us import get_meteo_data, get_soil_data, get_remote_sensing_data
 
 
 class Dataset:
 
-    def __init__(self,
-                 data_target: pd.DataFrame = None,
-                 data_features: list = None,
-                 ):
+    def __init__(
+        self,
+        data_target: pd.DataFrame = None,
+        data_features: list = None,
+    ):
         """
         Dataset class for regional yield forecasting
 
@@ -101,7 +99,7 @@ class Dataset:
             sample_y = self._df_y.loc[index]
 
         else:
-            raise Exception(f'Unsupported index type {type(index)}')
+            raise Exception(f"Unsupported index type {type(index)}")
 
         # Get the target label for the specified sample
         sample = {
@@ -113,7 +111,7 @@ class Dataset:
         # Get feature data corresponding to the label
         data_x = self._get_feature_data(loc_id, year)
         # Merge label and feature data
-        sample = {** data_x, **sample}
+        sample = {**data_x, **sample}
 
         return sample
 
@@ -145,7 +143,9 @@ class Dataset:
             #   (2) yearly data -- indexed by (location, year)
             #   (3) yearly temporal data -- indexed by (location, year, "some extra temporal level")
             n_levels = len(df.index.names)
-            assert 1 <= n_levels <= 3  # Make sure the dataframe fits one of the categories
+            assert (
+                1 <= n_levels <= 3
+            )  # Make sure the dataframe fits one of the categories
 
             # (1) static data
             if n_levels == 1:
@@ -184,9 +184,7 @@ class Dataset:
 
                 # Data in temporal dimension is assumed to be sorted
                 # Obtain the values contained in the filtered dataframe
-                data_loc = {
-                    key: df_loc[key].values for key in df_loc.columns
-                }
+                data_loc = {key: df_loc[key].values for key in df_loc.columns}
 
                 data = {
                     **data_loc,
@@ -249,4 +247,3 @@ class Dataset:
             return pd.concat(
                 [df.xs(key, level=level, drop_level=False) for key in keys]
             )
-
