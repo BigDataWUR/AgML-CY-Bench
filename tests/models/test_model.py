@@ -18,6 +18,7 @@ def get_model_predictions(model, sel_loc, sel_year):
 
     return model.predict_item(test_data)
 
+
 def test_average_yield_model():
     model = AverageYieldModel(group_cols=[KEY_LOC])
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
@@ -43,6 +44,7 @@ def test_average_yield_model():
     expected_pred = yield_df["YIELD"].mean()
     test_preds, _ = get_model_predictions(model, sel_loc, sel_year)
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+
 
 def test_sklearn_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")

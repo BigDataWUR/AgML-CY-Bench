@@ -2,12 +2,13 @@ import pandas as pd
 
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
-class Dataset:
 
-    def __init__(self,
-                 data_target: pd.DataFrame = None,
-                 data_features: list = None,
-                 ):
+class Dataset:
+    def __init__(
+        self,
+        data_target: pd.DataFrame = None,
+        data_features: list = None,
+    ):
         """
         Dataset class for regional yield forecasting
 
@@ -48,7 +49,9 @@ class Dataset:
 
         # Make sure there are no overlaps in feature names
         if len(data_features) > 1:
-            assert len(set.intersection(*[set(df.columns) for df in data_features])) == 0
+            assert (
+                len(set.intersection(*[set(df.columns) for df in data_features])) == 0
+            )
 
         # Make sure the individual dataframes are properly configured
         assert self._validate_df_feature(data_target)
@@ -106,7 +109,7 @@ class Dataset:
             sample_y = self._df_y.loc[index]
 
         else:
-            raise Exception(f'Unsupported index type {type(index)}')
+            raise Exception(f"Unsupported index type {type(index)}")
 
         # Get the target label for the specified sample
         sample = {
@@ -118,7 +121,7 @@ class Dataset:
         # Get feature data corresponding to the label
         data_x = self._get_feature_data(loc_id, year)
         # Merge label and feature data
-        sample = {** data_x, **sample}
+        sample = {**data_x, **sample}
 
         return sample
 
@@ -167,16 +170,16 @@ class Dataset:
 
             if n_levels == 3:
                 if self._allow_incomplete:
-                    if loc_id not in df.index.get_level_values(0) or year not in df.index.get_level_values(1):
+                    if loc_id not in df.index.get_level_values(
+                        0
+                    ) or year not in df.index.get_level_values(1):
                         continue
 
                 # Select data matching the location and year
                 # Sort the index for improved lookup speed
                 df_loc = df.xs((loc_id, year), drop_level=True)
 
-                data_loc = {
-                    key: df_loc[key].values for key in df_loc.columns
-                }
+                data_loc = {key: df_loc[key].values for key in df_loc.columns}
 
                 data = {
                     **data_loc,

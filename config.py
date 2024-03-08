@@ -8,6 +8,6 @@ PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
 # Data keys
-KEY_LOC = 'loc_id'
-KEY_YEAR = 'year'
-KEY_TARGET = 'yield'
+KEY_LOC = "loc_id"
+KEY_YEAR = "year"
+KEY_TARGET = "yield"
