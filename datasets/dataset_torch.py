@@ -70,39 +70,3 @@ class TorchDataset(torch.utils.data.Dataset):
 
         return batched_samples
 
-    # TODO -- define transform for normalization
-
-    # @classmethod
-    # def _normalize(cls, sample: dict, parameters: dict = None,) -> dict:
-    #     raise NotImplementedError
-    #
-    # def get_normalization_parameters(self) -> dict:
-    #     raise NotImplementedError
-
-    pass
-
-
-if __name__ == '__main__':
-
-    _dataset_train, _dataset_test = Dataset.get_datasets()
-
-    _dataset_train_torch = TorchDataset(_dataset_train)
-
-    # print(_dataset_train_torch['AL_LAWRENCE', 2000])
-    print(_dataset_train_torch[1])
-
-    import torch.utils.data
-    _dataloader = torch.utils.data.DataLoader(
-        _dataset_train_torch,
-        collate_fn=_dataset_train_torch.collate_fn,
-        shuffle=True,
-        batch_size=2,
-    )
-
-    for _batch in _dataloader:
-
-        print(_batch)
-        print(_batch['yield'].shape)
-        print(_batch['TMAX'].shape)
-
-        break
