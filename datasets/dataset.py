@@ -88,7 +88,6 @@ class Dataset:
         :return:
         """
         # Index is either integer or tuple of (year, location)
-
         if isinstance(index, int):
             sample_y = self._df_y.iloc[index]
             loc_id, year = sample_y.name
@@ -167,6 +166,7 @@ class Dataset:
                     # If value is missing, skip this feature
                     if (loc_id, year) not in df.index:
                         continue
+
                 data = {
                     **df.loc[loc_id, year].to_dict(),
                     **data,
