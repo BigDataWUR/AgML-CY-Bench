@@ -1,214 +1,249 @@
-import pandas as pd
-from pandas import MultiIndex
 
-from data_preparation.county_us import get_yield_data, get_meteo_data, get_soil_data, get_remote_sensing_data
+import pandas as pd
+
+import config
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from data_preparation.county_us import get_meteo_data, get_soil_data, get_remote_sensing_data
 
 
 class Dataset:
 
-    YEARS_TRAIN = tuple(range(2000, 2011 + 1))
-    YEARS_TEST = tuple(range(2012, 2018 + 1))
-
-    INDEX_KEY_LOCATION = 'COUNTY_ID'
-    INDEX_KEY_TIME = 'FYEAR'
-
-    INDEX_KEYS = (INDEX_KEY_LOCATION, INDEX_KEY_TIME)
-
-    TARGET_KEY = 'YIELD'
-
-    FEATURE_KEYS_METEO = 'TMAX', 'TMIN', 'TAVG', 'VPRES', 'WSPD', 'PREC', 'ET0', 'RAD'
-    FEATURE_KEYS_SOIL = 'SM_WHC', 'SM_DEPTH'
-    FEATURE_KEYS_RS = 'FAPAR',
-    FEATURE_KEYS = FEATURE_KEYS_METEO + FEATURE_KEYS_SOIL + FEATURE_KEYS_RS
-
-    SEASON_START = 0  # dekad nr.
-    SEASON_END = None  # TODO -- define as date?
-
     def __init__(self,
-                 df_yield: pd.DataFrame = None,
-                 df_meteo: pd.DataFrame = None,
-                 df_soil: pd.DataFrame = None,
-                 df_remote_sensing: pd.DataFrame = None,
+                 data_target: pd.DataFrame = None,
+                 data_features: list = None,
                  ):
+        """
+        Dataset class for regional yield forecasting
 
-        # Load the data from disk if necessary
-        if df_yield is None:
-            df_yield = get_yield_data()
-        if df_meteo is None:
-            df_meteo = get_meteo_data()
-        if df_soil is None:
-            df_soil = get_soil_data()
-        if df_remote_sensing is None:
-            df_remote_sensing = get_remote_sensing_data()
+        Targets/features are provided using properly formatted pandas dataframes.
 
-        # TODO -- align data
-        # For now, only use counties that are present everywhere
-        counties_yield = set(df_yield.index.get_level_values(0))
-        counties_soil = set(df_soil.index.values)
-        counties_meteo = set(df_meteo.index.get_level_values(0))
-        counties_rs = set(df_remote_sensing.index.get_level_values(0))
-        counties = set.intersection(counties_yield, counties_soil, counties_meteo, counties_rs)
+        :param data_target: pandas.DataFrame that contains yield statistics
+                            Dataframe should meet the following requirements:
+                                - The column containing yield targets should be named properly
+                                  Expected column name is stored in `config.KEY_TARGET`
+                                - The dataframe is indexed by (location id, year) using the correct naming
+                                  Expected names are stored in `config.KEY_LOC`, `config.KEY_YEAR`, resp.
+        :param data_features: list of pandas.Dataframe objects each containing features
+                            Dataframes should meet the following requirements:
+                                - Features are assumed to be numeric
+                                - Columns should be named by their respective feature names
+                                - Dataframes cannot have overlapping column (i.e. feature) names
+                                - Each dataframe can be indexed in three different ways:
+                                    - By location only -- for static location features
+                                    - By location and year -- for yearly occurring features
+                                    - By location, year, and some extra level assumed to be temporal (e.g. daily,
+                                      dekadal, ...)
+                                  The index levels should be named properly, i.e.
+                                    - `config.KEY_LOC` for the location
+                                    - `config.KEY_YEAR` for the year
+                                    - the name of the extra optional temporal level is ignored and has no requirement
+        """
+        # If no data is given, create an empty dataset
+        if data_target is None:
+            data_target = self._empty_df_target()
+        if data_features is None:
+            data_features = list()
 
-        df_yield = Dataset._filter_df_on_index(df_yield, list(counties), level=0)
-        df_soil = Dataset._filter_df_on_index(df_soil, list(counties), level=0)
-        df_meteo = Dataset._filter_df_on_index(df_meteo, list(counties), level=0)
-        df_remote_sensing = Dataset._filter_df_on_index(df_remote_sensing, list(counties), level=0)
+        # Validate input data
+        assert self._validate_dfs(data_target, data_features)
 
-        # TODO -- data preprocessing:
-        #   - Start date, end date of season?
-        #   - Missing data?
+        self._df_y = data_target
+        self._dfs_x = list(data_features)
 
-        self._data_y = df_yield  # Filter from raw data based on inputs/selection
+        # Sort all data for faster lookups
+        self._df_y.sort_index(inplace=True)
+        for df in self._dfs_x:
+            df.sort_index(inplace=True)
 
-        self._data_soil = df_soil
-        self._data_meteo = df_meteo
-        self._data_remote_sensing = df_remote_sensing
-
-        # Sort the data for faster lookups
-        self._data_y.sort_index(inplace=True)
-        self._data_soil.sort_index(inplace=True)
-        self._data_meteo.sort_index(inplace=True)
-        self._data_remote_sensing.sort_index(inplace=True)
+        # Bool value that specifies whether missing data values are allowed
+        # For now always set to False
+        self._allow_incomplete = False
 
     @property
-    def years(self) -> list:
+    def years(self) -> set:
         """
-        Obtain a list containing all years occurring in the dataset
+        Obtain a set containing all years occurring in the dataset
         """
-        return list(set([year for _, year in self._data_y.index.values]))
+        return set([year for _, year in self._df_y.index.values])
 
     @property
-    def county_ids(self) -> list:
+    def location_ids(self) -> set:
         """
-        Obtain a list containing all county ids occurring in the dataset
+        Obtain a set containing all location ids occurring in the dataset
         """
-        return list(set([loc for loc, _ in self._data_y.index.values]))
+        return set([loc for loc, _ in self._df_y.index.values])
+
+    @property
+    def feature_names(self) -> set:
+        """
+        Obtain a set containing all feature names
+        """
+        return set.union(*[set(df.columns) for df in self._dfs_x])
 
     def __getitem__(self, index) -> dict:
+        """
+        Get a single data point in the dataset
+
+        Data point is returned as a dict
+
+        :param index: index for accessing the data. Can be an int or the (location, year) that specify the data
+        :return:
+        """
         # Index is either integer or tuple of (year, location)
 
         if isinstance(index, int):
-            sample_y = self._data_y.iloc[index]
-            county_id, year = sample_y.name
+            sample_y = self._df_y.iloc[index]
+            loc_id, year = sample_y.name
 
         elif isinstance(index, tuple):
-            county_id, year = index
-            sample_y = self._data_y.loc[index]
+            assert len(index) == 2
+            loc_id, year = index
+            sample_y = self._df_y.loc[index]
 
         else:
             raise Exception(f'Unsupported index type {type(index)}')
 
-        data_meteo = self._get_meteo_data(county_id, year)
-        data_soil = self._get_soil_data(county_id)
-        data_remote_sensing = self._get_remote_sensing_data(county_id, year)
-
-        return {
-            'FYEAR': year,
-            'COUNTY_ID': county_id,
-            'YIELD': sample_y.YIELD,
-            **data_meteo,
-            **data_soil,
-            **data_remote_sensing,
+        # Get the target label for the specified sample
+        sample = {
+            KEY_YEAR: year,
+            KEY_LOC: loc_id,
+            KEY_TARGET: sample_y[KEY_TARGET],
         }
 
+        # Get feature data corresponding to the label
+        data_x = self._get_feature_data(loc_id, year)
+        # Merge label and feature data
+        sample = {** data_x, **sample}
+
+        return sample
+
+    def __len__(self) -> int:
+        """
+        Get the number of samples in the dataset
+        """
+        return len(self._df_y)
+
     def __iter__(self):
+        """
+        Iterate through the samples in the dataset
+        """
         for i in range(len(self)):
             yield self[i]
 
-    def _get_meteo_data(self, county_id: str, year: int) -> dict:
+    def _get_feature_data(self, loc_id: int, year: int) -> dict:
+        """
+        Helper function for obtaining feature data corresponding to some index
+        :param loc_id: location index value
+        :param year: year index value
+        :return: a dict containing all feature data corresponding to the specified index
+        """
+        data = dict()
+        # For all feature dataframes
+        for df in self._dfs_x:
+            # Check in which category the dataframe fits:
+            #   (1) static data -- indexed only by location
+            #   (2) yearly data -- indexed by (location, year)
+            #   (3) yearly temporal data -- indexed by (location, year, "some extra temporal level")
+            n_levels = len(df.index.names)
+            assert 1 <= n_levels <= 3  # Make sure the dataframe fits one of the categories
 
-        # Select data matching the location and year
-        # Sort the index for improved lookup speed
-        df = self._data_meteo.xs((county_id, year), drop_level=True)
+            # (1) static data
+            if n_levels == 1:
 
-        # Return the data as dict mapping
-        #  key -> np.ndarray
-        #  where the array contains data for all DEKADs
-        return {
-            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_METEO
-        }
+                if self._allow_incomplete:
+                    # If value is missing, skip this feature
+                    if loc_id not in df.index:
+                        continue
 
-    def _get_soil_data(self, county_id: str) -> dict:
+                data = {
+                    **df.loc[loc_id].to_dict(),
+                    **data,
+                }
 
-        # Select the data matching the location
-        df = self._data_soil.loc[county_id]
+            # (2) yearly data
+            if n_levels == 2:
 
-        return {
-            key: df[key] for key in Dataset.FEATURE_KEYS_SOIL
-        }
+                if self._allow_incomplete:
+                    # If value is missing, skip this feature
+                    if (loc_id, year) not in df.index:
+                        continue
+                data = {
+                    **df.loc[loc_id, year].to_dict(),
+                    **data,
+                }
 
-    def _get_remote_sensing_data(self, county_id: str, year: int) -> dict:
-        # Select data matching the location and year
-        # Sort the index for improved lookup speed
-        df = self._data_remote_sensing.xs((county_id, year), drop_level=True)
+            # (3) yearly temporal data
+            if n_levels == 3:
 
-        # Return the data as dict mapping
-        #  key -> np.ndarray
-        #  where the array contains data for all DEKADs
-        return {
-            key: df[key].values[Dataset.SEASON_START:Dataset.SEASON_END] for key in Dataset.FEATURE_KEYS_RS
-        }
+                # Select data matching the location and year
+                df_loc = df.xs((loc_id, year), drop_level=True)
 
-    def __len__(self) -> int:
-        return len(self._data_y)
+                if self._allow_incomplete and len(df_loc) == 0:
+                    # If value is missing, skip this feature
+                    continue
 
-    def split_on_years(self, years_split: tuple) -> tuple:
+                # Data in temporal dimension is assumed to be sorted
+                # Obtain the values contained in the filtered dataframe
+                data_loc = {
+                    key: df_loc[key].values for key in df_loc.columns
+                }
 
-        df_yield_1, df_yield_2 = self._split_df_on_index(self._data_y, years_split, level=1)
-        df_meteo_1, df_meteo_2 = self._split_df_on_index(self._data_meteo, years_split, level=1)
-        df_rs_1, df_rs_2 = self._split_df_on_index(self._data_remote_sensing, years_split, level=1)
+                data = {
+                    **data_loc,
+                    **data,
+                }
 
-        return (
-            Dataset(
-                df_yield=df_yield_1,
-                df_meteo=df_meteo_1,
-                df_soil=self._data_soil,  # No split required
-                df_remote_sensing=df_rs_1,
-            ),
-            Dataset(
-                df_yield=df_yield_2,
-                df_meteo=df_meteo_2,
-                df_soil=self._data_soil,  # No split required
-                df_remote_sensing=df_rs_2,
-            ),
-        )
-
-    def split_on_county_ids(self, county_ids_split: tuple) -> tuple:
-
-        df_yield_1, df_yield_2 = self._split_df_on_index(self._data_y, county_ids_split, level=0)
-        df_meteo_1, df_meteo_2 = self._split_df_on_index(self._data_meteo, county_ids_split, level=0)
-        df_soil_1, df_soil_2 = self._split_df_on_index(self._data_soil, county_ids_split, level=0)
-        df_rs_1, df_rs_2 = self._split_df_on_index(self._data_remote_sensing, county_ids_split, level=0)
-
-        return (
-            Dataset(
-                df_yield=df_yield_1,
-                df_meteo=df_meteo_1,
-                df_soil=df_soil_1,
-                df_remote_sensing=df_rs_1,
-            ),
-            Dataset(
-                df_yield=df_yield_2,
-                df_meteo=df_meteo_2,
-                df_soil=df_soil_2,
-                df_remote_sensing=df_rs_2,
-            ),
-        )
+        return data
 
     @staticmethod
-    def _split_df_on_index(df: pd.DataFrame, split: tuple, level: int):
-        df.sort_index(inplace=True)
+    def _empty_df_target() -> pd.DataFrame:
+        """
+        Helper function that creates an empty (but rightly formatted) dataframe for yield statistics
+        """
+        df = pd.DataFrame(
+            index=pd.MultiIndex.from_arrays(([], []), names=[KEY_LOC, KEY_YEAR]),
+            columns=[KEY_TARGET],
+        )
+        return df
 
-        keys1, keys2 = split
+    @staticmethod
+    def _validate_dfs(df_y: pd.DataFrame, dfs_x: list) -> bool:
+        """
+        Helper function that implements some checks on whether the input dataframes are correctly formatted
 
-        df_1 = Dataset._filter_df_on_index(df, keys1, level)
-        df_2 = Dataset._filter_df_on_index(df, keys2, level)
+        :param df_y: dataframe containing yield statistics
+        :param dfs_x: list of dataframes each containing feature data
+        :return: a bool indicating whether the test has passed
+        """
 
-        return df_1, df_2
+        # TODO -- more checks are to be implemented
+        #   - Correct column names
+        #   - Correct index names
+        #   - Missing data
+
+        # Make sure columns are named properly
+        if len(dfs_x) > 0:
+            column_names = set.union(*[set(df.columns) for df in dfs_x])
+            assert KEY_LOC not in column_names
+            assert KEY_YEAR not in column_names
+            assert KEY_TARGET not in column_names
+
+        # Make sure there are no overlaps in feature names
+        if len(dfs_x) > 1:
+            assert len(set.intersection(*[set(df.columns) for df in dfs_x])) == 0
+
+        return True
 
     @staticmethod
     def _filter_df_on_index(df: pd.DataFrame, keys: list, level: int):
-        if not isinstance(df.index, MultiIndex):
+        """
+        Helper method for filtering a dataframe based on the occurrence of certain values in a specified index
+        :param df: the dataframe that should be filtered
+        :param keys: the values on which it should filter
+        :param level: the index level in which samples should be filtered
+        :return: a filtered dataframe
+        """
+        if not isinstance(df.index, pd.MultiIndex):
             return df.loc[keys]
         else:
             return pd.concat(
@@ -216,32 +251,98 @@ class Dataset:
             )
 
     @staticmethod
-    def train_test_datasets() -> tuple:  # TODO -- define the splits
-        dataset = Dataset()
-        return dataset.split_on_years(
-            years_split=(Dataset.YEARS_TRAIN, Dataset.YEARS_TEST),
+    def get_datasets() -> tuple:  # TODO -- remove
+        """
+        Temporary function used for testing purposes
+        :return:
+        """
+        from data_preparation.county_us import get_yield_data
+
+        df_target = get_yield_data()
+
+        df_target.rename(
+            columns={'YIELD': KEY_TARGET},
+            inplace=True,
+        )
+        df_target.index.rename([KEY_LOC, KEY_YEAR], inplace=True)
+
+        df_meteo = get_meteo_data()
+
+        df_meteo.index.rename([KEY_LOC, KEY_YEAR, df_meteo.index.names[2]], inplace=True)
+
+        df_soil = get_soil_data()
+
+        df_soil.index.rename(KEY_LOC, inplace=True)
+
+        df_remote_sensing = get_remote_sensing_data()
+
+        df_remote_sensing.index.rename([KEY_LOC, KEY_YEAR, df_remote_sensing.index.names[2]], inplace=True)
+
+        years = list(range(2010, 2011))
+
+        df_target = Dataset._filter_df_on_index(df_target, list(years), level=1)
+        df_meteo = Dataset._filter_df_on_index(df_meteo, list(years), level=1)
+        df_remote_sensing = Dataset._filter_df_on_index(df_remote_sensing, list(years), level=1)
+
+        # For now, only use counties that are present everywhere
+        counties_yield = set(df_target.index.get_level_values(0))
+        counties_soil = set(df_soil.index.values)
+        counties_meteo = set(df_meteo.index.get_level_values(0))
+        counties_rs = set(df_remote_sensing.index.get_level_values(0))
+        counties = set.intersection(counties_yield, counties_soil, counties_meteo, counties_rs)
+
+        df_target = Dataset._filter_df_on_index(df_target, list(counties), level=0)
+        df_soil = Dataset._filter_df_on_index(df_soil, list(counties), level=0)
+        df_meteo = Dataset._filter_df_on_index(df_meteo, list(counties), level=0)
+        df_remote_sensing = Dataset._filter_df_on_index(df_remote_sensing, list(counties), level=0)
+
+        df_target.drop_duplicates(keep='first', inplace=True)
+        df_soil.drop_duplicates(keep='first', inplace=True)
+        df_meteo.drop_duplicates(keep='first', inplace=True)
+        df_remote_sensing.drop_duplicates(keep='first', inplace=True)
+
+        # YEARS_TRAIN = tuple(range(2000, 2011 + 1))
+        # YEARS_TEST = tuple(range(2012, 2018 + 1))
+
+        dataset = Dataset(
+            data_target=df_target,
+            data_features=[
+                df_meteo,
+                df_soil,
+                df_remote_sensing,
+            ]
         )
 
-    def get_feature_mean(self, key: str) -> float:  # TODO
-        raise NotImplementedError
+        return dataset, dataset
 
-    def get_feature_std(self, key: str) -> float:
-        raise NotImplementedError
+        # dataset_train = Dataset(
+        #     data_target=Dataset._filter_df_on_index(df_target, YEARS_TRAIN, level=1),
+        #     data_features=[
+        #         Dataset._filter_df_on_index(df_meteo, YEARS_TRAIN, level=1),
+        #         df_soil,
+        #         Dataset._filter_df_on_index(df_remote_sensing, YEARS_TRAIN, level=1),
+        #     ]
+        # )
+        #
+        # dataset_test = Dataset(
+        #     data_target=Dataset._filter_df_on_index(df_target, YEARS_TEST, level=1),
+        #     data_features=[
+        #         Dataset._filter_df_on_index(df_meteo, YEARS_TEST, level=1),
+        #         df_soil,
+        #         Dataset._filter_df_on_index(df_remote_sensing, YEARS_TEST, level=1),
+        #     ]
+        # )
 
-    def get_feature_range(self, key: str) -> tuple:
-        raise NotImplementedError
+        # return dataset_train, dataset_test
 
 
 if __name__ == '__main__':
 
-    _dataset = Dataset()
+    # _df = pd.DataFrame.from_dict({Dataset.KEY_LOC: [], Dataset.KEY_YEAR: []}, orient='index', columns=[Dataset.KEY_TARGET])
 
-    # print(_dataset.years)
-    # print(_dataset.locations)
-    print(_dataset['AL_LAWRENCE', 2000])
+    _dataset_train, _dataset_test = Dataset.get_datasets()
 
-    dataset_train, dataset_test = Dataset.train_test_datasets()
+    print(_dataset_train[3])
 
-    print(dataset_train.years)
+    pass
 
-    dataset_train, dataset_validation = dataset_train.split_on_years(([2000], [2001]))
