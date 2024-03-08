@@ -10,9 +10,19 @@ from util.torch import batch_tensors
 class TorchDataset(torch.utils.data.Dataset):
 
     def __init__(self, dataset: Dataset):
+        """
+        PyTorch Dataset wrapper for compatibility with torch DataLoader objects
+        :param dataset:
+        """
         self._dataset = dataset
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> dict:
+        """
+        Get a sample from the dataset
+        Data is cast to PyTorch tensors where required
+        :param index: index that is passed to the dataset
+        :return: a dict containing the data sample
+        """
         return self._cast_to_tensor(
             self._dataset[index],
         )
@@ -22,6 +32,11 @@ class TorchDataset(torch.utils.data.Dataset):
 
     @classmethod
     def _cast_to_tensor(cls, sample: dict) -> dict:
+        """
+        Create a sample with all data cast to torch tensors
+        :param sample: the sample to convert
+        :return: the converted data sample
+        """
         return {
             KEY_LOC: sample[KEY_LOC],
             KEY_YEAR: sample[KEY_YEAR],
@@ -33,6 +48,12 @@ class TorchDataset(torch.utils.data.Dataset):
 
     @classmethod
     def collate_fn(cls, samples: list) -> dict:
+        """
+        Function that takes a list of data samples (as dicts, containing torch tensors) and converts it to a dict of
+        batched torch tensors
+        :param samples: a list of data samples
+        :return: a dict with batched data
+        """
         assert len(samples) > 0
 
         feature_names = set.intersection(*[set(sample.keys()) for sample in samples])
@@ -46,12 +67,6 @@ class TorchDataset(torch.utils.data.Dataset):
             KEY_YEAR: [sample[KEY_YEAR] for sample in samples],
             **{key: batch_tensors(*[sample[key] for sample in samples]) for key in feature_names}
         }
-
-        # batched_samples = {
-        #     **{key: [sample[key] for sample in samples] for key in Dataset.INDEX_KEYS},
-        #     **{key: batch_tensors(*[sample[key] for sample in samples]) for key in Dataset.FEATURE_KEYS},
-        #     key_y: batch_tensors(*[sample[key_y] for sample in samples]),
-        # }
 
         return batched_samples
 
