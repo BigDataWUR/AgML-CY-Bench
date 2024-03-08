@@ -4,13 +4,13 @@ import numpy as np
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
+from config import KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
-    def __init__(self, group_cols, label_col):
+    def __init__(self, group_cols):
         self._averages = None
         self._group_cols = group_cols
-        self._label_col = label_col
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -26,7 +26,7 @@ class AverageYieldModel(BaseModel):
         train_df = data_to_pandas(dataset)
         self._averages = (
             train_df.groupby(self._group_cols)
-            .agg(GROUP_AVG=(self._label_col, "mean"))
+            .agg(GROUP_AVG=(KEY_TARGET, "mean"))
             .reset_index()
         )
 
