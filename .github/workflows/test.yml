@@ -16,7 +16,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install flake8 pytest pytest-cov scikit-learn pandas numpy
           git clone https://github.com/BigDataWUR/sample_data.git ${GITHUB_WORKSPACE}/data
-          cd ${GITHUB_WORKSPACE}/data && git reset --hard 167f9eb && cd ${GITHUB_WORKSPACE}
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
