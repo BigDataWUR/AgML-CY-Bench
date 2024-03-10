@@ -10,7 +10,7 @@ jobs:
       - uses: actions/setup-python@v3
       - name: Install dependencies
         run: |
-          pip install sphinx sphinx_rtd_theme pandas numpy
+          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy
       - name: Sphinx apidoc
         run: |
           sphinx-apidoc -o doc models datasets
