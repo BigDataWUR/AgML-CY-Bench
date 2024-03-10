@@ -23,14 +23,14 @@ class AverageYieldModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        train_df = data_to_pandas(dataset)
+        self._train_df = data_to_pandas(dataset)
         self._averages = (
             train_df.groupby(self._group_cols)
             .agg(GROUP_AVG=(KEY_TARGET, "mean"))
             .reset_index()
         )
 
-        return self
+        return self, {}
 
     def predict_batch(self, X: list):
         """Run fitted model on batched data items.
@@ -50,7 +50,15 @@ class AverageYieldModel(BaseModel):
                 else:
                     filter_condition &= self._averages[g] == item[g]
 
-            predictions[i] = self._averages[filter_condition]["GROUP_AVG"].values
+            filtered = self._averages[filter_condition]
+            # If there is no matching group in training data,
+            # predict the global average
+            if filtered.empty:
+                y_pred = self._train_df[self._label_col].mean()
+            else:
+                y_pred = filtered["GROUP_AVG"].values[0]
+
+            predictions[i] = y_pred
 
         return predictions, {}
 

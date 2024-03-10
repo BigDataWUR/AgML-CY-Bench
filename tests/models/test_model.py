@@ -18,7 +18,6 @@ def get_model_predictions(model, sel_loc, sel_year):
 
     return model.predict_item(test_data)
 
-
 def test_average_yield_model():
     model = AverageYieldModel(group_cols=[KEY_LOC])
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
