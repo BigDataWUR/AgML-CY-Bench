@@ -7,7 +7,7 @@ from config import PATH_DATA_DIR
 data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
 yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
 yield_df = pd.read_csv(yield_csv, index_col=["COUNTY_ID", "FYEAR"])
-dataset = Dataset(yield_df, feature_dfs=[])
+dataset = Dataset(yield_df, data_features=[])
 
 
 def test_dataset_length():
