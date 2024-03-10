@@ -236,6 +236,7 @@ class Dataset:
     def _filter_df_on_index(df: pd.DataFrame, keys: list, level: int):
         """
         Helper method for filtering a dataframe based on the occurrence of certain values in a specified index
+
         :param df: the dataframe that should be filtered
         :param keys: the values on which it should filter
         :param level: the index level in which samples should be filtered
