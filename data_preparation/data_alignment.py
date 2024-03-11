@@ -131,8 +131,6 @@ crop_cal_csv = os.path.join(data_path, "CROP_CALENDAR_COUNTY_US.csv")
 crop_cal_df = pd.read_csv(crop_cal_csv, header=0)
 print(crop_cal_df.head())
 
-# "US-01-001" "AL_AUTAUGA"
-
 for src in data_sources:
     index_cols = data_sources[src]["index_cols"]
     if (len(index_cols) == 3):
