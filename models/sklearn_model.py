@@ -7,13 +7,12 @@ from sklearn.pipeline import Pipeline
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class SklearnModel(BaseModel):
-    def __init__(self, sklearn_est, index_cols, feature_cols, label_col, scaler=None):
-        self._index_cols = index_cols
+    def __init__(self, sklearn_est, feature_cols, scaler=None):
         self._feature_cols = feature_cols
-        self._label_col = label_col
 
         if scaler is None:
             scaler = StandardScaler()
@@ -34,7 +33,7 @@ class SklearnModel(BaseModel):
         train_df = data_to_pandas(dataset)
         train_years = dataset.years
         X = train_df[self._feature_cols].values
-        y = train_df[self._label_col].values
+        y = train_df[KEY_TARGET].values
         if ("optimize_hyperparameters" in fit_params) and (
             fit_params["optimize_hyperparameters"]
         ):
@@ -45,9 +44,7 @@ class SklearnModel(BaseModel):
             #          with the optimal hyperparameter values.
             #       2. use kfolds=len(train_years) for leave-one-out
             #
-            # TODO: Currently using self._index_cols[1] as year column.
-            # We may need to pass year_col explicitly to constructor.
-            cv_groups = train_df[self._index_cols[1]].values
+            cv_groups = train_df[KEY_YEAR].values
             self._est = self._optimize_hyperparameters(
                 X,
                 y,
