@@ -98,7 +98,7 @@ class Dataset:
             sample_y = self._df_y.loc[index]
 
         else:
-            raise Exception(f"Unsupported index type {type(index)}")
+            raise Exception(f'Unsupported index type {type(index)}')
 
         # Get the target label for the specified sample
         sample = {

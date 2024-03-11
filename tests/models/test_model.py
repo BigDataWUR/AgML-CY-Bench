@@ -54,14 +54,14 @@ def test_sklearn_model():
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    train_dataset = Dataset(train_yields, [train_features])
+    train_dataset = Dataset(data_target=train_yields, data_features=[train_features])
 
     # Test dataset
     test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
     test_yields = test_df[[KEY_TARGET]].copy()
     test_features = test_df[feature_cols].copy()
-    test_dataset = Dataset(test_yields, [test_features])
+    test_dataset = Dataset(data_target=test_yields, data_features=[test_features])
 
     # Model
     ridge = Ridge(alpha=0.5)
