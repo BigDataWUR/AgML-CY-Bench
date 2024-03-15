@@ -1,1 +1,6 @@
 *~
+*.Rproj.user
+*.Rproj
+*.csv
+
+.Rproj.user

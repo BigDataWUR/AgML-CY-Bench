@@ -1,22 +1,24 @@
 # Crop statistics of the United States
 The National Agricultural Statistics Service (NASS) of the United States Department of Agriculture (USDA) conducts hundreds of surveys every year and prepares reports including those related to crop statistics.
 
-## DATASET LINK
+## Dataset Link
 https://quickstats.nass.usda.gov/
 
-## PAPER
-NA
-
-## PUBLISHER
+## Publisher
 The National Agricultural Statistics Service (NASS) of the United States Department of Agriculture (USDA)
 
-## CONTACT NAME
-NA
+## Dataset owner
+USDA-NASS
 
-## DATASET OVERVIEW
-**Crops** (examples): Barley, Canola, Corn, Soybeans
+## Data card author
+Pratishtha Poudel, Dilli Paudel
 
-**Variables** [unit] (of interest): Acres harvested [acres], Production [bushels], Yield [bushels/acre].
+## Dataset overview:
+**Crops**: Grain corn, Winter wheat
+
+More crops can be added in the script if/when needed.
+
+**Variables** [unit]: Acres harvested [acres], Production [bushels], Yield [bushels/acre].
 
 The variables that can be selected and their units vary by crop. The ones above are for "CORN, GRAIN" (Grain Maize). Similarly, for "CORN, GRAIN", statistics are available for IRRIGATED as well as NON-IRRIGATED.
 
@@ -26,16 +28,29 @@ The variables that can be selected and their units vary by crop. The ones above 
 
 **Spatial resolution**: Agricultural District, County, State.
 
-**Version**: NA
-
 **Date Published**: Regular updates. The last update for CORN was 2023-12-01.
 
 **Data Modality**: Tabular data
 
-## PROVENANCE
+## Data access API
+https://quickstats.nass.usda.gov/api
+
+## Provenance
 The yield forecasting program of NASS is described [in this document](https://www.nass.usda.gov/Publications/Methodology_and_Data_Quality/Advanced_Topics/Yield%20Forecasting%20Program%20of%20NASS_2023.pdf). This is a revised version of the [document published in 2012](https://www.nass.usda.gov/Education_and_Outreach/Understanding_Statistics/Yield_Forecasting_Program.pdf).
 
-## REFERENCES
-USDA-NASS, 2012. The Yield Forecasting Program of NASS. Technical Report. United States Department of Agriculture (USDA). https://www.nass.usda.gov/Education_and_Outreach/Understanding_Statistics/Yield_Forecasting_Program.pdf , Last accessed: Dec 12, 2023.
+## License
+Public; https://opendefinition.org/licenses/cc-zero/
 
-USDA-NASS, 2023. The Yield Forecasting Program of NASS. Technical Report. United States Department of Agriculture (USDA). https://www.nass.usda.gov/Publications/Methodology_and_Data_Quality/Advanced_Topics/Yield%20Forecasting%20Program%20of%20NASS_2023.pdf, Last accessed: Dec 12, 2023.
+## How to cite
+Cite the data source and the R package used to access it. See references.
+
+## Additional information
+NA
+
+## References
+
+USDA-NASS, 2023. The Yield Forecasting Program of NASS. Technical Report. United States Department of Agriculture (USDA). https://www.nass.usda.gov/Publications/Methodology_and_Data_Quality/Advanced_Topics/Yield%20Forecasting%20Program%20of%20NASS_2023.pdf, Last accessed: Feb 23, 2024.
+
+Potter NA (2019). “rnassqs: An ‘R' package to access agricultural data via the USDA National Agricultural Statistics Service (USDA-NASS) ’Quick Stats' API.” The Journal of Open Source Software.
+
+Potter N (2022). rnassqs: Access the NASS 'Quick Stats' API. R package version 0.6.1, https://CRAN.R-project.org/package=rnassqs.

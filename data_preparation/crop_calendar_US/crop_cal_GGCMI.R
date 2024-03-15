@@ -40,8 +40,8 @@ ggcmi_values <- ggcmi_cropped |>
 mean_days <- function(all_values){ 
   mean_values <- all_values |> 
     group_by(ID) |>
-    summarise(mean_pday = mean(planting_day, na.rm = TRUE),
-              mean_mday = mean(maturity_day, na.rm = TRUE),
+    summarise(mean_pday = median(planting_day, na.rm = TRUE),
+              mean_mday = median(maturity_day, na.rm = TRUE),
               mean_gslen = mean(growing_season_length, na.rm = TRUE))
   
   join_with_admin_ID <- continental_US |>
