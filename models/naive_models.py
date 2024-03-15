@@ -4,14 +4,14 @@ import numpy as np
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
+from config import KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
-    def __init__(self, group_cols, label_col):
-        self._train_df = None
+    def __init__(self, group_cols):
         self._averages = None
         self._group_cols = group_cols
-        self._label_col = label_col
+        self._train_df = None
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -25,9 +25,13 @@ class AverageYieldModel(BaseModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         self._train_df = data_to_pandas(dataset)
+        # check group by columns are in the dataframe
+        assert set(self._group_cols).intersection(set(self._train_df.columns)) == set(
+            self._group_cols
+        )
         self._averages = (
             self._train_df.groupby(self._group_cols)
-            .agg(GROUP_AVG=(self._label_col, "mean"))
+            .agg(GROUP_AVG=(KEY_TARGET, "mean"))
             .reset_index()
         )
 
@@ -55,7 +59,7 @@ class AverageYieldModel(BaseModel):
             # If there is no matching group in training data,
             # predict the global average
             if filtered.empty:
-                y_pred = self._train_df[self._label_col].mean()
+                y_pred = self._train_df[KEY_TARGET].mean()
             else:
                 y_pred = filtered["GROUP_AVG"].values[0]
 
