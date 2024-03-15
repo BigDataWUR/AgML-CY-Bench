@@ -1,19 +1,19 @@
 # Crop statistics of the United States
 The National Agricultural Statistics Service (NASS) of the United States Department of Agriculture (USDA) conducts hundreds of surveys every year and prepares reports including those related to crop statistics.
 
-## Dataset Link
+## DATASET LINK
 https://quickstats.nass.usda.gov/
 
-## Publisher
+## PUBLISHER
 The National Agricultural Statistics Service (NASS) of the United States Department of Agriculture (USDA)
 
-## Dataset owner
+## DATASET OWNER
 USDA-NASS
 
-## Data card author
+## DATA CARD AUTHOR
 Pratishtha Poudel, Dilli Paudel
 
-## Dataset overview:
+## DATASET OVERVIEW
 **Crops**: Grain corn, Winter wheat
 
 More crops can be added in the script if/when needed.
@@ -32,22 +32,22 @@ The variables that can be selected and their units vary by crop. The ones above 
 
 **Data Modality**: Tabular data
 
-## Data access API
+## DATA ACCESS API
 https://quickstats.nass.usda.gov/api
 
-## Provenance
+## PROVENANCE
 The yield forecasting program of NASS is described [in this document](https://www.nass.usda.gov/Publications/Methodology_and_Data_Quality/Advanced_Topics/Yield%20Forecasting%20Program%20of%20NASS_2023.pdf). This is a revised version of the [document published in 2012](https://www.nass.usda.gov/Education_and_Outreach/Understanding_Statistics/Yield_Forecasting_Program.pdf).
 
-## License
+## LICENSE
 Public; https://opendefinition.org/licenses/cc-zero/
 
-## How to cite
+## HOW TO CITE
 Cite the data source and the R package used to access it. See references.
 
-## Additional information
+## ADDITIONAL INFORMATION
 NA
 
-## References
+## REFERENCES
 
 USDA-NASS, 2023. The Yield Forecasting Program of NASS. Technical Report. United States Department of Agriculture (USDA). https://www.nass.usda.gov/Publications/Methodology_and_Data_Quality/Advanced_Topics/Yield%20Forecasting%20Program%20of%20NASS_2023.pdf, Last accessed: Feb 23, 2024.
 
