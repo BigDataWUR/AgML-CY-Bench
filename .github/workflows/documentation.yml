@@ -6,11 +6,15 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
       - name: Install dependencies
         run: |
+          sudo apt-get install pandoc
           pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy
+      - name: Convert README.rst
+        run: |
+          pandoc -f markdown_github -t rst README.md -o doc/README.rst
       - name: Sphinx apidoc
         run: |
           sphinx-apidoc -o doc ./
