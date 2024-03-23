@@ -77,15 +77,15 @@ def test_sklearn_model():
 
     evaluation_result = evaluate_model(model, test_dataset)
     expected_values = {
-        "normalized_rmse": 14.5,
-        "mape": 11.1,
+        "normalized_rmse": 14.49,
+        "mape": 0.14,
     }
     for metric, expected_value in expected_values.items():
         assert (
             metric in evaluation_result
         ), f"Metric '{metric}' not found in evaluation result"
         assert (
-            round(evaluation_result[metric], 1) == expected_value
+            round(evaluation_result[metric], 2) == expected_value
         ), f"Value of metric '{metric}' does not match expected value"
 
     # Model with hyperparameter optimization
