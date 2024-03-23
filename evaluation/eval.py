@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_error
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 
 from config import KEY_TARGET
 from models.model import BaseModel
@@ -76,16 +76,12 @@ def normalized_rmse(y_true: np.ndarray, y_pred: np.ndarray):
     Calculate the normalized Root Mean Squared Error (RMSE) between true and predicted values.
 
     Args:
-      y_true (array-like): True values.
+      y_true (numpy.ndarray): True values.
       y_pred (numpy.ndarray): Predicted values.
 
     Returns:
       float: Normalized RMSE value as a percentage.
     """
-
-    # Ensure the input arrays have the same length
-    if len(y_true) != len(y_pred):
-        raise ValueError("Input arrays must have the same length.")
 
     mse = mean_squared_error(y_true, y_pred)
     mean_y_true = np.mean(y_true)
@@ -105,20 +101,4 @@ def mape(y_true: np.ndarray, y_pred: np.ndarray):
     - float: Mean Absolute Percentage Error.
     """
 
-    # Ensure the input arrays have the same length
-    if len(y_true) != len(y_pred):
-        raise ValueError("Input arrays must have the same length.")
-
-    # Handle cases where actual values are zero
-    mask = np.array(y_true) != 0
-    actual_masked = np.array(y_true)[mask]
-    forecast_masked = y_pred[mask]  # y_pred is already a numpy array
-
-    # Calculate MAPE using mean_absolute_error from sklearn
-    mape_value = (
-        100
-        * mean_absolute_error(actual_masked, forecast_masked)
-        / np.mean(actual_masked)
-    )
-
-    return mape_value
+    return mean_absolute_percentage_error(y_true, y_pred)
