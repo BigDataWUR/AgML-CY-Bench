@@ -92,8 +92,9 @@ def normalized_rmse(y_true: np.ndarray, y_pred: np.ndarray):
 def mape(y_true: np.ndarray, y_pred: np.ndarray):
     """
     Calculate Mean Absolute Percentage Error (MAPE).
+    Note that in the provided implementation using scikit-learn, there is an absence of multiplication by 100
 
-    Parameters:
+    Args:
     - y_true (numpy.ndarray): True values.
     - y_pred (numpy.ndarray): Predicted values.
 
