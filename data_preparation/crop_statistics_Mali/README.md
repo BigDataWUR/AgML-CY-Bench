@@ -27,7 +27,7 @@ Janet Mutuku, Celeste Tchampi, PCS Traore
 
 **Temporal resolution**: Yearly
 
-**Spatial resolution**: Commune-level (sectors) (level 3 administrative boundaries)
+**Spatial resolution**: Arrondissement-level (sectors) (level 3 administrative boundaries)
 
 **Date Published**: N/A
 
