@@ -14,7 +14,7 @@ CMDT operational monitoring
 ICRISAT
 
 ## Data card author
-Stella Ofori-AmpofoJanet Mutuku, Celeste Tchampi, PCS Traore
+Janet Mutuku, Celeste Tchampi, PCS Traore
 
 ## Dataset overview
 **Crops**: Maize
