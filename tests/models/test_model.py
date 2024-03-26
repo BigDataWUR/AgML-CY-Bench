@@ -6,6 +6,8 @@ from sklearn.linear_model import Ridge
 from datasets.dataset import Dataset
 from models.naive_models import AverageYieldModel
 from models.sklearn_model import SklearnModel
+from evaluation.eval import evaluate_model
+
 from config import PATH_DATA_DIR
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
@@ -28,7 +30,7 @@ def test_average_yield_model():
     model.fit(dataset)
 
     # test prediction for an existing item
-    sel_loc = "US-01-001" # "AL_AUTAUGA"
+    sel_loc = "US-01-001"  # "AL_AUTAUGA"
     sel_year = 2018
     assert sel_loc in yield_df.index.get_level_values(0)
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -37,7 +39,7 @@ def test_average_yield_model():
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test prediction for a non-existent item
-    sel_loc = "US-06-081" # "CA_SAN_MATEO"
+    sel_loc = "US-06-081"  # "CA_SAN_MATEO"
     assert sel_loc not in yield_df.index.get_level_values(0)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_preds, _ = get_model_predictions(model, sel_loc, sel_year)
@@ -68,8 +70,23 @@ def test_sklearn_model():
         feature_cols=feature_cols,
     )
     model.fit(train_dataset)
+
     test_preds, _ = model.predict(test_dataset)
+
     assert test_preds.shape[0] == len(test_dataset)
+
+    evaluation_result = evaluate_model(model, test_dataset)
+    expected_values = {
+        "normalized_rmse": 14.49,
+        "mape": 0.14,
+    }
+    for metric, expected_value in expected_values.items():
+        assert (
+            metric in evaluation_result
+        ), f"Metric '{metric}' not found in evaluation result"
+        assert (
+            round(evaluation_result[metric], 2) == expected_value
+        ), f"Value of metric '{metric}' does not match expected value"
 
     # Model with hyperparameter optimization
     fit_params = {
