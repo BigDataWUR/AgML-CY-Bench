@@ -58,34 +58,22 @@ crop_cal_df <- crop_cal |>
   bind_rows() |> 
   separate(crop_trt, c("Crop", "Trt"), sep = "_")
 
-write_csv(crop_cal_df, "data_preparation/global_crop_calendar/US_crop_calendar/US_crop_calendar.csv")
+crop_cal_ir <- crop_cal_df |> filter(Trt == "ir")
+crop_cal_rf <- crop_cal_df |> filter(Trt == "rf")
+
+# Both corn and winter wheat rainfed
+write_csv(crop_cal_rf, "data_preparation/global_crop_calendar/US_crop_calendar/US_crop_calendar_rf.csv")
 
 #################### Exploring irrigated vs. rainfed ########################
 
-ir_rf <- crop_cal_df |> 
-  pivot_wider(names_from = "Trt", values_from = c("med_pday", "med_mday", "med_gslen")) |> 
-  mutate(pday_diff = med_pday_ir - med_pday_rf,
-         mday_diff = med_mday_ir - med_mday_rf,
-         gslen_diff = med_gslen_ir - med_gslen_rf)
-  
-ggplot({ir_rf |> filter(Crop == "wwh")}, aes(x=pday_diff)) +
-  geom_density() +
-  facet_wrap(State~Crop)
-
-ir_rf |> 
-  filter(pday_diff > 20) |> nrow()
-
-# Can we take a median of irrigated and rainfed to get a single value?
-ir_rf_avg <- crop_cal_df |> 
-  group_by(State, County, Crop) |> 
-  mutate(med_mday_irrf = median(med_mday, na.rm = TRUE),
-         med_gslen_irrf = median(med_gslen, na.rm = TRUE),
-         med_pday_irrf = median(med_pday, na.rm = TRUE)) |>
-  ungroup()
-
-ir_rf_avg |>
-  ggplot(aes(x=med_mday, y=med_mday_irrf)) +
-  geom_point() +
-  geom_abline() +
-  facet_wrap(~Crop)
-
+# ir_rf <- crop_cal_df |> 
+#   pivot_wider(names_from = "Trt", values_from = c("med_pday", "med_mday", "med_gslen")) |> 
+#   mutate(pday_diff = med_pday_ir - med_pday_rf,
+#          mday_diff = med_mday_ir - med_mday_rf,
+#          gslen_diff = med_gslen_ir - med_gslen_rf)
+# 
+# n_10 <- ir_rf |> filter(pday_diff > 10 | pday_diff < -10)
+# n_20 <- ir_rf |> filter(pday_diff > 20 | pday_diff < -20)
+# 
+# nrow(n_10)/nrow(ir_rf) * 100 # 21% of the counties have a difference of more than 10 days in planting day between irrigated and rainfed
+# nrow(n_20)/nrow(ir_rf) * 100 # 11% of the counties have a difference of more than 20 days in planting day between irrigated and rainfed
