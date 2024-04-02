@@ -38,7 +38,7 @@ Janet Mutuku, Celeste Tchampi, PCS Traore
 TBA
 
 ## License
-TBA
+The data is exclusively for research purposes. Please note that redistribution and reuse is not possible outside the AgML community.
 
 ## Additional information
 TBA
