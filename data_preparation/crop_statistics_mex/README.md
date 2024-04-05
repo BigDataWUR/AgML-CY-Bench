@@ -67,10 +67,7 @@ Municipal yield data were obtained from Mexico's Agri-food and Fisheries Informa
 **Date Published**: 21/01/2022
 
 ## License
-No information given.
-
-## Additional information
-Not applicable.
+(https://creativecommons.org/licenses/by/4.0/)
 
 ## REFERENCES: 
 Trevisan, R. G., Martin, N. F., Fonteyne, S., Verhulst, N., Betancourt, H. A. D., Jimenez, D., & Gardeazabal, A. (2022). Multiyear maize management dataset collected in Chiapas, Mexico. Data in Brief, 40, 107837.
