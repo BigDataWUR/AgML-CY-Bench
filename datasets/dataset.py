@@ -248,3 +248,41 @@ class Dataset:
             return pd.concat(
                 [df.xs(key, level=level, drop_level=False) for key in keys]
             )
+
+    @staticmethod
+    def _split_df_on_index(df: pd.DataFrame, split: tuple, level: int):
+        df.sort_index(inplace=True)
+
+        keys1, keys2 = split
+
+        df_1 = Dataset._filter_df_on_index(df, keys1, level)
+        df_2 = Dataset._filter_df_on_index(df, keys2, level)
+
+        return df_1, df_2
+
+    def split_on_years(self, years_split: tuple) -> tuple:
+        data_dfs1 = []
+        data_dfs2 = []
+        for src_df in self._dfs_x:
+            n_levels = len(src_df.index.names)
+            if (n_levels) >= 2:
+                src_df_1, src_df_2 = self._split_df_on_index(
+                    src_df, years_split, level=1
+                )
+            else:
+                src_df_1 = src_df.copy()
+                src_df_2 = src_df.copy()
+            data_dfs1.append(src_df_1)
+            data_dfs2.append(src_df_2)
+
+        df_y_1, df_y_2 = self._split_df_on_index(self._df_y, years_split, level=1)
+        return (
+            Dataset(
+                data_target=df_y_1,
+                data_features=data_dfs1,
+            ),
+            Dataset(
+                data_target=df_y_2,
+                data_features=data_dfs2,
+            ),
+        )
