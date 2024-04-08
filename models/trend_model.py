@@ -48,7 +48,7 @@ class TrendModel(BaseModel):
           The trend based on linear trend of years and values
         """
         slope, coeff = np.polyfit(trend_x, trend_y, 1)
-        return (pred_x * slope + coeff)
+        return pred_x * slope + coeff
 
     def save(self, model_name):
         """Save model, e.g. using pickle.

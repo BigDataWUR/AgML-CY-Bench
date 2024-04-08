@@ -50,7 +50,9 @@ def test_trend_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
     yield_df = pd.read_csv(yield_csv, header=0)
-    trend_fts, x_cols, y_cols = get_trend_features(yield_df, KEY_LOC, KEY_YEAR, KEY_TARGET, trend_window)
+    trend_fts, x_cols, y_cols = get_trend_features(
+        yield_df, KEY_LOC, KEY_YEAR, KEY_TARGET, trend_window
+    )
     model = TrendModel(x_cols, y_cols)
 
     # align data
@@ -69,10 +71,7 @@ def test_trend_model():
     sel_year = dummy_x_vals[-1] + 1
     assert sel_loc in yield_df.index.get_level_values(0)
 
-    test_data = {
-        KEY_LOC : sel_loc,
-        KEY_YEAR : sel_year
-    }
+    test_data = {KEY_LOC: sel_loc, KEY_YEAR: sel_year}
 
     for i, c in enumerate(x_cols):
         test_data[c] = dummy_x_vals[i]

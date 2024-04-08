@@ -12,8 +12,10 @@ def data_to_pandas(data_items):
 
     return pd.DataFrame(data, columns=data_cols)
 
-def get_trend_features(df: pd.DataFrame, loc_id_col: str,
-                       year_col: str, value_col: str, trend_window: int):
+
+def get_trend_features(
+    df: pd.DataFrame, loc_id_col: str, year_col: str, value_col: str, trend_window: int
+):
     """Creates trend features.
     Args:
       df: a pandas DataFrame with [loc_id_col, year_col, value_col]
