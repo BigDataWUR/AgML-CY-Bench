@@ -4,12 +4,13 @@ import numpy as np
 from models.model import BaseModel
 from datasets.dataset import Dataset
 
+from config import KEY_YEAR
+
 
 class TrendModel(BaseModel):
-    def __init__(self, x_cols, y_cols, year_col):
+    def __init__(self, x_cols, y_cols):
         self._x_cols = x_cols
         self._y_cols = y_cols
-        self._year_col = year_col
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -38,7 +39,7 @@ class TrendModel(BaseModel):
         for i, item in enumerate(X):
             trend_x = [item[y] for y in self._x_cols]
             trend_y = [item[c] for c in self._y_cols]
-            predictions[i] = self._get_trend(trend_x, trend_y, item[self._year_col])
+            predictions[i] = self._get_trend(trend_x, trend_y, item[KEY_YEAR])
 
         return predictions, {}
 
