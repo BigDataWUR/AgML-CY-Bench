@@ -91,6 +91,8 @@ class Dataset:
         if isinstance(index, int):
             sample_y = self._df_y.iloc[index]
             loc_id, year = sample_y.name
+            sample_y = self._df_y.iloc[index]
+            loc_id, year = sample_y.name
 
         elif isinstance(index, tuple):
             assert len(index) == 2
