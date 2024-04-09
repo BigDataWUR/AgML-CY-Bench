@@ -35,13 +35,13 @@ Janet Mutuku, Celeste Tchampi, PCS Traore
 
 ## Provenance
 **Version**: N/A <br>
-TBA
+
 
 ## License
-The data is exclusively for research purposes. Please note that redistribution and reuse is not possible outside the AgML community.
+The publisher permits the download and usage of the data for non-commercial purposes.
 
 ## Additional information
-TBA
+
 
 ## References
-TBA
+International Crops Research Institute for the Semi-Arid Tropics (ICRISAT), Bamako, Mali
