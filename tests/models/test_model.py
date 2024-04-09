@@ -28,7 +28,7 @@ def test_average_yield_model():
     model.fit(dataset)
 
     # test prediction for an existing item
-    sel_loc = "US-01-001" # "AL_AUTAUGA"
+    sel_loc = "US-01-001"  # "AL_AUTAUGA"
     sel_year = 2018
     assert sel_loc in yield_df.index.get_level_values(0)
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -37,7 +37,7 @@ def test_average_yield_model():
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test prediction for a non-existent item
-    sel_loc = "US-06-081" # "CA_SAN_MATEO"
+    sel_loc = "US-06-081"  # "CA_SAN_MATEO"
     assert sel_loc not in yield_df.index.get_level_values(0)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_preds, _ = get_model_predictions(model, sel_loc, sel_year)

@@ -57,6 +57,20 @@ class Dataset:
         # For now always set to False
         self._allow_incomplete = False
 
+    @staticmethod
+    def load(name: str) -> "Dataset":
+
+        if name == "test_maize":
+            from configured import load_dfs_test_maize
+
+            df_y, dfs_x = load_dfs_test_maize()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        raise Exception(f'Unrecognized dataset name "{name}"')
+
     @property
     def years(self) -> set:
         """
@@ -248,3 +262,13 @@ class Dataset:
             return pd.concat(
                 [df.xs(key, level=level, drop_level=False) for key in keys]
             )
+
+
+# if __name__ == '__main__':
+#
+#     _dataset = Dataset.load('test_maize')
+#
+#     for x in _dataset:
+#         # print(x)
+#         pass
+#         # input()
