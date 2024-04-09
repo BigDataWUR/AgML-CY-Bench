@@ -69,6 +69,24 @@ class Dataset:
                 dfs_x,
             )
 
+        if name == "test_maize_us":
+            from configured import load_dfs_test_maize_us
+
+            df_y, dfs_x = load_dfs_test_maize_us()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        if name == "test_maize_fr":
+            from configured import load_dfs_test_maize_fr
+
+            df_y, dfs_x = load_dfs_test_maize_fr()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
         raise Exception(f'Unrecognized dataset name "{name}"')
 
     @property
