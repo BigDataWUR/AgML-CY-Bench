@@ -17,6 +17,8 @@ Abdelrahman Amr Ali, Dilli R. Paudel
 
 ## Dataset overview
 
+**Spatial resolution** : 0.1° (see horizontal resolution below)
+
 | Attribute                | Description                                          |
 |--------------------------|------------------------------------------------------|
 | Data type                | Gridded                                              |
