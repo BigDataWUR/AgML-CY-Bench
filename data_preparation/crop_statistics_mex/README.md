@@ -2,11 +2,15 @@
 The dataset  consists of a single table integrated by 4 main types of variables: identification of field, maize yield and field management, soil characteristics, and weather conditions during the season. Each of the 4585 rows in the table corresponds to a unique field for the corresponding season.
 
 
-## DATASET LINK
+## Dataset link and paper
 The data is publicly available on the following url:
-(https://www.sciencedirect.com/science/article/pii/S235234092200049X#sec0003)
+https://data.cimmyt.org/dataset.xhtml?persistentId=hdl:11529/10548624
 
-## PUBLISHER
+The link to the paper describing the Data:
+https://www.sciencedirect.com/science/article/pii/S235234092200049X
+
+
+## Publisher
 University of Illinois at Urbana-Champaign,International Maize and Wheat Improvement Center (CIMMYT), International Center for Tropical Agriculture (CIAT),Universidad Icesi. 
 
 ## Dataset owner
@@ -15,7 +19,7 @@ No information given.
 Oumnia ennaji
 
 
-## DATASET OVERVIEW
+## Dataset overview
 
 **Crops**: corn 
 
@@ -56,7 +60,7 @@ Oumnia ennaji
 | tmin(V1-V30) | Minimum temperature over 10 days from V1 to V30 | °C        |
 | Vp(V1-V30) | Vapor pressure over 10 days from V1 to V30    | Pa         |
 
-## PROVENANCE
+## Provenance
 
 Field management data and grain yield data were collected by farm advisors during regular field visits.
 Soil data were obtained from Mexico's National Institute of Statistics and Geography, INEGI.
@@ -69,7 +73,8 @@ Municipal yield data were obtained from Mexico's Agri-food and Fisheries Informa
 ## License
 (https://creativecommons.org/licenses/by/4.0/)
 
-## REFERENCES: 
+## How to cite:
+Verhulst, Nele; Trevisan, Rodrigo G.; Martin, Nicolas F.; Fonteyne, Simon; Dorado Betancourt, Hugo A.; Jimenez, Daniel; Gardeazabal, Andrea, 2021, "Agronomic, soil and weather data from modules and extension areas in hub Chiapas, Mexico 2012-2018", https://hdl.handle.net/11529/10548624, CIMMYT Research Data & Software Repository Network, V3
+## References: 
 Trevisan, R. G., Martin, N. F., Fonteyne, S., Verhulst, N., Betancourt, H. A. D., Jimenez, D., & Gardeazabal, A. (2022). Multiyear maize management dataset collected in Chiapas, Mexico. Data in Brief, 40, 107837.
 
-Verhulst, N., Trevisan, R. G., Martin, N. F., Fonteyne, S., Dorado Betancourt, H. A., Jiménez, D., & Gardeazábal Monsalve, A. (2021). Agronomic, soil and weather data from modules and extension areas in hub Chiapas, Mexico 2012-2018.
