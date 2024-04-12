@@ -280,13 +280,3 @@ class Dataset:
             return pd.concat(
                 [df.xs(key, level=level, drop_level=False) for key in keys]
             )
-
-
-# if __name__ == '__main__':
-#
-#     _dataset = Dataset.load('test_maize')
-#
-#     for x in _dataset:
-#         # print(x)
-#         pass
-#         # input()

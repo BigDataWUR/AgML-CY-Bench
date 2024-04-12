@@ -127,9 +127,3 @@ def _align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
 
     return df_y, dfs_x
 
-
-if __name__ == "__main__":
-    df_y, dfs_x = load_dfs_test_maize()
-
-    print(df_y)
-    print(dfs_x)
