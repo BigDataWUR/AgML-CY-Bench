@@ -84,42 +84,20 @@ will load data for countries covered by the maize dataset. Maize data for the US
 dataset = Dataset.load("maize_us")
 ```
 
-1. Crop statistics
-* [Africa from FEWSNET](data_prepration/crop_statistics_FEWSNET/README.md)
-* [Mali](data_prepration/crop_statistics_Mali/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1.
-* [Argentina](data_prepration/crop_statistics_ARG/README.md)
-* [Australia](data_prepration/crop_statistics_AUS/README.md)
-* [Brazil](data_prepration/crop_statistics_BRA/README.md)
-* [US](data_prepration/crop_statistics_US/README.md)
-* [EU](data_prepration/crop_statistics_EU/README.md)
-* [Germany](data_prepration/crop_statistics_DEU/README.md). Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1.
-* [India](data_prepration/crop_statistics_IN/README.md)
-* [China](data_prepration/crop_statistics_CN/README.md)
+#### Data sources
 
-2. Shapefiles or administrative boundaries
-These are the boundaries associated with the crop statistics.
-* [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md)
-* [Argentina](data_preparation/shapefiles_ARG/README.md)
-* [Australia](data_preparation/shapefiles_AUS/README.md)
-* [Brazil](data_preparation/shapefiles_BRA/README.md)
-* [US](data_preparation/shapefiles_US/README.md)
-* [EU](data_preparation/shapefiles_EU/README.md)
-* [India](data_preparation/shapefiles_IN/README.md)
-* [China](data_preparation/shapefiles_CN/README.md)
-
-3. Predictors
-* Weather: [AgERA5](data_preparation/global_AgERA5/README.md)
-* Soil: [WISE soil data](data_preparation/global_soil_wise/README.md)
-* Soil moisture: [](data_preparation/global_AgERA5/README.md)
-* Evapotranspiration: [FAO](data_preparation/global_ET0/README.md)
-* FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md)
-* NDVI: [MOD09CMG](data_preparation/global_fpar_500m/README.md)
-
-4. Crop type or cropland maps (crop masks)
-* [ESA, WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md)
-
-5. Crop calendars
-* [WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md)
+| Crop Statistics       | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
+|-----------------------|-----------------------------------------|----------------------------------------|
+| [Africa from FEWSNET](data_prepration/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md) |
+| [Mali](data_prepration/crop_statistics_Mali/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_wise/README.md) |
+| [Argentina](data_prepration/crop_statistics_ARG/README.md) | [Argentina](data_preparation/shapefiles_ARG/README.md) | |
+| [Australia](data_prepration/crop_statistics_AUS/README.md) | [Australia](data_preparation/shapefiles_AUS/README.md) | Soil moisture: [](data_preparation/global_AgERA5/README.md) |
+| [Brazil](data_prepration/crop_statistics_BRA/README.md) | [Brazil](data_preparation/shapefiles_BRA/README.md) | Evapotranspiration: [FAO](data_preparation/global_ET0/README.md) |
+| [China](data_prepration/crop_statistics_CN/README.md) | [China](data_preparation/shapefiles_CN/README.md) | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md) |
+| [EU](data_prepration/crop_statistics_EU/README.md) | [EU](data_preparation/shapefiles_EU/README.md) | |
+| [Germany](data_prepration/crop_statistics_DEU/README.md). Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1. | Use EU shapefiles | [WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
+| [India](data_prepration/crop_statistics_IN/README.md) | [India](data_preparation/shapefiles_IN/README.md) | NDVI: [MOD09CMG](data_preparation/global_fpar_500m/README.md) |
+| [US](data_prepration/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) | [ESA, WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md) |
 
 ### Leaderboard
 | Model Name                           | NRMSE         | MAPE |
