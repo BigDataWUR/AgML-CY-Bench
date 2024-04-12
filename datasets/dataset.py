@@ -57,6 +57,38 @@ class Dataset:
         # For now always set to False
         self._allow_incomplete = False
 
+    @staticmethod
+    def load(name: str) -> "Dataset":
+
+        if name == "test_maize":
+            from configured import load_dfs_test_maize
+
+            df_y, dfs_x = load_dfs_test_maize()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        if name == "test_maize_us":
+            from configured import load_dfs_test_maize_us
+
+            df_y, dfs_x = load_dfs_test_maize_us()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        if name == "test_maize_fr":
+            from configured import load_dfs_test_maize_fr
+
+            df_y, dfs_x = load_dfs_test_maize_fr()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        raise Exception(f'Unrecognized dataset name "{name}"')
+
     @property
     def years(self) -> set:
         """
