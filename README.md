@@ -7,8 +7,15 @@ AgML aspires to
 * support enhanced collaboration and engagement between experts in these disciplines, and
 * conduct and publish protocol-based studies to establish best practices for robust machine learning use in agricultural modelling.
 
+
 ## AgML Crop Yield Forecasting
 The objective of AgML Crop Yield Forecasting task is to create a benchmark to compare models for crop yield forecasting across countries and crops. The models and forecasts can be used for food security planning or famine early warning. The benchmark is called CY-Bench (crop yield benchmark).
+
+### Table of contents
+* [Overview](#overview)
+* [Getting started](#getting-started)
+* [Dataset](#dataset)
+* [Leaderboard](#leaderboard)
 
 ### Overview
 Early in-season predictions of crop yields can inform decisions at multiple levels of the food value chain from late-season agricultural management such as fertilization, harvest, and storage to import or export of produce. Anticipating crop yields is also important to ensure market transparency at the global level (e.g. [Agriculture Market Information System](https://www.amis-outlook.org/), [GEOGLAM Crop Monitor](https://www.cropmonitor.org/)) and to plan response actions in food insecure countries at risk of food production shortfalls.
