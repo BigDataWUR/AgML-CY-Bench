@@ -13,7 +13,7 @@ https://doi.org/10.1038/s41597-024-02951-8
 Open Agrar Repository
 
 ## Dataset owner
-Thünen-Institut, Institut für Betriebswirtschaft (I'm not sure if this is correct, I have to check.)
+Thünen-Institut, Institut für Betriebswirtschaft
 
 ## Data card author
 Rahel Laudien
@@ -64,9 +64,13 @@ ww | Winter wheat
 
 **Temporal coverage**: 1979 - 2021
 
-**Temporal resolution**: 397 districts
+**Temporal resolution**: yearly 
+
+**Spatial resolution**: Subnational - NUTS3 (397 districts)
 
 **Date Published**: 17/11/2023
+
+**Data Modality**: Tabular data
 
 ## Provenance 
 The dataset was peer reviewed in 2023 and will be maintained according to the authors. 
