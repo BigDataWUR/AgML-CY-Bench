@@ -18,6 +18,3 @@ def test_load_dfs_test_maize():
             else:
                 assert i in df_x.index
 
-
-if __name__ == "__main__":
-    test_load_dfs_test_maize()
