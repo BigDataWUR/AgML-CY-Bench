@@ -61,7 +61,7 @@ class Dataset:
     def load(name: str) -> "Dataset":
 
         if name == "test_maize":
-            from configured import load_dfs_test_maize
+            from datasets.configured import load_dfs_test_maize
 
             df_y, dfs_x = load_dfs_test_maize()
             return Dataset(
@@ -70,7 +70,7 @@ class Dataset:
             )
 
         if name == "test_maize_us":
-            from configured import load_dfs_test_maize_us
+            from datasets.configured import load_dfs_test_maize_us
 
             df_y, dfs_x = load_dfs_test_maize_us()
             return Dataset(
@@ -79,7 +79,7 @@ class Dataset:
             )
 
         if name == "test_maize_fr":
-            from configured import load_dfs_test_maize_fr
+            from datasets.configured import load_dfs_test_maize_fr
 
             df_y, dfs_x = load_dfs_test_maize_fr()
             return Dataset(
