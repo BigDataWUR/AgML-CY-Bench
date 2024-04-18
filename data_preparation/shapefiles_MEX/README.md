@@ -22,7 +22,7 @@ Instituto Nacional de Estadística y Geografía (INEGI)
 
 ## Dataset overview
 
-**Methodology**: Derived by UNHCR from Instituto Geografico Nacional.
+**Methodology**: Derived by Instituto Nacional de Estadística y Geografía (INEGI)
 
 **File format**: Shapefile (SHP)
 
@@ -36,11 +36,10 @@ Instituto Nacional de Estadística y Geografía (INEGI)
 
 ## Provenance 
 **Date Published**: 2023
-**Last updated**: 4 May 2020
-**Expected update frequency**: Every year
+
 
 ## License
-Creative Commons Attribution for Intergovernmental Organisations 
+Open data to reuse and distribute for any purposes.
 
 ## Additional information
 Specific file to use: Marco geoestadistico integrado Diciembre 2022
