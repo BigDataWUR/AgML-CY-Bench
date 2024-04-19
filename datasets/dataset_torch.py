@@ -40,9 +40,9 @@ class TorchDataset(torch.utils.data.Dataset):
         return {
             KEY_LOC: sample[KEY_LOC],
             KEY_YEAR: sample[KEY_YEAR],
-            KEY_TARGET: torch.tensor(sample[KEY_TARGET]),
+            KEY_TARGET: torch.tensor(sample[KEY_TARGET], dtype=torch.float32),
             **{
-                key: torch.tensor(sample[key])
+                key: torch.tensor(sample[key], dtype=torch.float32)
                 for key in sample.keys()
                 if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET]
             },  # TODO -- support nonnumeric data?

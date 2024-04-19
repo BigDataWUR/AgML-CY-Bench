@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from tqdm import tqdm
+import numpy as np
 
 from datasets.dataset_torch import TorchDataset
 from datasets.dataset import Dataset
@@ -97,13 +98,9 @@ class BaseNNModel(BaseModel, nn.Module):
                         batch[key] = batch[key].to(device)
 
                 # Forward pass
-                predictions = self(batch).squeeze()
+                features = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                predictions = self(features).squeeze()
                 target = batch[KEY_TARGET]
-
-                # Unsqueeze number of dimensions of target to match predictions
-                if len(predictions.shape) != len(target.shape):
-                    target = target.unsqueeze(-1)
-                target = target.float()
 
                 loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -133,7 +130,8 @@ class BaseNNModel(BaseModel, nn.Module):
                                 batch[key] = batch[key].to(device)
 
                         # Forward pass
-                        predictions = self(batch).squeeze()
+                        features = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                        predictions = self(features).squeeze()
 
                         target = batch[KEY_TARGET]
 
@@ -155,16 +153,22 @@ class BaseNNModel(BaseModel, nn.Module):
         return self, {}
 
     def predict_batch(self, X: list, device: str = "cpu"):
-        # TODO this should be implemented per batch
-        # TODO fix self.device
+        
+        # Implemented in single pass, might run into memory issues with large datasets
 
-        # Convert batch to tensor
-        X = torch.tensor(X, dtype=torch.float32, device=device)
+        # Convert list of dicts to batched dict of tensors, then send to device
+        X = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in X])
+        X = {key: X[key].to(device) for key in X.keys() if isinstance(X[key], torch.Tensor)}
+
+
+        # Pass batch through model
         self.to(device)
-
         self.eval()
         with torch.no_grad():
-            return self(X).detach(), {}
+            features = {k: v for k, v in X.items() if k != KEY_TARGET}
+            predictions = self(features).squeeze().cpu().numpy()
+            return predictions, {}
+
 
     def save(self, model_name):
         torch.save(self, model_name)
@@ -174,56 +178,20 @@ class BaseNNModel(BaseModel, nn.Module):
         return torch.load(model_name)
     
 class ExampleLSTM(BaseNNModel):
-    def __init__(self, input_size, hidden_size, num_layers, output_size=1, *args, **kwargs):
+    def __init__(self, n_ts_features, n_static_features, hidden_size, num_layers, output_size=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._bn1 = nn.BatchNorm1d(input_size)
-        self._lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
-        self._bn2 = nn.BatchNorm1d(hidden_size)
-        self._fc = nn.Linear(hidden_size, output_size)
+        self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
+        self._fc = nn.Linear(hidden_size + n_static_features, output_size)
 
     def forward(self, x):
-        # TODO: Keep this out of the model:
-        # 1. Get only the time series data from the batch
-        # 2. Ensure that there is always a batch dimension
-        # 3. Ensure that input data is float32
-        # 4. ?Concatenate along the channel dimension
-        # 5. Rearrange dimensions to (b, l, c)
-        # 6. Copy tensors in a better way, that does not give a warning
-
-
-        # Find the dimension of the input with the most dimensions, corresponding to time series data
+        # Could be moved to training loop
         max_n_dim = max([len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)])
+        x_ts = torch.cat([v.unsqueeze(2) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim], dim=2)
+        x_static = torch.cat([v.unsqueeze(1) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim], dim=1)
 
-        # Keep only the time series data from the batch
-        x = {k: v for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim}
-
-        # Add batch dimension if not present
-        # If max_n_dim == 1, then the shape is (sequence_length)
-        # In this case we add a batch dimension and a channel dimension to get (b, c, l)
-        if max_n_dim == 1:
-            x = {k: v.unsqueeze(0).unsqueeze(1) for k, v in x.items()}
-        # If max_n_dim == 2, then the shape is (batch_size, n_features)
-        # In this case we add a channel dimension to get (b, c, l)
-        if max_n_dim == 2:
-            x = {k: v.unsqueeze(1) for k, v in x.items()}
-
-        # Concatenate along the channel dimension
-        x = torch.cat([v for k, v in x.items()], dim=1)
-
-        # Change dtype to float32 if needed
-        x = x.float() #TODO move to dataloader
-
-        x = self._bn1(x)
-        x = x.permute(0, 2, 1)# Rearrange dimensions to (b, l, c)
-        x, _ = self._lstm(x)
-        x = x.permute(0, 2, 1)# Rearrange dimensions to (b, c, l)
-        x = self._bn2(x)
-        x = x.permute(0, 2, 1)# Rearrange dimensions to (b, l, c) #TODO check this
+        x_ts, _ = self._lstm(x_ts)
+        x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         x = self._fc(x)
-        # Dimensions of x: (batch_size, sequence_length, output_size)
-        # Take the last element of the sequence as the output
-        x = x[:, -1, :]
-        
         return x
     
 if __name__ == "__main__":

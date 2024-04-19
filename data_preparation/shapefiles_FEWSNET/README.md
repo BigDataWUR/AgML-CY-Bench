@@ -1,7 +1,7 @@
-# Harmonized Subnational Crop Statistics from FEWS NET
+# FEWS NET Crop Statistics Unit Dataset
 
 ## Short description
-This dataset comprises harmonized subnational crop statistics for 14 countries: Angola, Burkina Faso, Chad, Ethiopia, Lesotho, Madagascar, Malawi, Mali, Mozambique, Niger, Senegal, South Africa, Sudan, and Zambia. The dataset is initially collected by [Famine Early Warning Systems Network (FEWS NET)](https://fews.net/) and further processed by Donghoon Lee and Weston Anderson (methods & citation will be added).
+The FEWS NET crop statistics unit dataset contains a unique geocode (FNID) of an administrative unit that is linked to the country's boundary at a given point in time. FEWS NET has tracked changes in the names and geometry of administrative boundaries and created a [database](https://fews.net/data/geographic-boundaries) of historical and current subnational administrative boundaries for a number of countries. The FNID is represented as `adm_id` and is aligned with the `adm_id` of the crop statistics dataset.
 
 ## Dataset owner
 FEWS NET
@@ -10,25 +10,17 @@ FEWS NET
 Donghoon Lee and Weston Anderson
 
 ## Dataset overview
-- **Crops**:  Maize
 - **Variables**:
-  - `adm_id`: Administrative unit
-  - `country`: Country name
-  - `country_code`: ISO 3166-1 alpha-2 code
-  - `crop_name`: Crop name
-  - `season_name`: Season name
-  - `planting_month`: Planting start month
-  - `planting_year`: Planting year
-  - `harvest_month`: Harvest end month
-  - `harvest_year`: Harvest year
-  - `indicator`: Production (mt), area (ha), or yield (mt/ha)
-  - `value`: Quantitative measure
-
-- **Temporal coverage**: 1960 - 2022
-- **Temporal resolution**: Annual
-- **Spatial resolution**: Administrative units (`adm_id`)
+adm_id				
+  - `adm_id`: Administrative unit (FNID)
+  - `admin0`: Country name (admin level 0)
+  - `admin1`: Province name (admin level 1)
+  - `admin2`: District name (admin level 2); if available
+  - `geometry`: Geometries of administrative unit
+- **File format**: ESRI Shapefile
+- **Geomtry types**: Polygons
+- **Coordinate reference system**: EPSG: 4326
 - **Date published**: Feb 27, 2024
-- **Data modality**: Tabular
 
 ## License
 Data use aligns with [FEWS NET's Data Attribution and Use Policy](https://help.fews.net/fdp/data-and-information-use-and-attribution-policy):
