@@ -23,7 +23,7 @@ class BaseNNModel(BaseModel, nn.Module):
             val_every_n_epochs: int = 1,
 
             num_epochs: int = 1,
-            batch_size: int = 1,
+            batch_size: int = 10,
 
             loss_fn: callable = None,
             loss_kwargs: dict = None,
@@ -37,6 +37,27 @@ class BaseNNModel(BaseModel, nn.Module):
             device: str = "cpu",
 
              **fit_params):
+        """
+        Fit or train the model.
+
+        Args:
+            train_dataset: Dataset,
+            val_fraction: float, percentage of data to use for validation, default is 0.1
+            val_every_n_epochs: int, validation frequency, default is 1
+            num_epochs: int, the number of epochs to train the model, default is 1
+            batch_size: int, the batch size, default is 10
+            loss_fn: callable, the loss function, default is torch.nn.functional.mse_loss
+            loss_kwargs: dict, additional parameters for the loss function, default is {"reduction": "mean"}
+            optim_fn: callable, the optimizer function, default is torch.optim.Adam
+            optim_kwargs: dict, additional parameters for the optimizer function, default is {}
+            scheduler_fn: callable, the scheduler function, default is None
+            scheduler_kwargs: dict, additional parameters for the scheduler function, default is {}
+            device: str, the device to use, default is "cpu"
+            **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
         
         # Set default values for loss_fn, optim_fn, optim_kwargs, scheduler_fn, scheduler_kwargs
         if loss_fn is None: loss_fn = torch.nn.functional.mse_loss
@@ -101,7 +122,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                 predictions = self(features).squeeze()
                 target = batch[KEY_TARGET]
-
                 loss = loss_fn(predictions, target, **loss_kwargs)
 
                 # Backward pass
@@ -132,14 +152,7 @@ class BaseNNModel(BaseModel, nn.Module):
                         # Forward pass
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                         predictions = self(features).squeeze()
-
                         target = batch[KEY_TARGET]
-
-                        # Unsqueeze number of dimensions of target to match predictions
-                        if len(predictions.shape) != len(target.shape):
-                            target = target.unsqueeze(-1)
-                        target = target.float() #TODO move to dataloader
-
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
                         # Save loss
@@ -153,8 +166,18 @@ class BaseNNModel(BaseModel, nn.Module):
         return self, {}
 
     def predict_batch(self, X: list, device: str = "cpu"):
+        """Run fitted model on batched data items.
+
+        Args:
+          X: a list of data items, each of which is a dict
+          device: a string specifying the device to use. Default is "cpu".
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
         
         # Implemented in single pass, might run into memory issues with large datasets
+        # Can be reimplemented to run for each item in X if necessary
 
         # Convert list of dicts to batched dict of tensors, then send to device
         X = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in X])
@@ -169,14 +192,27 @@ class BaseNNModel(BaseModel, nn.Module):
             predictions = self(features).squeeze().cpu().numpy()
             return predictions, {}
 
-
     def save(self, model_name):
+        """Save model using torch.save.
+
+        Args:
+          model_name: Filename that will be used to save the model.
+        """
         torch.save(self, model_name)
 
     @classmethod
     def load(cls, model_name):
+        """Load model using torch.load.
+        
+        Args:
+            model_name: Filename that was used to save the model.
+
+        Returns:
+            The loaded model.
+        """
         return torch.load(model_name)
     
+
 class ExampleLSTM(BaseNNModel):
     def __init__(self, n_ts_features, n_static_features, hidden_size, num_layers, output_size=1, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -184,7 +220,7 @@ class ExampleLSTM(BaseNNModel):
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
 
     def forward(self, x):
-        # Could be moved to training loop
+        # Could be moved to training loop. Assumes that all individual features are one channel each
         max_n_dim = max([len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)])
         x_ts = torch.cat([v.unsqueeze(2) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim], dim=2)
         x_static = torch.cat([v.unsqueeze(1) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim], dim=1)
@@ -193,28 +229,6 @@ class ExampleLSTM(BaseNNModel):
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         x = self._fc(x)
         return x
-    
-if __name__ == "__main__":
-    import os
-    from config import PATH_DATA_DIR
-
-    # TODO: Implement a test for the model
-    
-    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
-    # Training dataset
-    train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
-    train_df = pd.read_csv(train_csv, index_col=["COUNTY_ID", "FYEAR"])
-    train_yields = train_df[["YIELD"]].copy()
-    feature_cols = [c for c in train_df.columns if c != "YIELD"]
-    train_features = train_df[feature_cols].copy()
-    train_dataset = Dataset(train_yields, [train_features])
-
-    # Test dataset
-    test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
-    test_df = pd.read_csv(test_csv, index_col=["COUNTY_ID", "FYEAR"])
-    test_yields = test_df[["YIELD"]].copy()
-    test_features = test_df[feature_cols].copy()
-    test_dataset = Dataset(test_yields, [test_features])
 
 
         
