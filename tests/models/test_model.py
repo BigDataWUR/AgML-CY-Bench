@@ -13,7 +13,6 @@ from evaluation.eval import evaluate_model
 
 from config import PATH_DATA_DIR
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
-from data_preparation.data_alignment import load_data_csv, merge_data, set_indices
 
 
 def get_model_predictions(model, sel_loc, sel_year):
