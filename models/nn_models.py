@@ -193,7 +193,7 @@ class BaseNNModel(BaseModel, nn.Module):
             self.eval()
             with torch.no_grad():
                 for i, item in enumerate(X):
-                    item = TorchDataset.collate_fn(TorchDataset._cast_to_tensor(item))
+                    item = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(item)])
                     item = {key: item[key].to(device) for key in item.keys() if isinstance(item[key], torch.Tensor)}
                 
                     features = {k: v for k, v in item.items() if k != KEY_TARGET}

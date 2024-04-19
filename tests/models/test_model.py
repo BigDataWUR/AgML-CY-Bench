@@ -122,6 +122,7 @@ def test_nn_model():
 
     # Check if evaluation results are within expected range
     evaluation_result = evaluate_model(model, test_dataset)
+    print(evaluation_result)
 
     min_expected_values = {"normalized_rmse": 5, "mape": 0.05,}
     for metric, expected_value in min_expected_values.items():
