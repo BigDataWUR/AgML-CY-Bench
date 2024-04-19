@@ -165,32 +165,40 @@ class BaseNNModel(BaseModel, nn.Module):
             if scheduler_fn is not None: scheduler.step()
         return self, {}
 
-    def predict_batch(self, X: list, device: str = "cpu"):
+    def predict_batch(self, X: list, device: str = "cpu", as_single_batch: bool = False):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
           device: a string specifying the device to use. Default is "cpu".
+          as_single_batch: a bool specifying whether to run all items in a single batch. Default is False.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        
-        # Implemented in single pass, might run into memory issues with large datasets
-        # Can be reimplemented to run for each item in X if necessary
 
-        # Convert list of dicts to batched dict of tensors, then send to device
-        X = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in X])
-        X = {key: X[key].to(device) for key in X.keys() if isinstance(X[key], torch.Tensor)}
+        if as_single_batch:
+            X = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in X])
+            X = {key: X[key].to(device) for key in X.keys() if isinstance(X[key], torch.Tensor)}
 
-
-        # Pass batch through model
-        self.to(device)
-        self.eval()
-        with torch.no_grad():
-            features = {k: v for k, v in X.items() if k != KEY_TARGET}
-            predictions = self(features).squeeze().cpu().numpy()
-            return predictions, {}
+            self.to(device)
+            self.eval()
+            with torch.no_grad():
+                features = {k: v for k, v in X.items() if k != KEY_TARGET}
+                predictions = self(features).squeeze().cpu().numpy()
+                return predictions, {}
+        else:
+            predictions = np.zeros((len(X), 1))
+            self.to(device)
+            self.eval()
+            with torch.no_grad():
+                for i, item in enumerate(X):
+                    item = TorchDataset.collate_fn(TorchDataset._cast_to_tensor(item))
+                    item = {key: item[key].to(device) for key in item.keys() if isinstance(item[key], torch.Tensor)}
+                
+                    features = {k: v for k, v in item.items() if k != KEY_TARGET}
+                    predictions[i] = self(features).squeeze().cpu().numpy()
+                return predictions, {}
 
     def save(self, model_name):
         """Save model using torch.save.
