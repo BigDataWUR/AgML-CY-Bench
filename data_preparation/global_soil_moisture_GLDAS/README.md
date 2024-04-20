@@ -1,7 +1,7 @@
 # Global Soil Moisture Data from GLDAS
 
 ## Short description
-?
+Gridded and global soil moisture data developed by integrating satellite- and ground-based observational data products, using advanced land surface modeling and data assimilation techniques.
 
 ## Link
 https://ldas.gsfc.nasa.gov/gldas/model-output
