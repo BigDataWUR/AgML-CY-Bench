@@ -4,10 +4,10 @@
 The Global 8-day Climate Modeling Grid (CMG)-scale product provides NDVI and GCVI information at a global scale. This product refers to both MODIS and VIIRS acquisitions.
 
 ## Link
-The dataset can be processed using [the octvi python library](https://pypi.org/project/octvi/).
+https://lpdaac.usgs.gov/products/mod09cmgv061/#tools
 
 ## Publisher
-The publisher of the octvi python library is [NASA Harvest](https://nasaharvest.org/).
+Land Processes Distributed Active Archive Center (LP DAAC), NASA
 
 ## Dataset owner
 NASA
