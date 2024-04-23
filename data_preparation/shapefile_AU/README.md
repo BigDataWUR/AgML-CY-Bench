@@ -7,7 +7,7 @@ This shapefiles were rolling around the organisation with no clear origin. Visua
 Nonetheless, the wheat yields from the crop_statistics_AUS match this regions.
 
 ## Link
-Include the link to the data website and paper (if there is one).
+https://www.agriculture.gov.au/abares/research-topics/surveys/farm-survey-data
 
 ## Publisher
 ABARES
