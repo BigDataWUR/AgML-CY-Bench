@@ -18,9 +18,22 @@ Richetti, Jonathan
 
 ## Dataset overview
 
-**Date Published**: 23/04/2024
+**Year**: 2023.
 
-**Data Modality**: Vector
+**File format**: SHP
+
+**Scale**: N/A
+
+**Coordinate reference system**:  WGS84 (EPSG:4326)
+
+**Version**: NA
+
+**Date Published**: 2023
+
+**Data Modality**: Geometries
+
+**Boundary file description**: https://www.census.gov/programs-surveys/geography/technical-documentation/naming-convention/cartographic-boundary-file.html
+
 
 
 ## Data access API
