@@ -1,22 +1,44 @@
 library(tidyverse)
+library(sf)
 
+# loading data from gov website ; download on 05/03/2024
 df = read.csv("fdp-beta-regional-historical.csv") #file origin https://www.agriculture.gov.au/sites/default/files/documents/fdp-beta-regional-historical.csv
 head(df)
 
+# filtering wheat production and area swon
 wheat = df %>% filter(Variable == 'Wheat produced (t)' | Variable == 'Wheat area sown (ha)')
 wheat = wheat %>% select(-RSE)
-wheat_df = wheat %>% pivot_wider(names_from = Variable , values_from = Value)
-head(wheat_df)
 
-wheat_df$Yield = wheat_df$`Wheat produced (t)`/wheat_df$`Wheat area sown (ha)` 
-wheat_df = drop_na(wheat_df) %>% select(Year,ABARES.region,Yield)
+# pivoting table
+temp_df = wheat %>% pivot_wider(names_from = Variable , values_from = Value)
+names(temp_df) = c('year','NAME','production','planted_area')
+head(temp_df)
+
+# grabbing the AAGIS ID from the shapefile
+shape = read_sf('abares_regions/ABARES_regions_boundaries.shp')
+shape_df =  shape %>% select(AAGIS,NAME) %>% st_drop_geometry()
+wheat_df = merge(temp_df, shape_df, by='NAME', all.x = T)
+
+names(wheat_df) = c('NAME','harvest_year','production','planted_area','adm_id')
+
+#dropping name column
+wheat_df$NAME = NULL
+
+# add columns to conform to AgML standards
+wheat_df$crop_name = 'WHEAT'
+wheat_df$country_code = 'AU'
+wheat_df$season_name = NA
+wheat_df$planting_year = NA
+wheat_df$planting_date = NA
+wheat_df$harvest_date = NA
+wheat_df$yield = temp_df$production / temp_df$planted_area
+wheat_df$harvest_area= NA
 
 head(wheat_df)
 
 write.csv(wheat_df,'wheat_Australia.csv')
 
 ggplot(wheat_df)+
-  geom_line(aes(x=Year,y=Avg_Yield_tperha))+
-  facet_wrap(~ABARESregion)+
+  geom_line(aes(x=harvest_year,y=yield))+
+  facet_wrap(~adm_id)+
   theme_bw()
-

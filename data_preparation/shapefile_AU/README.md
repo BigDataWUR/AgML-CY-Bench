@@ -2,9 +2,7 @@
 
 ## Short description
 
-This shapefiles were rolling around the organisation with no clear origin. Visualy, they match the official ABARES website. I'm still looking for the link to this.
-
-Nonetheless, the wheat yields from the crop_statistics_AUS match this regions.
+ABARES has been conducting surveys of agricultural industries since the 1940s. Farm surveys conducted by ABARES provide a wide range of information on the current and historical economic performance of farm business units in the rural sector. This information is used for research and analysis on a range of industry issues of concern to government and industry.
 
 ## Link
 https://www.agriculture.gov.au/abares/research-topics/surveys/farm-survey-data
@@ -20,17 +18,7 @@ Richetti, Jonathan
 
 ## Dataset overview
 
-**Crops**:
-
-**Variables** [unit]:
-
-**Temporal coverage**:
-
-**Temporal resolution**:
-
-**Spatial resolution**:
-
-**Date Published**:
+**Date Published**: 23/04/2024
 
 **Data Modality**: Vector
 
@@ -39,7 +27,9 @@ Richetti, Jonathan
 Not available.
 
 ## Provenance 
-??
+Farm survey definitions and methods used to produce these statistics are available on the ABARES website. For further analysis and information about the design of these statistics see Boult and Jackson (2019).
+
+Boult, C & Jackson, T 2019, ‘Disaggregating farm performance statistics by size, 2017–18’, in Agricultural Commodities: March quarter 2019, Australian Bureau of Agricultural and Resource Economics and Sciences, Canberra.
 
 # License 
 All ABARES publications are released with a Creative Commons licence to allow users free use of the content within the publication, subject to the conditions of the licence. The ABARES Creative Commons statement says:
@@ -88,4 +78,4 @@ All ABARES publications include the statement of professional independence:
 The views and analysis presented in ABARES publications, including this one, reflect ABARES professionally independent findings, based on scientific and economic concepts, principles, information and data. These views, analysis and findings may not reflect or be consistent with the views or positions of the Australian Government, or of organisations or groups who have commissioned ABARES reports or analysis. More information on professional independence is provided on the ABARES website.
 
 ## References
-*Mandatory*. This should at least include a reference to the data source.
+ABARES (2024) Australian Bureau of Agricultural and Resource Economics and Sciences Farm surveys. Accessed on 05/Mar/2024. https://www.agriculture.gov.au/abares/research-topics/surveys/farm-survey-data

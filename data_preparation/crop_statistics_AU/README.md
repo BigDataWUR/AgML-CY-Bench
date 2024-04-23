@@ -21,26 +21,29 @@ Commonweath of Australia
 Richetti, Jonathan
 
 ## Dataset overview
-**Crops**: Wheat
 
-**Variables** [unit]: t / ha
+**Crops**:  Winter wheat
 
-**Temporal coverage**: 1990 to 2022
+**Variables** [unit]: harvested area [ha], Production [t], Yield [t/ha].
+
+**Temporal coverage**: From: 1990 - To: 2022
 
 **Temporal resolution**: Yearly
 
 **Spatial resolution**: ABARES regionl (sub-state)
 
-**Date Published**: 05/03/2024
+**Date Published**: Regular updates. The last update for Wheat was 2024-03.
 
-**Data Modality**: Tabular Data
+**Data Modality**: Tabular data
 
 
 ## Data access API
 Not available.
 
 ## Provenance 
-Dataset version and maintenance
+Farm survey definitions and methods used to produce these statistics are available on the ABARES website. For further analysis and information about the design of these statistics see Boult and Jackson (2019).
+
+Boult, C & Jackson, T 2019, ‘Disaggregating farm performance statistics by size, 2017–18’, in Agricultural Commodities: March quarter 2019, Australian Bureau of Agricultural and Resource Economics and Sciences, Canberra.
 
 # License 
 All ABARES publications are released with a Creative Commons licence to allow users free use of the content within the publication, subject to the conditions of the licence. The ABARES Creative Commons statement says:
@@ -83,10 +86,9 @@ All ABARES publications include the following disclaimer:
 
 The Australian Government acting through the Department of Agriculture, Fisheries and Forestry, represented by the Australian Bureau of Agricultural and Resource Economics and Sciences, has exercised due care and skill in preparing and compiling the information and data in this publication. Notwithstanding, the Department of Agriculture, Fisheries and Forestry, ABARES, its employees and advisers disclaim all liability, including liability for negligence and for any loss, damage, injury, expense or cost incurred by any person as a result of accessing, using or relying on any of the information or data in this publication to the maximum extent permitted by law.
 
-
 All ABARES publications include the statement of professional independence:
 
 The views and analysis presented in ABARES publications, including this one, reflect ABARES professionally independent findings, based on scientific and economic concepts, principles, information and data. These views, analysis and findings may not reflect or be consistent with the views or positions of the Australian Government, or of organisations or groups who have commissioned ABARES reports or analysis. More information on professional independence is provided on the ABARES website.
 
 ## References
-*Mandatory*. This should at least include a reference to the data source.
+ABARES (2024) Australian Bureau of Agricultural and Resource Economics and Sciences Farm Data Portal. Accessed on 2024/03/05. https://www.agriculture.gov.au/abares/data/farm-data-portal#data-download
