@@ -37,7 +37,9 @@ Undifferentiated Wheat or Winter Wheat where differentiated
 `cybench` is an open source python library to load CY-Bench dataset and run the CY-Bench tasks.
 
 #### Installation
+```
 git clone https://github.com/BigDataWUR/AgML-crop-yield-forecasting
+```
 
 #### Requirements
 The benchmark results were produced in the following test environment:
@@ -95,16 +97,17 @@ dataset = Dataset.load("maize_us")
 
 | Crop Statistics       | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
 |-----------------------|-----------------------------------------|----------------------------------------|
-| [Africa from FEWSNET](data_prepration/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md) |
-| [Mali](data_preparation/crop_statistics_Mali/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_wise/README.md) |
-| [Argentina](data_preparation/crop_statistics_ARG/README.md) | [Argentina](data_preparation/shapefiles_ARG/README.md) | |
-| [Australia](data_preparation/crop_statistics_AUS/README.md) | [Australia](data_preparation/shapefiles_AUS/README.md) | Soil moisture: [](data_preparation/global_AgERA5/README.md) |
-| [Brazil](data_preparation/crop_statistics_BRA/README.md) | [Brazil](data_preparation/shapefiles_BRA/README.md) | Evapotranspiration: [FAO](data_preparation/global_ET0/README.md) |
-| [China](data_preparation/crop_statistics_CN/README.md) | [China](data_preparation/shapefiles_CN/README.md) | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md) |
-| [EU](data_preparation/crop_statistics_EU/README.md) | [EU](data_preparation/shapefiles_EU/README.md) | |
-| [Germany](data_prepration/crop_statistics_DEU/README.md). Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1. | Use EU shapefiles | [WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
-| [India](data_preparation/crop_statistics_IN/README.md) | [India](data_preparation/shapefiles_IN/README.md) | NDVI: [MOD09CMG](data_preparation/global_fpar_500m/README.md) |
-| [US](data_preparation/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) | [ESA, WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md) |
+| [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md) |
+| [Mali](data_preparation/crop_statistics_ML/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa shapefiles from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_wise/README.md) |
+| [Argentina](data_preparation/crop_statistics_AR/README.md) | [Argentina](data_preparation/shapefiles_ARG/README.md) | Soil moisture: [](data_preparation/global_soil_moisture_GLDAS/README.md) |
+| [Australia](data_preparation/crop_statistics_AU/README.md) | [Australia](data_preparation/shapefiles_AUS/README.md) | Evapotranspiration: [FAO](data_preparation/global_ET0_FAO/README.md) |
+| [Brazil](data_preparation/crop_statistics_BR/README.md) | [Brazil](data_preparation/shapefiles_BRA/README.md) | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md) |
+| [China](data_preparation/crop_statistics_CN/README.md) | [China](data_preparation/shapefiles_CN/README.md) | Crop calendars: [ESA WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
+| [EU](data_preparation/crop_statistics_EU/README.md) | [EU](data_preparation/shapefiles_EU/README.md) | NDVI: [MOD09CMG](data_preparation/global_MOD09CMG/README.md) |
+| [Germany](data_preparation/crop_statistics_DE/README.md). Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1. | Use EU shapefiles | Crop Masks: [ESA WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md) |
+| [India](data_preparation/crop_statistics_IN/README.md) | [India](data_preparation/shapefiles_IN/README.md) |  |
+| [Mexico](data_preparation/crop_statistics_MX/README.md) | [Mexico](data_preparation/shapefiles_MX/README.md) |  |
+| [US](data_preparation/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) |  |
 
 ### Leaderboard
 | Model Name                           | NRMSE         | MAPE |
@@ -116,6 +119,7 @@ dataset = Dataset.load("maize_us")
 
 ### How to cite
 Please cite CY-bench as follows:
+TODO.
 
 ## How to contribute
 Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please check [contributing guidelines](CONTRIBUTING.md) for how to get involved and contribute.
