@@ -52,10 +52,12 @@ The sixth and final image stored every dekad corresponds to the black dot in the
 **Method details**: The details of this procedure are documented in the MARSOP 6 - Framework Contract N 943209 – IPR – 2022) technical report “Description of the Whittaker Implementation Deliverable MODIS S8.1”. Methods and quality assessment are reported in Klisch and Atzberger (2016) and Meroni et al. (2019).
 
 ## License
-The publisher agrees with [Decision 2011/833/EU](https://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=OJ:L:2011:330:0039:0042:EN:PDF) on the reuse of European Commission documents: Reuse is authorised, provided the source is acknowledged. The reuse policy of the European Commission is implemented by a [Decision of 12 December 2011](https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32011D0833).
+The dataset and the related documents are released under the Creative Commons Attribution 4.0 license. Therefore redistribution and reuse is possible with proper attribution.
 
 ## How to cite
-NA
+Cite the dataset as follows
+
+Seguini, L., Klish, A., Meroni, M., et al. (2024). Global near real-time filtered 500 m 10-day fraction of photosynthetically active radiation absorbed by vegetation (FPAR) from MODIS and VIIRS instruments suited for operational agriculture monitoring and crop yield forecasting systems. Under preparation.
 
 ## References: 
 Klisch, A.; Atzberger, C.: Operational drought monitoring in Kenya using MODIS NDVI time series. Remote Sens., 2016, 8, 267.
