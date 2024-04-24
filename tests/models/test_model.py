@@ -84,6 +84,22 @@ def test_trend_model():
     test_preds, _ = model.predict_item(test_data)
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
+    # Test Average Trend (average of values in trend window)
+    model = TrendModel(x_cols, y_cols, trend_est="average")
+    model.fit(dataset)
+    # prediction should be average of dummy data
+    expected_pred = np.mean(dummy_y_vals)
+    test_preds, _ = model.predict_item(test_data)
+    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+
+    # Test Quadratic Trend
+    model = TrendModel(x_cols, y_cols, trend_est="quadratic")
+    model.fit(dataset)
+    # NOTE: Quadratic model adds a quadratic term in addition to a linear term.
+    # For our dummy data, coefficient of quadratic term must be zero.
+    expected_pred = dummy_y_vals[-1] + 1
+    test_preds, _ = model.predict_item(test_data)
+    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 def test_sklearn_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
