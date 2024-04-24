@@ -11,6 +11,8 @@ WorldCereal generated global-scale maps for the year 2021. The maize AFI (maize_
 
 The winter-spring cereals AFI (wintercereals_springcereals_WC_AFI.tif) was derived by merging the winter cereals and spring cereals 10 m products (tc-wintercereals and tc-springcereals, respectively). Note that cereals as defined by WorldCereal include wheat, barley and rye. Information about WorldCereal can be found at https://doi.org/10.5194/essd-15-5491-2023.
 
+The generic cropland mask (asap_mask_crop_v04.tif) is developed by IIASA and JRC as a global temporary cropland map compatible with the JRC FPAR 500 m time series from the hybridization of several high resolution global cropland layers (selecting the best product between ESA WordCereal, GLAD UMD, others). Cropland is identified by masks with 500 m spatial resolution expressed as area fraction image (AFI, i.e. the percentage of the pixel area occupied by temporary crops, ranging from 0 to 100%).
+
 ## Link
 The AFIs were generated on purpose for AgML.
 
@@ -37,7 +39,10 @@ The processing code to generate the AFIs is fully carried out in Google Earth En
 The layers are shared with Creative Commons Attribution 4.0 License (https://zenodo.org/records/7875105).
 
 ## How to cite
-Cite the dataset as follows: elaboration of WorldCereal map layers (Van Tricht et al., 2023)
+Cite the WorldCereal AFIs as follows: elaboration of WorldCereal map layers (Van Tricht et al., 2023).
+
+Cite the generic ASAP crop mask as follows:
+Fritz S, Lesiv M, Perez Guzman K, See L, Meroni M, Collivignarelli F, & Rembold F (2024). Development of a new cropland and rangeland Area Fraction Image at 500 m for the ASAP system. European Commission, Joint Research Centre (JRC).
 
 ## Reference
 Van Tricht, K. and Degerickx, J. and Gilliams, S. and Zanaga, D. and Battude, M. and Grosu, A. and Brombacher, J. and Lesiv, M. and Bayas, J. C. L. and Karanam, S. and Fritz, S. and Becker-Reshef, I. and Franch, B. and Moll\`a-Bononad, B. and Boogaard, H. and Pratihast, A. K. and Koetz, B. and Szantoi, Z. (2023). WorldCereal: a dynamic open-source system for global-scale, seasonal, and reproducible crop and irrigation mapping, Earth System Science Data, 15, 5491--5515, DOI: 10.5194/essd-15-5491-2023.
