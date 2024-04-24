@@ -1,10 +1,11 @@
 # Global MOD09CMG product
 
 ## Short description
-The Global 8-day Climate Modeling Grid (CMG)-scale product provides NDVI and GCVI information at a global scale. This product refers to both MODIS and VIIRS acquisitions.
+The Global 8-day Climate Modeling Grid (CMG)-scale product provides Normalized Difference Vegetation Index (NDVI) and Green Chlorophyll Vegetation Index (GCVI) information at a global scale. This product refers to both MODIS and VIIRS acquisitions.
 
 ## Link
 https://lpdaac.usgs.gov/products/mod09cmgv061/#tools
+https://e4ftl01.cr.usgs.gov/
 
 ## Publisher
 Land Processes Distributed Active Archive Center (LP DAAC), NASA
@@ -14,6 +15,7 @@ NASA
 
 ## Data card author
 Ritvik Sahajpal
+Siyabusa Mkuhlani
 
 ## Dataset overview
 **Coordinate system**: WGS_1984
@@ -27,6 +29,7 @@ The octvi library can also be configured to download GCVI data instead of NDVI
 
 ## Provenance
 [MODIS and VIIRS NDVI source](https://lpdaac.usgs.gov/products/mod09cmgv061/)
+The python package https://pypi.org/project/octvi/ downloads, process and packages vegetation index from various sateliete sensors such as MODIS and VIIRS.
 
 ## License
 License not shown the terms and conditions, of no restrictions on re-use, sale, or redistribution, denotes, CC BY 4.0 license.
