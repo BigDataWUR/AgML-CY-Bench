@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+import logging
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
@@ -12,6 +13,7 @@ class AverageYieldModel(BaseModel):
         self._averages = None
         self._group_cols = group_cols
         self._train_df = None
+        self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -59,6 +61,7 @@ class AverageYieldModel(BaseModel):
             # If there is no matching group in training data,
             # predict the global average
             if filtered.empty:
+                self._logger.warning("No matching group found; predicting global average")
                 y_pred = self._train_df[KEY_TARGET].mean()
             else:
                 y_pred = filtered["GROUP_AVG"].values[0]
