@@ -2,26 +2,60 @@ import pickle
 import numpy as np
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
+from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
+from util.data import data_to_pandas
 
-from config import KEY_YEAR
+from config import KEY_YEAR, KEY_TARGET
 
 
 class TrendModel(BaseModel):
-    def __init__(self, x_cols, y_cols, trend_est="linear"):
-        self._x_cols = x_cols
-        self._y_cols = y_cols
+    """Default trend estimation.
 
-        # Trend estimator function
-        if (trend_est == "average"):
-            self._trend_fn = self._get_average_trend
-        elif (trend_est == "quadratic"):
-            self._trend_fn = self._get_quadratic_trend
-        # Default
-        else:
-            self._trend_fn = self._get_linear_trend
+    Trend is estimated using years as features.
+    """
+    def __init__(self, trend="linear"):
+        self._trend = trend
+        self._trend_est = None
+
+    def _linear_trend_estimator(self, trend_x, trend_y):
+        """Implements a linear trend.
+        Args:
+          trend_x: a list of years.
+          trend_y: a list of values (e.g. yields)
+          pred_x: year for which to predict trend
+        Returns:
+          A linear trend estimator
+        """
+        trend_x = add_constant(trend_x)
+        linear_trend_est = OLS(trend_y, trend_x).fit()
+
+        return linear_trend_est
+
+    def _quadratic_trend_estimator(self, trend_x, trend_y):
+        """Implements a quadratic trend. Suggested by @ritviksahajpal.
+        Args:
+          trend_x: a np.ndarray of years.
+          trend_y: a np.ndarray of values (e.g. yields)
+        Returns:
+          A quadratic trend estimator (with an additive quadratic term)
+        """
+        quad_x = add_constant(np.column_stack((trend_x, trend_x ** 2)))
+        quad_est = OLS(trend_y, quad_x).fit()
+
+        return quad_est
+
+    def _lowess_trend_estimator(self, trend_x, trend_y):
+        """Implements a LOWESS trend. Suggested by @Raed-Hamed.
+        Args:
+          trend_x: a np.ndarray of years.
+          trend_y: a np.ndarray of values (e.g. yields)
+        Returns:
+          A LOWESS trend estimator
+        """
+        return lowess(trend_y, trend_x)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -31,7 +65,18 @@ class TrendModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        # No training required.
+        train_df = data_to_pandas(dataset)
+        trend_x = train_df[KEY_YEAR].values
+        trend_y = train_df[KEY_TARGET].values
+        # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
+        if (self._trend == "lowess"):
+            self._trend_est = self._lowess_trend_estimator(trend_x, trend_y)            
+        elif (self._trend == "quadratic"):
+            trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
+            self._trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
+        else:
+            self._trend_est = self._linear_trend_estimator(trend_x, trend_y)
+
         return self, {}
 
     def predict_batch(self, X: list):
@@ -42,55 +87,16 @@ class TrendModel(BaseModel):
           A tuple containing a np.ndarray and a dict with additional information.
         """
 
-        predictions = np.zeros((len(X), 1))
-        for i, item in enumerate(X):
-            trend_x = [item[y] for y in self._x_cols]
-            trend_y = [item[c] for c in self._y_cols]
+        test_df = data_to_pandas(X)
+        trend_x = test_df[KEY_YEAR].values
+        if (self._trend == "quadratic"):
+            trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
+        elif (self._trend == "linear"):
+            trend_x = add_constant(trend_x, has_constant='add')
 
-            predictions[i] = self._trend_fn(trend_x, trend_y, item[KEY_YEAR])
+        predictions = self._trend_est.predict(trend_x)
 
-        print(predictions)
         return predictions, {}
-
-    def _get_average_trend(self, trend_x, trend_y, pred_x):
-        """Implements an average trend.
-        Args:
-          trend_x: a list of years.
-          trend_y: a list of values (e.g. yields)
-          pred_x: year for which to predict trend
-        Returns:
-          The trend based on average of trend_y values
-        """
-        return np.mean(trend_y)
-
-    def _get_linear_trend(self, trend_x, trend_y, pred_x):
-        """Implements a linear trend.
-        Args:
-          trend_x: a list of years.
-          trend_y: a list of values (e.g. yields)
-          pred_x: year for which to predict trend
-        Returns:
-          The trend based on linear trend of years and values
-        """
-        slope, coeff = np.polyfit(trend_x, trend_y, 1)
-        return pred_x * slope + coeff
-
-    def _get_quadratic_trend(self, trend_x, trend_y, pred_x):
-        """Implements a quadratic trend. Contributed by @ritviksahajpal
-        Args:
-          trend_x: a list of years.
-          trend_y: a list of values (e.g. yields)
-          pred_x: year for which to predict trend
-        Returns:
-          The trend based on quadratic trend of years and values
-        """
-        trend_x = np.reshape(np.array(trend_x), (len(trend_x), 1))
-        trend_y = np.reshape(np.array(trend_y), (len(trend_y), 1))
-        quad_x = add_constant(np.column_stack((trend_x, trend_x ** 2)))
-        quad_model = OLS(trend_y, quad_x).fit()
-        pred_x = np.reshape(np.array([pred_x]), (1, 1))
-        pred_x = add_constant(np.column_stack((pred_x, pred_x ** 2)), has_constant='add')
-        return quad_model.predict(pred_x)
 
     def save(self, model_name):
         """Save model, e.g. using pickle.

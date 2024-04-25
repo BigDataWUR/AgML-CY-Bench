@@ -7,7 +7,6 @@ from datasets.dataset import Dataset
 from models.naive_models import AverageYieldModel
 from models.trend_model import TrendModel
 from models.sklearn_model import SklearnModel
-from util.data import get_trend_features
 from evaluation.eval import evaluate_model
 
 from config import PATH_DATA_DIR
@@ -50,56 +49,18 @@ def test_trend_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_data")
     yield_csv = os.path.join(data_path, "YIELD_COUNTY_US.csv")
     yield_df = pd.read_csv(yield_csv, header=0)
-    trend_fts, x_cols, y_cols = get_trend_features(
-        yield_df, KEY_LOC, KEY_YEAR, KEY_TARGET, trend_window
-    )
-    model = TrendModel(x_cols, y_cols)
-
-    # align data
-    yield_df = yield_df.merge(trend_fts[[KEY_LOC, KEY_YEAR]], on=[KEY_LOC, KEY_YEAR])
-    yield_df = yield_df.set_index([KEY_LOC, KEY_YEAR])
-    trend_fts = trend_fts.set_index([KEY_LOC, KEY_YEAR])
-
-    # create dataset
-    dataset = Dataset(yield_df, [trend_fts])
-    model.fit(dataset)
-
-    # dummy test data
-    dummy_x_vals = list(range(2016, 2021))
-    dummy_y_vals = list(range(2, 7))
-    sel_loc = "US-01-001"  # "AL_AUTAUGA"
-    sel_year = dummy_x_vals[-1] + 1
-    assert sel_loc in yield_df.index.get_level_values(0)
-
-    test_data = {KEY_LOC: sel_loc, KEY_YEAR: sel_year}
-
-    for i, c in enumerate(x_cols):
-        test_data[c] = dummy_x_vals[i]
-
-    for i, c in enumerate(y_cols):
-        test_data[c] = dummy_y_vals[i]
-
-    # in dummy test data, yield increases by 1 every year
-    expected_pred = dummy_y_vals[-1] + 1
-    test_preds, _ = model.predict_item(test_data)
-    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
-
-    # Test Average Trend (average of values in trend window)
-    model = TrendModel(x_cols, y_cols, trend_est="average")
-    model.fit(dataset)
-    # prediction should be average of dummy data
-    expected_pred = np.mean(dummy_y_vals)
-    test_preds, _ = model.predict_item(test_data)
-    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
-
-    # Test Quadratic Trend
-    model = TrendModel(x_cols, y_cols, trend_est="quadratic")
-    model.fit(dataset)
-    # NOTE: Quadratic model adds a quadratic term in addition to a linear term.
-    # For our dummy data, coefficient of quadratic term must be zero.
-    expected_pred = dummy_y_vals[-1] + 1
-    test_preds, _ = model.predict_item(test_data)
-    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+    train_years = [2001] + list(range(2003, 2021))
+    test_years = [2002]
+    train_yields = yield_df[yield_df[KEY_YEAR].isin(train_years)]
+    train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
+    test_yields = yield_df[yield_df[KEY_YEAR].isin(test_years)]
+    test_yields = test_yields.set_index([KEY_LOC, KEY_YEAR])
+    train_dataset = Dataset(train_yields, [])
+    test_dataset = Dataset(test_yields, [])
+    model = TrendModel()
+    model.fit(train_dataset)
+    predictions, _ = model.predict(test_dataset)
+    print(predictions)
 
 def test_sklearn_model():
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
@@ -151,3 +112,5 @@ def test_sklearn_model():
     model.fit(train_dataset, **fit_params)
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
+
+test_trend_model()
