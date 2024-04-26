@@ -12,9 +12,12 @@ from config import KEY_YEAR, KEY_TARGET
 
 
 class TrendModel(BaseModel):
-    """Default trend estimation.
+    """Default trend estimator.
 
     Trend is estimated using years as features.
+    If the data includes multiple locations or admin regions,
+    it's better to estimate per-region trend. If data for a country or multiple
+    regions is passed, TrendModel will compute the overall trend.
     """
     def __init__(self, trend="linear"):
         self._trend = trend
@@ -42,20 +45,10 @@ class TrendModel(BaseModel):
         Returns:
           A quadratic trend estimator (with an additive quadratic term)
         """
-        quad_x = add_constant(np.column_stack((trend_x, trend_x ** 2)))
+        quad_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant="add")
         quad_est = OLS(trend_y, quad_x).fit()
 
         return quad_est
-
-    def _lowess_trend_estimator(self, trend_x, trend_y):
-        """Implements a LOWESS trend. Suggested by @Raed-Hamed.
-        Args:
-          trend_x: a np.ndarray of years.
-          trend_y: a np.ndarray of values (e.g. yields)
-        Returns:
-          A LOWESS trend estimator
-        """
-        return lowess(trend_y, trend_x)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -69,10 +62,7 @@ class TrendModel(BaseModel):
         trend_x = train_df[KEY_YEAR].values
         trend_y = train_df[KEY_TARGET].values
         # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
-        if (self._trend == "lowess"):
-            self._trend_est = self._lowess_trend_estimator(trend_x, trend_y)            
-        elif (self._trend == "quadratic"):
-            trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
+        if (self._trend == "quadratic"):
             self._trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
         else:
             self._trend_est = self._linear_trend_estimator(trend_x, trend_y)
@@ -91,7 +81,7 @@ class TrendModel(BaseModel):
         trend_x = test_df[KEY_YEAR].values
         if (self._trend == "quadratic"):
             trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
-        elif (self._trend == "linear"):
+        else:
             trend_x = add_constant(trend_x, has_constant='add')
 
         predictions = self._trend_est.predict(trend_x)

@@ -8,9 +8,14 @@ from config import KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
-    def __init__(self, group_cols):
-        self._averages = None
-        self._group_cols = group_cols
+    """A naive yield prediction model.
+
+    Predicts the average of the training set.
+    If the data includes multiple locations or admin regions,
+    it's better to estimate per-region average. If data for a country or multiple
+    regions is passed, AverageYieldModel will compute the overall average.
+    """
+    def __init__(self):
         self._train_df = None
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
@@ -25,16 +30,6 @@ class AverageYieldModel(BaseModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         self._train_df = data_to_pandas(dataset)
-        # check group by columns are in the dataframe
-        assert set(self._group_cols).intersection(set(self._train_df.columns)) == set(
-            self._group_cols
-        )
-        self._averages = (
-            self._train_df.groupby(self._group_cols)
-            .agg(GROUP_AVG=(KEY_TARGET, "mean"))
-            .reset_index()
-        )
-
         return self, {}
 
     def predict_batch(self, X: list):
@@ -48,22 +43,7 @@ class AverageYieldModel(BaseModel):
         """
         predictions = np.zeros((len(X), 1))
         for i, item in enumerate(X):
-            filter_condition = None
-            for g in self._group_cols:
-                if filter_condition is None:
-                    filter_condition = self._averages[g] == item[g]
-                else:
-                    filter_condition &= self._averages[g] == item[g]
-
-            filtered = self._averages[filter_condition]
-            # If there is no matching group in training data,
-            # predict the global average
-            if filtered.empty:
-                y_pred = self._train_df[KEY_TARGET].mean()
-            else:
-                y_pred = filtered["GROUP_AVG"].values[0]
-
-            predictions[i] = y_pred
+            predictions[i] = self._train_df[KEY_TARGET].mean()
 
         return predictions, {}
 
