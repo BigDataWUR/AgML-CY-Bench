@@ -4,7 +4,6 @@ from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class Dataset:
-
     def __init__(
         self,
         data_target: pd.DataFrame = None,
@@ -180,7 +179,6 @@ class Dataset:
 
             # (1) static data
             if n_levels == 1:
-
                 if self._allow_incomplete:
                     # If value is missing, skip this feature
                     if loc_id not in df.index:
@@ -193,7 +191,6 @@ class Dataset:
 
             # (2) yearly data
             if n_levels == 2:
-
                 if self._allow_incomplete:
                     # If value is missing, skip this feature
                     if (loc_id, year) not in df.index:
@@ -206,7 +203,6 @@ class Dataset:
 
             # (3) yearly temporal data
             if n_levels == 3:
-
                 # Select data matching the location and year
                 df_loc = df.xs((loc_id, year), drop_level=True)
 
