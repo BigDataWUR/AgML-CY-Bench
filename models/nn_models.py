@@ -75,20 +75,18 @@ class BaseNNModel(BaseModel, nn.Module):
         self.batch_size = batch_size
         self.device = device
         self.to(device)
-        # Set optimizer and scheduler
+        
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
         if scheduler_fn is not None: scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
 
-        # Convert dataset to torch Dataset
+        # Get torchdataset, random val indices and loader
         train_dataset = TorchDataset(train_dataset)
 
-        # Get train and validation ids
         n = len(train_dataset)
         n_val = int(n * val_fraction)
         val_ids = np.random.choice(n, n_val, replace=False).tolist()
         train_ids = list(set(range(n)) - set(val_ids))
 
-        # Get dataloaders
         train_batch_size = min(batch_size, len(train_ids))
         train_loader = torch.utils.data.DataLoader(train_dataset, 
                                                    batch_size=train_batch_size, 
@@ -116,7 +114,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 # Set gradients to zero
                 optimizer.zero_grad()
 
-                # Send data to device
                 for key in batch: 
                     if isinstance(batch[key], torch.Tensor):
                         batch[key] = batch[key].to(device)
@@ -130,8 +127,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 # Backward pass
                 loss.backward()
                 optimizer.step()
-
-                # Save loss
                 losses.append(loss.item())
 
                 pbar.set_description(
@@ -147,18 +142,15 @@ class BaseNNModel(BaseModel, nn.Module):
                     val_losses = []
                     tqdm_val = tqdm(val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}")
                     for batch in tqdm_val:
-                        # Send data to device
                         for key in batch: 
                             if isinstance(batch[key], torch.Tensor):
                                 batch[key] = batch[key].to(device)
 
-                        # Forward pass
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                         predictions = self(features).squeeze()
                         target = batch[KEY_TARGET]
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
-                        # Save loss
                         val_losses.append(loss.item())
 
                         tqdm_val.set_description(
@@ -179,9 +171,9 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         device = self.device
         batch_size = self.batch_size
-
         self.to(device)
         self.eval()
+
         with torch.no_grad():
             predictions = np.zeros((len(X)))
             for i in range(0, len(X), batch_size):
@@ -223,7 +215,6 @@ class ExampleLSTM(BaseNNModel):
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
 
     def forward(self, x):
-        # Could be moved to training loop. Assumes that all individual features are one channel each
         max_n_dim = max([len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)])
         x_ts = torch.cat([v.unsqueeze(2) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim], dim=2)
         x_static = torch.cat([v.unsqueeze(1) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim], dim=1)
