@@ -25,18 +25,16 @@ def test_average_yield_model():
                   ["US-01-002", 2003, 5.8]]
     yield_df = pd.DataFrame(dummy_data,
                             columns=[KEY_LOC, KEY_YEAR, KEY_TARGET])
+    yield_df = yield_df.set_index([KEY_LOC, KEY_YEAR])
 
     # test prediction for an existing item
-    sel_loc = "US-01-001"  # "AL_AUTAUGA"
-    sel_yield_df = yield_df[yield_df[KEY_LOC] == sel_loc]
-    assert not sel_yield_df.empty
-
-    # set index
-    sel_yield_df = sel_yield_df.set_index([KEY_LOC, KEY_YEAR])
-    dataset = Dataset(data_target=sel_yield_df, data_features=[])
+    sel_loc = "US-01-001"
+    assert sel_loc in yield_df.index.get_level_values(0)
+    dataset = Dataset(data_target=yield_df, data_features=[])
     model.fit(dataset)
     sel_year = 2018
-    expected_pred = sel_yield_df[KEY_TARGET].mean()
+    filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
+    expected_pred = filtered_df[KEY_TARGET].mean()
     test_data = {
         KEY_LOC: sel_loc,
         KEY_YEAR: sel_year,
@@ -45,12 +43,17 @@ def test_average_yield_model():
     test_preds, _ = model.predict_item(test_data)
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
-    # test prediction for a non-existent item
-    sel_loc = "US-06-081"  # "CA_SAN_MATEO"
-    assert sel_loc not in yield_df.index.get_level_values(0)
+    # test one more location
+    sel_loc = "US-01-002"
+    test_data[KEY_LOC] = sel_loc
+    filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
+    expected_pred = filtered_df[KEY_TARGET].mean()
+    test_preds, _ = model.predict_item(test_data)
+    assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
-    # set index
-    yield_df = yield_df.set_index([KEY_LOC, KEY_YEAR])
+    # test prediction for a non-existent item
+    sel_loc = "US-01-003"
+    assert sel_loc not in yield_df.index.get_level_values(0)
     dataset = Dataset(data_target=yield_df, data_features=[])
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
@@ -79,13 +82,10 @@ def test_trend_model():
     for idx in test_indexes:
         test_year = all_years[idx]
         train_years = [y for y in all_years if y != test_year]
-        sel_loc = "US-01-001"  # "AL_AUTAUGA"
-        train_yields = yield_df[(yield_df[KEY_LOC] == sel_loc) &
-                                yield_df[KEY_YEAR].isin(train_years)]
+        sel_loc = "US-01-001"
+        train_yields = yield_df[yield_df[KEY_YEAR].isin(train_years)]
         train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
-        test_yields = yield_df[(yield_df[KEY_LOC] == sel_loc) &
-                               (yield_df[KEY_YEAR] == test_year)]
-        expected_pred = test_yields[KEY_TARGET].values[0]
+        test_yields = yield_df[yield_df[KEY_YEAR] == test_year]
         train_dataset = Dataset(train_yields, [])
 
         # linear trend
@@ -96,16 +96,28 @@ def test_trend_model():
             KEY_YEAR: test_year,
         }
         test_preds, _ = model.predict_item(test_data)
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+
+        sel_loc = "US-01-002"
+        test_data[KEY_LOC] = sel_loc
+        test_preds, _ = model.predict_item(test_data)
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
         # quadratic trend ( trend = c + a x + b x^2)
         model = TrendModel(trend="quadratic")
         model.fit(train_dataset)
-        test_data = {
-            KEY_LOC: sel_loc,
-            KEY_YEAR: test_year,
-        }
+        sel_loc = "US-01-001"
+        test_data[KEY_LOC] = sel_loc
         test_preds, _ = model.predict_item(test_data)
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+
+        sel_loc = "US-01-002"
+        test_data[KEY_LOC] = sel_loc
+        test_preds, _ = model.predict_item(test_data)
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 

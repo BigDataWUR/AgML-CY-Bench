@@ -4,18 +4,17 @@ import numpy as np
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
-from config import KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
     """A naive yield prediction model.
 
-    Predicts the average of the training set.
-    If the data includes multiple locations or admin regions,
-    it's better to estimate per-region average. If data for a country or multiple
-    regions is passed, AverageYieldModel will compute the overall average.
+    Predicts the average of the training set by location.
+    If the location is not in the traning data, then predicts the global average.
     """
-    def __init__(self):
+    def __init__(self, group_by=[KEY_LOC]):
+        self._group_by = group_by
         self._train_df = None
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
@@ -30,6 +29,16 @@ class AverageYieldModel(BaseModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         self._train_df = data_to_pandas(dataset)
+        # check group by columns are in the dataframe
+        assert set(self._group_by).intersection(set(self._train_df.columns)) == set(
+            self._group_by
+        )
+        self._averages = (
+            self._train_df.groupby(self._group_by)
+            .agg(GROUP_AVG=(KEY_TARGET, "mean"))
+            .reset_index()
+        )
+
         return self, {}
 
     def predict_batch(self, X: list):
@@ -43,7 +52,22 @@ class AverageYieldModel(BaseModel):
         """
         predictions = np.zeros((len(X), 1))
         for i, item in enumerate(X):
-            predictions[i] = self._train_df[KEY_TARGET].mean()
+            filter_condition = None
+            for g in self._group_by:
+                if filter_condition is None:
+                    filter_condition = self._averages[g] == item[g]
+                else:
+                    filter_condition &= self._averages[g] == item[g]
+
+            filtered = self._averages[filter_condition]
+            # If there is no matching group in training data,
+            # predict the global average
+            if filtered.empty:
+                y_pred = self._train_df[KEY_TARGET].mean()
+            else:
+                y_pred = filtered["GROUP_AVG"].values[0]
+
+            predictions[i] = y_pred
 
         return predictions, {}
 

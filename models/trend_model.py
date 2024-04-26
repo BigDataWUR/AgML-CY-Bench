@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+import pandas as pd
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
 
@@ -7,20 +8,17 @@ from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
 
-from config import KEY_YEAR, KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class TrendModel(BaseModel):
     """Default trend estimator.
 
     Trend is estimated using years as features.
-    If the data includes multiple locations or admin regions,
-    it's better to estimate per-region trend. If data for a country or multiple
-    regions is passed, TrendModel will compute the overall trend.
     """
     def __init__(self, trend="linear"):
         self._trend = trend
-        self._trend_est = None
+        self._trend_estimators = {}
 
     def _linear_trend_estimator(self, trend_x, trend_y):
         """Implements a linear trend.
@@ -58,13 +56,18 @@ class TrendModel(BaseModel):
           A tuple containing the fitted model and a dict with additional information.
         """
         train_df = data_to_pandas(dataset)
-        trend_x = train_df[KEY_YEAR].values
-        trend_y = train_df[KEY_TARGET].values
-        # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
-        if (self._trend == "quadratic"):
-            self._trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
-        else:
-            self._trend_est = self._linear_trend_estimator(trend_x, trend_y)
+        loc_ids = train_df[KEY_LOC].unique()
+        for loc in loc_ids:
+            loc_df = train_df[train_df[KEY_LOC] == loc]
+            trend_x = loc_df[KEY_YEAR].values
+            trend_y = loc_df[KEY_TARGET].values
+            # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
+            if (self._trend == "quadratic"):
+                trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
+            else:
+                trend_est = self._linear_trend_estimator(trend_x, trend_y)
+
+            self._trend_estimators[loc] = trend_est
 
         return self, {}
 
@@ -75,15 +78,18 @@ class TrendModel(BaseModel):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
+        predictions = np.zeros((len(X), 1))
+        for i, item in enumerate(X):
+            loc_id = item[KEY_LOC]
+            year = item[KEY_YEAR]
+            trend_est = self._trend_estimators[loc_id]
+            trend_x = np.array([year]).reshape((1, 1))
+            if (self._trend == "quadratic"):
+                trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
+            else:
+                trend_x = add_constant(trend_x, has_constant='add')
 
-        test_df = data_to_pandas(X)
-        trend_x = test_df[KEY_YEAR].values
-        if (self._trend == "quadratic"):
-            trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
-        else:
-            trend_x = add_constant(trend_x, has_constant='add')
-
-        predictions = self._trend_est.predict(trend_x)
+            predictions[i] = trend_est.predict(trend_x)
 
         return predictions, {}
 
