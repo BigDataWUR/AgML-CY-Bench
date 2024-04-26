@@ -112,7 +112,7 @@ class Dataset:
 
     def labels(self) -> np.array:
         """
-        Obtain an np.ndarray of labels
+        Obtain an numpy array of labels
         """
         return self._df_y[KEY_TARGET].values
 
