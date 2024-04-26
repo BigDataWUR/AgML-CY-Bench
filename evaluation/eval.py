@@ -32,7 +32,7 @@ def evaluate_model(model: BaseModel, dataset: Dataset, metrics=get_default_metri
       A dictionary containing the calculated metrics.
     """
 
-    y_true = dataset.labels
+    y_true = dataset.labels()
     y_pred, _ = model.predict(dataset)
     results = evaluate_predictions(y_true, y_pred, metrics)
 
