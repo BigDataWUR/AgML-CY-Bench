@@ -34,7 +34,7 @@ class BaseNNModel(BaseModel, nn.Module):
             scheduler_fn: callable = None,
             scheduler_kwargs: dict = None,
 
-            device: str = "cpu",
+            device: str = None,
 
              **fit_params):
         """
@@ -59,18 +59,22 @@ class BaseNNModel(BaseModel, nn.Module):
           A tuple containing the fitted model and a dict with additional information.
         """
         
-        # Set default values for loss_fn, optim_fn, optim_kwargs, scheduler_fn, scheduler_kwargs
+
+        # Set default values 
         if loss_fn is None: loss_fn = torch.nn.functional.mse_loss
         if loss_kwargs is None: loss_kwargs = {"reduction": "mean"}
         if optim_fn is None: optim_fn = torch.optim.Adam
         if optim_kwargs is None: optim_kwargs = {}
 
+        if device is None: 
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+            print(f"Warning: Device not specified, using {device}")
+
         assert num_epochs > 0
-    
-        # Send model to device
-        self.to(device) #TODO this doesn't make sense
-        
-        
+
+        self.batch_size = batch_size
+        self.device = device
+        self.to(device)
         # Set optimizer and scheduler
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
         if scheduler_fn is not None: scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
@@ -81,10 +85,8 @@ class BaseNNModel(BaseModel, nn.Module):
         # Get train and validation ids
         n = len(train_dataset)
         n_val = int(n * val_fraction)
-        n_train = n - n_val
-        train_ids = list(range(n_train))
-        val_ids = list(range(n_train, n))
-
+        val_ids = np.random.choice(n, n_val, replace=False).tolist()
+        train_ids = list(set(range(n)) - set(val_ids))
 
         # Get dataloaders
         train_batch_size = min(batch_size, len(train_ids))
@@ -99,6 +101,7 @@ class BaseNNModel(BaseModel, nn.Module):
                                                     batch_size=val_batch_size,
                                                     sampler=torch.utils.data.SubsetRandomSampler(val_ids),
                                                     collate_fn=train_dataset.collate_fn)
+        else: val_loader = None
 
         # Load optimizer and scheduler
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
@@ -165,40 +168,32 @@ class BaseNNModel(BaseModel, nn.Module):
             if scheduler_fn is not None: scheduler.step()
         return self, {}
 
-    def predict_batch(self, X: list, device: str = "cpu", as_single_batch: bool = False):
+    def predict_batch(self, X: list):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
-          device: a string specifying the device to use. Default is "cpu".
-          as_single_batch: a bool specifying whether to run all items in a single batch. Default is False.
-
+          
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
+        device = self.device
+        batch_size = self.batch_size
 
-        if as_single_batch:
-            X = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in X])
-            X = {key: X[key].to(device) for key in X.keys() if isinstance(X[key], torch.Tensor)}
-
-            self.to(device)
-            self.eval()
-            with torch.no_grad():
-                features = {k: v for k, v in X.items() if k != KEY_TARGET}
-                predictions = self(features).squeeze().cpu().numpy()
-                return predictions, {}
-        else:
-            predictions = np.zeros((len(X), 1))
-            self.to(device)
-            self.eval()
-            with torch.no_grad():
-                for i, item in enumerate(X):
-                    item = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(item)])
-                    item = {key: item[key].to(device) for key in item.keys() if isinstance(item[key], torch.Tensor)}
-                
-                    features = {k: v for k, v in item.items() if k != KEY_TARGET}
-                    predictions[i] = self(features).squeeze().cpu().numpy()
-                return predictions, {}
+        self.to(device)
+        self.eval()
+        with torch.no_grad():
+            predictions = np.zeros((len(X)))
+            for i in range(0, len(X), batch_size):
+                batch_end = min(i + batch_size, len(X))
+                batch = X[i:batch_end]
+                batch = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in batch])
+                batch = {key: batch[key].to(device) for key in batch.keys() if isinstance(batch[key], torch.Tensor)}
+                features = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                y_pred = self(features).squeeze().cpu().numpy()
+                predictions[i:i + len(y_pred)] = y_pred
+            return predictions, {}
+        
 
     def save(self, model_name):
         """Save model using torch.save.
