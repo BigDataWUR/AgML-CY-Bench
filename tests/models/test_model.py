@@ -15,16 +15,17 @@ from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 def test_average_yield_model():
     model = AverageYieldModel()
-    dummy_data = [["US-01-001", 2000, 5.0],
-                  ["US-01-001", 2001, 5.5],
-                  ["US-01-001", 2002, 6.0],
-                  ["US-01-001", 2003, 5.2],
-                  ["US-01-002", 2000, 7.0],
-                  ["US-01-002", 2001, 7.5],
-                  ["US-01-002", 2002, 6.2],
-                  ["US-01-002", 2003, 5.8]]
-    yield_df = pd.DataFrame(dummy_data,
-                            columns=[KEY_LOC, KEY_YEAR, KEY_TARGET])
+    dummy_data = [
+        ["US-01-001", 2000, 5.0],
+        ["US-01-001", 2001, 5.5],
+        ["US-01-001", 2002, 6.0],
+        ["US-01-001", 2003, 5.2],
+        ["US-01-002", 2000, 7.0],
+        ["US-01-002", 2001, 7.5],
+        ["US-01-002", 2002, 6.2],
+        ["US-01-002", 2003, 5.8],
+    ]
+    yield_df = pd.DataFrame(dummy_data, columns=[KEY_LOC, KEY_YEAR, KEY_TARGET])
     yield_df = yield_df.set_index([KEY_LOC, KEY_YEAR])
 
     # test prediction for an existing item
@@ -67,14 +68,16 @@ def test_trend_model():
     NOTE: quadratic trend will be the same as linear trend
     for the dummy data.
     """
-    dummy_data = [["US-01-001", 2000, 5.0],
-                  ["US-01-001", 2001, 6.0],
-                  ["US-01-001", 2002, 7.0],
-                  ["US-01-001", 2003, 8.0],
-                  ["US-01-002", 2000, 5.5],
-                  ["US-01-002", 2001, 6.5],
-                  ["US-01-002", 2002, 7.5],
-                  ["US-01-002", 2003, 8.5]]
+    dummy_data = [
+        ["US-01-001", 2000, 5.0],
+        ["US-01-001", 2001, 6.0],
+        ["US-01-001", 2002, 7.0],
+        ["US-01-001", 2003, 8.0],
+        ["US-01-002", 2000, 5.5],
+        ["US-01-002", 2001, 6.5],
+        ["US-01-002", 2002, 7.5],
+        ["US-01-002", 2003, 8.5],
+    ]
     yield_df = pd.DataFrame(dummy_data, columns=[KEY_LOC, KEY_YEAR, KEY_TARGET])
     all_years = sorted(yield_df[KEY_YEAR].unique())
 
@@ -96,13 +99,17 @@ def test_trend_model():
             KEY_YEAR: test_year,
         }
         test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
+            0
+        ]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
         sel_loc = "US-01-002"
         test_data[KEY_LOC] = sel_loc
         test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
+            0
+        ]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
         # quadratic trend ( trend = c + a x + b x^2)
@@ -111,13 +118,17 @@ def test_trend_model():
         sel_loc = "US-01-001"
         test_data[KEY_LOC] = sel_loc
         test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
+            0
+        ]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
         sel_loc = "US-01-002"
         test_data[KEY_LOC] = sel_loc
         test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[0]
+        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
+            0
+        ]
         assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 

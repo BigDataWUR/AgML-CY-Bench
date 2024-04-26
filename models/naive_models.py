@@ -13,6 +13,7 @@ class AverageYieldModel(BaseModel):
     Predicts the average of the training set by location.
     If the location is not in the traning data, then predicts the global average.
     """
+
     def __init__(self, group_by=[KEY_LOC]):
         self._group_by = group_by
         self._train_df = None

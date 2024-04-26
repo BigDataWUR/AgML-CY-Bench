@@ -16,6 +16,7 @@ class TrendModel(BaseModel):
 
     Trend is estimated using years as features.
     """
+
     def __init__(self, trend="linear"):
         self._trend = trend
         self._trend_estimators = {}
@@ -42,7 +43,9 @@ class TrendModel(BaseModel):
         Returns:
           A quadratic trend estimator (with an additive quadratic term)
         """
-        quad_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant="add")
+        quad_x = add_constant(
+            np.column_stack((trend_x, trend_x**2)), has_constant="add"
+        )
         quad_est = OLS(trend_y, quad_x).fit()
 
         return quad_est
@@ -62,7 +65,7 @@ class TrendModel(BaseModel):
             trend_x = loc_df[KEY_YEAR].values
             trend_y = loc_df[KEY_TARGET].values
             # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
-            if (self._trend == "quadratic"):
+            if self._trend == "quadratic":
                 trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
             else:
                 trend_est = self._linear_trend_estimator(trend_x, trend_y)
@@ -84,10 +87,12 @@ class TrendModel(BaseModel):
             year = item[KEY_YEAR]
             trend_est = self._trend_estimators[loc_id]
             trend_x = np.array([year]).reshape((1, 1))
-            if (self._trend == "quadratic"):
-                trend_x = add_constant(np.column_stack((trend_x, trend_x ** 2)), has_constant='add')
+            if self._trend == "quadratic":
+                trend_x = add_constant(
+                    np.column_stack((trend_x, trend_x**2)), has_constant="add"
+                )
             else:
-                trend_x = add_constant(trend_x, has_constant='add')
+                trend_x = add_constant(trend_x, has_constant="add")
 
             predictions[i] = trend_est.predict(trend_x)
 
