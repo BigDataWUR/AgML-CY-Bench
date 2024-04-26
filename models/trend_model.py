@@ -2,7 +2,6 @@ import pickle
 import numpy as np
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
-from statsmodels.nonparametric.smoothers_lowess import lowess
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
