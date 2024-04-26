@@ -293,6 +293,12 @@ class Dataset:
         return df_1, df_2
 
     def split_on_years(self, years_split: tuple) -> tuple:
+        """
+        Create two new datasets based on the provided split in years
+
+        :param years_split: tuple e.g ([2012, 2014], [2013, 2015])
+        :return: two data sets
+        """
         data_dfs1 = []
         data_dfs2 = []
         for src_df in self._dfs_x:
