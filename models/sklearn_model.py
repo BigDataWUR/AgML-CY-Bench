@@ -1,5 +1,6 @@
 import pickle
 import numpy as np
+import logging
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.pipeline import Pipeline
@@ -18,6 +19,7 @@ class SklearnModel(BaseModel):
             scaler = StandardScaler()
 
         self._est = Pipeline([("scaler", scaler), ("estimator", sklearn_est)])
+        self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -87,6 +89,9 @@ class SklearnModel(BaseModel):
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
+        best_params = grid_search.best_params_
+        self._logger.debug("Optimal Hyperparameters")
+        self._logger.debug(best_params)
 
         return grid_search.best_estimator_
 

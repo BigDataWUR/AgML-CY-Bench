@@ -1,5 +1,8 @@
 import os
-
+import logging
+import logging.config
+from datetime import datetime
+import yaml
 
 # Project root dir
 CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
@@ -14,3 +17,42 @@ KEY_LOC = "loc_id"
 KEY_YEAR = "year"
 # Key used for yield targets
 KEY_TARGET = "yield"
+
+# Logging
+PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
+os.makedirs(PATH_LOGS_DIR, exist_ok=True)
+
+LOG_FILE = datetime.now().strftime("agml_cybench_%H_%M_%d_%m_%Y.log")
+LOG_LEVEL = logging.DEBUG
+
+# Based on examples from
+# https://fangpenlin.com/posts/2012/08/26/good-logging-practice-in-python/
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "standard": {
+            "format": '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+    },
+    "handlers": {
+        "file_handler": {
+            "class": "logging.handlers.RotatingFileHandler",
+            "level": LOG_LEVEL,
+            "formatter": "standard",
+            "filename": os.path.join(PATH_LOGS_DIR, LOG_FILE),
+            "maxBytes": 10485760,
+            "backupCount": 20,
+            "encoding": "utf8"
+        }
+    },
+    "loggers": {
+        "": {
+            "handlers": ["file_handler"],
+            "level": LOG_LEVEL,
+            "propagate": True
+        }
+    } 
+}
+
+logging.config.dictConfig(LOGGING_CONFIG)
