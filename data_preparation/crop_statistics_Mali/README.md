@@ -19,10 +19,10 @@ Janet Mutuku, Celeste Tchampi, PCS Traore
 ## Dataset overview
 **Crops**: Maize
 
-**Variables** [unit]: Year, cmdt_zone, cmdt_sector, matyield/kg/ha,adm2_pcode, production, area, other derived stats
+**Variables** [unit]: Year, cmdt_zone, cmdt_sector, yield(mt), adm2_pcode, production(mt), area, other derived stats
 
 
-**Temporal coverage**: 1990-2017 (for yield), 1990-1999 (production and area (ha))
+**Temporal coverage**: 1990-2017 (for yield), 1990-1999 (production(mt) and area (ha))
 
 
 **Temporal resolution**: Yearly
