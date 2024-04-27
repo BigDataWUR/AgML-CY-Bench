@@ -45,3 +45,6 @@ The Agrometeorological indicators dataset provides daily surface meteorological 
 
 ## License
 The dataset and the related documents are released under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 IGO. Therefore redistribution and reuse is possible with proper attribution.
+
+## How to cite
+AQUASTAT - FAO
