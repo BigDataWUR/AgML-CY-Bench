@@ -26,12 +26,12 @@ between mid-season and harvest and 2 weeks before harvest. These time points dep
 
 #### Coverage for maize
 Undifferentiated Maize or Grain Maize where differentiated
-<img src=doc/images/Maize_coverage_map.png>
+<img src=doc/images/maize_coverage_map.png>
 
 #### Coverage for wheat
 Undifferentiated Wheat or Winter Wheat where differentiated
 
-<img src=doc/images/Wheat_coverage_map.png>
+<img src=doc/images/wheat_coverage_map.png>
 
 ### Getting started
 `cybench` is an open source python library to load CY-Bench dataset and run the CY-Bench tasks.
