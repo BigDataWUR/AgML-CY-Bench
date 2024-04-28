@@ -5,7 +5,7 @@ Reference evapotranspiration per day with a spatial resolution of 0.1 degree. Un
 
 ## Link
 The data is publicly available on the following url:
-https://data.apps.fao.org/catalog//iso/f22813e9-679e-4864-bd92-d48f5dfc436c
+https://data.apps.fao.org/static/data/index.html?prefix=static%2Fdata%2Fc3s%2FAGERA5_ET0
 
 ## Publisher
 AQUASTAT - Food and Agriculture Organization of the United Nations (FAO)
@@ -46,5 +46,5 @@ The Agrometeorological indicators dataset provides daily surface meteorological 
 ## License
 The dataset and the related documents are released under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 IGO. Therefore redistribution and reuse is possible with proper attribution.
 
-## How to cite
-AQUASTAT - FAO
+## How to Cite
+This dataset does not have a specific citation, main page of the dataset at [FAO AQUASTAT](https://data.apps.fao.org/catalog//iso/f22813e9-679e-4864-bd92-d48f5dfc436c). The dataset is derived from the hourly ECMWF ERA5 data at surface level, known as AgERA5. Cite AgERA5 as follows: Boogaard, H., Schubert, J., De Wit, A., Lazebnik, J., Hutjes, R., Van der Grijn, G., (2020): Agrometeorological indicators from 1979 to present derived from reanalysis. DOI: 10.24381/cds.6c68c9bb.
