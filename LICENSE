@@ -12,4 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied.
 # See the Licence for the specific language governing
-# permissions and limitations under the Licence. 
+# permissions and limitations under the Licence.
+
+# NOTE that this license applies only to the python package or Git repository.
+# The data sources included in the AgML crop yield forecasting benchmark have their
+# own license conditions. They are specified in READMEs for each data source
+# under data_preparation/<data_source>.
