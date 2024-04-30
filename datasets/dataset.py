@@ -110,9 +110,9 @@ class Dataset:
         """
         return set.union(*[set(df.columns) for df in self._dfs_x])
 
-    def labels(self) -> np.array:
+    def targets(self) -> np.array:
         """
-        Obtain an numpy array of labels
+        Obtain an numpy array of targets or labels
         """
         return self._df_y[KEY_TARGET].values
 
