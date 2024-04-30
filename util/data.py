@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from datetime import datetime
 
 
@@ -45,16 +46,28 @@ def data_to_pandas(data_items):
 
     return pd.DataFrame(data, columns=data_cols)
 
-crop_cal_df = pd.read_csv("data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
-crop_cal_df = crop_cal_df.astype({"planting_doy" : int, "maturity_doy" : int})
-# crop_cal_df["planting_date"] = crop_cal_df.apply(lambda r: doy_to_date(r["planting_doy"], "2018"), axis=1)
-# crop_cal_df["harvest_date"] = crop_cal_df.apply(lambda r: doy_to_date(r["maturity_doy"], "2018"), axis=1)
-print(crop_cal_df.head(5))
+# crop_cal_df = pd.read_csv("data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
+# crop_cal_df = crop_cal_df.astype({"planting_doy" : int, "maturity_doy" : int})
+# # crop_cal_df["planting_date"] = crop_cal_df.apply(lambda r: doy_to_date(r["planting_doy"], "2018"), axis=1)
+# # crop_cal_df["harvest_date"] = crop_cal_df.apply(lambda r: doy_to_date(r["maturity_doy"], "2018"), axis=1)
+# print(crop_cal_df.head(5))
 
-rs_df = pd.read_csv("data/data_US/county_data/REMOTE_SENSING_COUNTY_US.csv", header=0)
-sel_cols = ["loc_id", "planting_doy", "maturity_doy"]
-rs_df = rs_df.merge(crop_cal_df[sel_cols], on=["loc_id"])
-rs_df["planting_date"] = rs_df.apply(lambda r: doy_to_date(r["planting_doy"], r["year"]), axis=1)
-rs_df["harvest_date"] = rs_df.apply(lambda r: doy_to_date(r["maturity_doy"], r["year"]), axis=1)
-rs_df["date"] = rs_df.apply(lambda r: dekad_to_date(r["dekad"], r["year"]), axis=1)
+# rs_df = pd.read_csv("data/data_US/county_data/REMOTE_SENSING_COUNTY_US.csv", header=0)
+# sel_cols = ["loc_id", "planting_doy", "maturity_doy"]
+# rs_df = rs_df.merge(crop_cal_df[sel_cols], on=["loc_id"])
+# rs_df["planting_date"] = rs_df.apply(lambda r: doy_to_date(r["planting_doy"], r["year"]), axis=1)
+# rs_df["harvest_date"] = rs_df.apply(lambda r: doy_to_date(r["maturity_doy"], r["year"]), axis=1)
+# rs_df["date"] = rs_df.apply(lambda r: dekad_to_date(r["dekad"], r["year"]), axis=1)
+# print(rs_df.head(10))
+# rs.to_csv("REMOTE_SENSING_COUNTY_US.csv", index=False)
+
+rs_df = pd.read_csv("REMOTE_SENSING_COUNTY_US.csv", header=0)
+rs_df = rs_df[["loc_id", "year", "dekad", "fapar", "planting_date", "harvest_date", "date"]]
+rs_df["date"] = pd.to_datetime(rs_df["date"], format="%Y%m%d")
+rs_df["harvest_date"] = pd.to_datetime(rs_df["harvest_date"], format="%Y%m%d")
+rs_df["date_diff"] = (rs_df["date"] - rs_df["harvest_date"]).dt.days
+rs_df["new_year"] = np.where(rs_df["date"] > rs_df["harvest_date"],
+                             rs_df["year"] + 1,
+                             rs_df["year"])
+
 print(rs_df.head(10))
