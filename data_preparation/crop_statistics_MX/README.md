@@ -151,7 +151,7 @@ No specific information available
 
 ## License 
 
-According to INEGI “Technical Standard for access and publication of Open Data of Statistical and Geographic Information of National Interest”, published on December 4, 2014 in the Official Gazette of the Federation, whose purpose is to establish the provisions so that the Data Sets within the framework of the Public Statistical and Geographic Information Service, generated and managed by the State Units, are made available as Open Data, with the purpose of facilitating their access, use, consultation, reuse and redistribution for any purpose, all free of charge in accordance with the provisions of the Terms of Free Use published on the INEGI Internet Site (Site), which can be consulted at the link:
+According to INEGI “Technical Standard for access and publication of Open Data of Statistical and Geographic Information of National Interest”, published on December 4, 2014 in the Official Gazette of the Federation, whose purpose is to establish the provisions so that the Data Sets within the framework of the Public Statistical and Geographic Information Service, generated and managed by the State Units, are made available as **Open Data, with the purpose of facilitating their access, use, consultation, reuse and redistribution for any purpose, all free of charge** in accordance with the provisions of the Terms of Free Use published on the INEGI Internet Site (Site), which can be consulted at the link:
  
 Terms of use: https://www.inegi.org.mx/inegi/terminos.html
 
@@ -160,11 +160,8 @@ Terms of use: https://www.inegi.org.mx/inegi/terminos.html
 ## How to cite
 Include the expected citation for the data here. References can be more general (including citations to other data or papers).
 
-Census Project 2022 
-Census Data 2022
-Survey Data 2019
-Survey Data 2017
-Survey Data 2014
+INEGI. Agricultural Census and Survey Data. [Census Project 2022, Census Map Project 2022,  Survey Data for 2019,2017 and 2014]. Available at: https://www.inegi.org.mx/programas/ca/2022, https://www.inegi.org.mx/app/biblioteca/ficha.html?upc=794551067284,
+ https://www.inegi.org.mx/programas/ena/2019, https://www.inegi.org.mx/programas/ena/2017, https://www.inegi.org.mx/programas/ena/2014. Accessed on 2024-04-10.
 
 ## Aditional Information
 
@@ -172,9 +169,4 @@ The data set contains information for only 4 years because the national institut
 
 We have focused on **maize** as it is the main grain grown in Mexico. In the dataset, there are other crops including wheat but given the size of the data and areas, they were not considered.
 
-## References
-(1)	Mexico - Censo Agropecuario 2022, Resultados definitivos. https://www.inegi.org.mx/rnm/index.php/catalog/867/related-materials (accessed 2024-04-10).
-(2)	Geografía(INEGI), I. N. de E. y. Censo Agropecuario (CA) 2022. https://www.inegi.org.mx/programas/ca/2022/#tabulados (accessed 2024-04-10).
-(3)	Geografía(INEGI), I. N. de E. y. Encuesta Nacional Agropecuaria (ENA) 2019. https://www.inegi.org.mx/programas/ena/2019/#Tabulados (accessed 2024-04-10).
-(4)	Encuesta Nacional Agropecuaria 2017. https://www.inegi.org.mx/programas/ena/2017/#tabulados (accessed 2024-04-10).
-(5)	Encuesta Nacional Agropecuaria 2014. https://www.inegi.org.mx/programas/ena/2014/#tabulados (accessed 2024-04-10).
+
