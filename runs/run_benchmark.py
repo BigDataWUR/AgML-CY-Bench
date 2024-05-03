@@ -1,5 +1,10 @@
+import os
 from collections import defaultdict
 
+import pandas as pd
+
+import config
+from config import PATH_RESULTS_DIR
 from models.model import BaseModel
 
 from datasets.dataset import Dataset
@@ -11,13 +16,17 @@ from models.sklearn_model import SklearnModel
 from models.nn_models import ExampleLSTM
 
 
-def run_benchmark(model_name, model_constructor, model_kwargs):
+def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwargs):
+    path_results = os.path.join(PATH_RESULTS_DIR, run_name)
+    os.makedirs(path_results, exist_ok=True)
+
     benchmark_models = {
         "AverageYieldModel": AverageYieldModel,
         "LSTM": ExampleLSTM,
         model_name: model_constructor
     }
     models_kwargs = defaultdict(dict)
+    models_fit_kwargs = defaultdict(dict)
     models_kwargs[model_name] = model_kwargs
     models_kwargs['LSTM'] = {
         'n_ts_features': 9,
@@ -34,27 +43,42 @@ def run_benchmark(model_name, model_constructor, model_kwargs):
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
+        labels = test_dataset.targets()
+
+        model_output = {
+            config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+            config.KEY_YEAR: [year for _, year in test_dataset.indices()],
+            'targets': labels,
+        }
+
         compiled_results = {}
         for model_name, model_constructor in benchmark_models.items():
             model = model_constructor(**models_kwargs[model_name])
-            model.fit(train_dataset)
+            model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
             # save predictions
-            labels = test_dataset.targets()
             results = evaluate_predictions(labels, predictions)
             compiled_results[model_name] = results
+
+            model_output[model_name] = predictions
+
+        df = pd.DataFrame.from_dict(model_output)
+        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+        df.to_csv(os.path.join(path_results, f'year_{test_year}.csv'))
 
     return compiled_results
 
 
-
-
 if __name__ == '__main__':
 
-    run_benchmark(model_name="AverageYieldModel",
-                  model_constructor=AverageYieldModel,
-                  model_kwargs={},
-                  )
+    result = run_benchmark(run_name='test_run',
+                           model_name="AverageYieldModel",
+                           model_constructor=AverageYieldModel,
+                           model_kwargs={},
+                           )
+
+    print(result)
+
 
 
 #
