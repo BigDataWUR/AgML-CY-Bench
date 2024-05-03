@@ -1,17 +1,24 @@
 import pickle
 import numpy as np
+import logging
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
-from config import KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
-    def __init__(self, group_cols):
-        self._averages = None
-        self._group_cols = group_cols
+    """A naive yield prediction model.
+
+    Predicts the average of the training set by location.
+    If the location is not in the traning data, then predicts the global average.
+    """
+
+    def __init__(self, group_by=[KEY_LOC]):
+        self._group_by = group_by
         self._train_df = None
+        self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -26,11 +33,11 @@ class AverageYieldModel(BaseModel):
         """
         self._train_df = data_to_pandas(dataset)
         # check group by columns are in the dataframe
-        assert set(self._group_cols).intersection(set(self._train_df.columns)) == set(
-            self._group_cols
+        assert set(self._group_by).intersection(set(self._train_df.columns)) == set(
+            self._group_by
         )
         self._averages = (
-            self._train_df.groupby(self._group_cols)
+            self._train_df.groupby(self._group_by)
             .agg(GROUP_AVG=(KEY_TARGET, "mean"))
             .reset_index()
         )
@@ -49,7 +56,7 @@ class AverageYieldModel(BaseModel):
         predictions = np.zeros((len(X), 1))
         for i, item in enumerate(X):
             filter_condition = None
-            for g in self._group_cols:
+            for g in self._group_by:
                 if filter_condition is None:
                     filter_condition = self._averages[g] == item[g]
                 else:
@@ -59,6 +66,7 @@ class AverageYieldModel(BaseModel):
             # If there is no matching group in training data,
             # predict the global average
             if filtered.empty:
+                self._logger.warning("No matching group found; predicting global average")
                 y_pred = self._train_df[KEY_TARGET].mean()
             else:
                 y_pred = filtered["GROUP_AVG"].values[0]
