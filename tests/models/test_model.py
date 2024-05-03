@@ -140,9 +140,3 @@ def test_nn_model():
         # Check metric is not NaN
         assert not np.isnan(evaluation_result[metric]), f"Value of metric '{metric}' is NaN"
 
-if __name__ == "__main__":
-    #test_average_yield_model()
-    #test_sklearn_model()
-    test_nn_model()
-    print("All tests passed!")
-
