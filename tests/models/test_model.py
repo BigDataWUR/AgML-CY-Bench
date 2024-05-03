@@ -187,7 +187,6 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
 def test_nn_model():
-
     train_dataset = Dataset.load("test_maize_us")
     test_dataset = Dataset.load("test_maize_us")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -198,8 +197,6 @@ def test_nn_model():
     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
    
     model = ExampleLSTM(len(ts_features), n_total_features - len(ts_features), hidden_size=64, num_layers=2, output_size=1)
-
-
     scheduler_fn = torch.optim.lr_scheduler.StepLR
     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
