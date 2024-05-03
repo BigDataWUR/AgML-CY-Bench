@@ -19,6 +19,12 @@ def run_benchmark(model_name, model_constructor, model_kwargs):
     }
     models_kwargs = defaultdict(dict)
     models_kwargs[model_name] = model_kwargs
+    models_kwargs['LSTM'] = {
+        'n_ts_features': 9,
+        'n_static_features': 1,
+        'hidden_size': 32,
+        'num_layers': 3,
+    }
 
     dataset = Dataset.load("test_maize_us")
 
