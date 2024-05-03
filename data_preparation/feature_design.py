@@ -52,7 +52,7 @@ for time_step in time_steps:
                                 max_feature_cols, ft_names,
                                 "dekad", time_step, time_step + 1,
                                 agg_fn="max")
-        
+
     if (avg_feature_cols):
         ft_names = ["avg_" + avcol + str(time_step) for avcol in avg_feature_cols]
         ft_df = aggregate_feature(df, group_cols,
