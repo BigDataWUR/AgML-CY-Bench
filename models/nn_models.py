@@ -116,7 +116,8 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 # Forward pass
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                predictions = self(features).squeeze()
+                predictions = self(features)
+                if predictions.dim() > 1: predictions = predictions.squeeze(-1)
                 target = batch[KEY_TARGET]
                 loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -143,7 +144,8 @@ class BaseNNModel(BaseModel, nn.Module):
                                 batch[key] = batch[key].to(device)
 
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                        predictions = self(features).squeeze()
+                        predictions = self(features)
+                        if predictions.dim() > 1: predictions = predictions.squeeze(-1)
                         target = batch[KEY_TARGET]
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -181,7 +183,9 @@ class BaseNNModel(BaseModel, nn.Module):
                 batch = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in batch])
                 batch = {key: batch[key].to(device) for key in batch.keys() if isinstance(batch[key], torch.Tensor)}
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                y_pred = self(features).squeeze().cpu().numpy()
+                y_pred = self(features)
+                if y_pred.dim() > 1: y_pred = y_pred.squeeze(-1)
+                y_pred = y_pred.cpu().numpy()
                 predictions[i:i + len(y_pred)] = y_pred
             return predictions, {}
         

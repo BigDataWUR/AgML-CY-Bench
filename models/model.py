@@ -21,16 +21,18 @@ class BaseModel(ABC):
         """
         raise NotImplementedError
 
-    def predict(self, dataset: Dataset) -> tuple:
+    def predict(self, dataset: Dataset, **predict_params) -> tuple:
         """Run fitted model on data.
 
         Args:
           dataset: Dataset
+          **predict_params: Additional parameters.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        return self.predict_batch([d for d in dataset])
+        batch = [d for d in dataset]
+        return self.predict_batch(batch, **predict_params)
 
     @abstractmethod
     def predict_batch(self, X: list, **predict_params):
@@ -45,17 +47,18 @@ class BaseModel(ABC):
         """
         raise NotImplementedError
 
-    def predict_item(self, X: dict):
+    def predict_item(self, X: dict, **predict_params):
         """Run fitted model on one data item.
 
         Args:
           X: a data item
+          **predict_params: Additional parameters.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
         batch = [X]
-        return self.predict_batch(batch)
+        return self.predict_batch(batch, **predict_params)
 
     @abstractmethod
     def save(self, model_name):
