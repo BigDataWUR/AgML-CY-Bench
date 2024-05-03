@@ -1,40 +1,41 @@
-# FEWSNET subnational crop yield statistics
-The dataset includes information on specific cropping seasons, crop production systems, and population groups. The data is collected from a variety of sources, including national statistical offices and agricultural ministries. The subnational crop yield statistics are linked to shapefiles for subnational administrative boundaries as they change over time and the statistics are harmonized accordingly to create continuous time series.
+# Harmonized Subnational Crop Statistics from FEWS NET
 
-## DATASET LINK
-[Not yet available]
+## Short description
+This dataset comprises harmonized subnational crop statistics for 14 countries: Angola, Burkina Faso, Chad, Ethiopia, Lesotho, Madagascar, Malawi, Mali, Mozambique, Niger, Senegal, South Africa, Sudan, and Zambia. The dataset is initially collected by [Famine Early Warning Systems Network (FEWS NET)](https://fews.net/) and further processed by Donghoon Lee and Weston Anderson (methods & citation will be added).
 
-## PUBLISHER
-[Not yet available]
+## Dataset owner
+FEWS NET
 
-## CONTACT NAME
-Weston Anderson
+## Data card author
+Donghoon Lee and Weston Anderson
 
-## DATASET OVERVIEW
-**Crops**: Maize, sorghum, millet, wheat, barley, rice
+## Dataset overview
+- **Crops**:  Maize
+- **Variables**:
+  - `adm_id`: Administrative unit
+  - `country`: Country name
+  - `country_code`: ISO 3166-1 alpha-2 code
+  - `crop_name`: Crop name
+  - `season_name`: Season name
+  - `planting_month`: Planting start month
+  - `planting_year`: Planting year
+  - `harvest_month`: Harvest end month
+  - `harvest_year`: Harvest year
+  - `indicator`: Production (mt), area (ha), or yield (mt/ha)
+  - `value`: Quantitative measure
 
-**Variables** [unit]: Harvested area [ha], Planted area [ha], Production [t], Yield [t/ha]. Rarely are both planted area and harvested area available, but often whether data is reported for planted vs harvested area is country-dependent.
+- **Temporal coverage**: 1960 - 2022
+- **Temporal resolution**: Annual
+- **Spatial resolution**: Administrative units (`adm_id`)
+- **Date published**: Feb 27, 2024
+- **Data modality**: Tabular
 
-**Temporal coverage**: From: 1981 - 2021, not temporally or spatially continuous
+## License
+Data use aligns with [FEWS NET's Data Attribution and Use Policy](https://help.fews.net/fdp/data-and-information-use-and-attribution-policy):
+- FEWS NET publishes all data according to permissions provided by the original source institution, and all data sources are fully attributed. There is no attempt to otherwise duplicate the information or systems of other organizations. 
+- Data collected directly by FEWS NET are noted as such and are managed according to USAID’s policy on sharing Agency-funded data for public benefit, while ensuring proper protections for privacy and national security ([ADS 579](https://www.usaid.gov/about-us/agency-policy/series-500/579)).
 
-**Temporal resolution**: Seasonal
+The dataset shared herein adheres to FEWS NET's [terms of use and disclaimer](https://help.fews.net/fdp/data-and-information-use-and-attribution-policy#Dataandinformationuseandattributionpolicy-Termsofuseanddisclaimer) as well as [attribution policy](https://help.fews.net/fdp/data-and-information-use-and-attribution-policy#Dataandinformationuseandattributionpolicy-Attributionpolicy). It is important to note that this dataset represents a version that has undergone additional processing beyond the initial collection by FEWS NET.
 
-**Date Published**: [Not yet available]
-
-**Data Modality**: Tabular data, shapefile, gridded netCDF
-
-**Data table**: Data availability in Southern Africa (more to follow after further QA)
-| Country  | FEWS Monitoring | Shapefile (geographic data) | Admin Level (crop data) | processed? | Current Data Notes |
-|:---------|:----------------|:----------------------------|:------------------------|:-----------|:-------------------|
-| Angola   | Yes | Yes | admin1 | Yes | 100% for 1997-2017 (21 years) |
-| DRC | Yes | Yes | admin1 (upscaled) | Yes | 80% for 2005-2016 (11 years); 2012 is missing |
-| Madagascar | Yes | Yes | admin2 (upscaled) | Yes | 95% for 1990-2020 (31 years) |
-| Malawi | Yes | Yes | admin2 | Yes | 90% for 1984-2019 (35 years); 2018 is missing |
-| Mozambique | Yes | Yes | admin1 | Yes | 90% for 1999-2018 (16 years); 2013-15,17 are missing |
-| Lesotho | Yes | Yes | admin1 | Yes | 100% for 1982-2018 (37 years) |
-| Zimbabwe | Yes | Yes | admin2 | Not yet | 70% for 2014-2021 (8 years) |
-| South Africa | - | Yes | admin1 | Yes | 100% for 1987-2019 (33 years) |
-| Zambia | - | Yes | admin2 | Yes | 90% for 1980-2017 (38 years); crop type changes, admin level changes |
-| Botswana | - | - | admin2 | Unavailable | 1999-2014 (16 years) |
-| Namibia | - | - | admin1 | Unavailable | 1997-2009 and 2017 (14 years) |
-| Eswatini | - | - | admin1 | Unavailable | 1993-2004 (11 years) |
+## How to cite
+A formal citation for FEWS NET data will be provided in due course.

@@ -1,16 +1,23 @@
 # Agrometeorological indicators from 1979 to present derived from reanalysis
+
+## Short description
 This dataset provides daily surface meteorological data for the period from 1979 to present as input for agriculture and agro-ecological studies.This dataset is based on the hourly ECMWF ERA5 data at surface level and is referred to as AgERA5.
 
-## DATASET LINK
+## Link
 https://doi.org/10.24381/cds.6c68c9bb
 
-## PUBLISHER
+## Dataset publisher
 European Centre for Medium-Range Weather Forecasts (ECMWF)
 
-## CONTACT NAME
-Allard de Wit, Abdelrahman Amr Ali
+## Dataset owner
+European Centre for Medium-Range Weather Forecasts (ECMWF)
 
-## DATASET DESCRIPTION
+## Data card author
+Abdelrahman Amr Ali, Dilli R. Paudel
+
+## Dataset overview
+
+**Spatial resolution** : 0.1° (see horizontal resolution below)
 
 | Attribute                | Description                                          |
 |--------------------------|------------------------------------------------------|
@@ -26,7 +33,7 @@ Allard de Wit, Abdelrahman Amr Ali
 | Versions                 | 1.0, 1.1                                             |
 | Update frequency         | Monthly                                              |
 
-## MAIN VARIABLES
+** Main variables
 
 | Name                                 | Units         | Description |
 |--------------------------------------|---------------|-------------|
@@ -42,3 +49,16 @@ Allard de Wit, Abdelrahman Amr Ali
 | Solar radiation flux                 | J m-2 day-1   | Total amount of energy provided by solar radiation at the surface over the period 00-24h local time per unit area and time. |
 | Solid precipitation duration fraction | Dimensionless | The number of hours with solid precipitation (freezing rain, snow, wet snow, mixture of rain and snow, and ice pellets) over the period 00h-24h local time divided by 24 hours and per unit of area. |
 | Vapour pressure                      | hPa           | Contribution to the total atmospheric pressure provided by the water vapour over the period 00-24h local time per unit of time. |
+
+## Provenance
+[Documentation](https://cds.climate.copernicus.eu/cdsapp#!/dataset/10.24381/cds.6c68c9bb?tab=doc) includes
+* [product user guide and specification](https://confluence.ecmwf.int/x/3FmaE)
+* [algorithm theoretical basis](https://confluence.ecmwf.int/x/yFmaE)
+* [downscaling and bias correction](https://confluence.ecmwf.int/x/4lmaE)
+
+## License
+[License to use Copernicus Products](https://cds.climate.copernicus.eu/api/v2/terms/static/licence-to-use-copernicus-products.pdf)
+
+## How to cite
+Cite the dataset as follows:
+Boogaard, H., Schubert, J., De Wit, A., Lazebnik, J., Hutjes, R., Van der Grijn, G., (2020): Agrometeorological indicators from 1979 to present derived from reanalysis. Copernicus Climate Change Service (C3S) Climate Data Store (CDS). DOI: 10.24381/cds.6c68c9bb (Accessed on DD-MMM-YYYY)

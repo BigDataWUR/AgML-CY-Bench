@@ -1,16 +1,24 @@
 import pickle
 import numpy as np
+import logging
 
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):
-    def __init__(self, group_cols, label_col):
-        self._averages = None
-        self._group_cols = group_cols
-        self._label_col = label_col
+    """A naive yield prediction model.
+
+    Predicts the average of the training set by location.
+    If the location is not in the traning data, then predicts the global average.
+    """
+
+    def __init__(self, group_by=[KEY_LOC]):
+        self._group_by = group_by
+        self._train_df = None
+        self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
         """Fit or train the model.
@@ -23,12 +31,18 @@ class AverageYieldModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        train_df = data_to_pandas(dataset)
+        self._train_df = data_to_pandas(dataset)
+        # check group by columns are in the dataframe
+        assert set(self._group_by).intersection(set(self._train_df.columns)) == set(
+            self._group_by
+        )
         self._averages = (
-            train_df.groupby(self._group_cols)
-            .agg(GROUP_AVG=(self._label_col, "mean"))
+            self._train_df.groupby(self._group_by)
+            .agg(GROUP_AVG=(KEY_TARGET, "mean"))
             .reset_index()
         )
+
+        return self, {}
 
     def predict_batch(self, X: list):
         """Run fitted model on batched data items.
@@ -42,13 +56,22 @@ class AverageYieldModel(BaseModel):
         predictions = np.zeros((len(X), 1))
         for i, item in enumerate(X):
             filter_condition = None
-            for g in self._group_cols:
+            for g in self._group_by:
                 if filter_condition is None:
                     filter_condition = self._averages[g] == item[g]
                 else:
                     filter_condition &= self._averages[g] == item[g]
 
-            predictions[i] = self._averages[filter_condition]["GROUP_AVG"].values
+            filtered = self._averages[filter_condition]
+            # If there is no matching group in training data,
+            # predict the global average
+            if filtered.empty:
+                self._logger.warning("No matching group found; predicting global average")
+                y_pred = self._train_df[KEY_TARGET].mean()
+            else:
+                y_pred = filtered["GROUP_AVG"].values[0]
+
+            predictions[i] = y_pred
 
         return predictions, {}
 
@@ -72,3 +95,5 @@ class AverageYieldModel(BaseModel):
         """
         with open(model_name, "rb") as f:
             saved_model = pickle.load(f)
+
+        return saved_model
