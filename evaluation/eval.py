@@ -32,12 +32,8 @@ def evaluate_model(model: BaseModel, dataset: Dataset, metrics=get_default_metri
       A dictionary containing the calculated metrics.
     """
 
-    samples = [sample for sample in dataset]
-
-    y_true = [sample[KEY_TARGET] for sample in samples]
-    y_true = np.array(y_true)
-
-    y_pred, _ = model.predict_batch(samples)
+    y_true = dataset.targets()
+    y_pred, _ = model.predict(dataset)
     results = evaluate_predictions(y_true, y_pred, metrics)
 
     return results
