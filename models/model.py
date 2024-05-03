@@ -33,11 +33,12 @@ class BaseModel(ABC):
         return self.predict_batch([d for d in dataset])
 
     @abstractmethod
-    def predict_batch(self, X: list):
+    def predict_batch(self, X: list, **predict_params):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
+          **predict_params: Additional parameters.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
