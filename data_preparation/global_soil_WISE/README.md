@@ -80,3 +80,5 @@ Soil Survey Staff 1983. Soil Survey Manual (rev. ed.). United States Agriculture
 
 van Reeuwijk LP 1998. Guidelines for quality management in soil and plant laboratories, FAO, Rome, 143 p.
 http://www.fao.org/docrep/W7295E/W7295E00.htm
+
+FAO 2006. Guidelines for soil description (Fourth ed.), FAO, Rome, 97 p. Available here: [URL1](ftp://ftp.fao.org/agl/agll/docs/guidel_soil_descr.pdf) / [URL2](https://www.fao.org/4/a0541e/a0541e.pdf)

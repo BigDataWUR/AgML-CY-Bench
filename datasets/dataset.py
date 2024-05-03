@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
@@ -108,6 +109,12 @@ class Dataset:
         Obtain a set containing all feature names
         """
         return set.union(*[set(df.columns) for df in self._dfs_x])
+
+    def targets(self) -> np.array:
+        """
+        Obtain an numpy array of targets or labels
+        """
+        return self._df_y[KEY_TARGET].values
 
     def __getitem__(self, index) -> dict:
         """
