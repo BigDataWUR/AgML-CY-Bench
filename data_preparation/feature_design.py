@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from datetime import date
 from datetime import timedelta
@@ -32,37 +33,77 @@ def count_successive_feature(df, group_cols,
                              threshold=0.0, threshold_exceed=True):
     pass
 
-max_feature_cols = ["fapar"] # ["ndvi", "fapar"]
-avg_feature_cols = [] # ["tmin", "tmax", "tavg", "prec", "rad"]
-count_thresh_cols = [] # ["tmin", "tmax", "prec"]
+def get_fortnight(date_str):
+    month = date_str[4:6]
+    day_of_month = int(date_str[6:])
+    fortnight_number = (int(month) -1) * 2 
+    if (day_of_month <= 15):
+        return fortnight_number + 1
+    else:
+        return fortnight_number + 2
+
+def get_dekad(date_str):
+    pass
+
+max_feature_cols = ["FAPAR"] # ["ndvi", "fapar"]
+avg_feature_cols = ["TMIN"] #, "tmax", "tavg", "prec", "rad"]
+count_thresh_cols = ["tmin", "tmax", "prec"]
 count_sccessive_thresh_cols = [] # ["tmin", "tmax", "prec"]
 
-df = pd.read_csv("REMOTE_SENSING_COUNTY_US.csv", header=0)
-df["date"] = pd.to_datetime(df["date"], format="%Y%m%d").dt.date
-df = df[df["loc_id"] == "US-19-001"]
-group_cols = ["loc_id", "year"]
+meteo_path = os.path.join("data", "METEO_DAILY_NUTS2_NL.csv")
+rs_path = os.path.join("data", "REMOTE_SENSING_NUTS2_NL.csv")
+meteo_df = pd.read_csv(meteo_path, header=0)
+rs_df = pd.read_csv(rs_path, header=0)
+rs_df = rs_df.drop(columns=["IDCOVER"])
+rs_df = rs_df.astype({"DATE" : str })
+rs_df["YEAR"] = rs_df["DATE"].str[:4]
 
-# NOTE for other time steps, need to create a time step column
-time_steps = sorted(df["dekad"].unique())
+# rs_df = rs_df[rs_df["loc_id"] == "US-19-001"]
+# meteo_df = meteo_df[meteo_df["loc_id"] == "US-19-001"]
+group_cols = ["IDREGION", "YEAR"]
+
+# add a timestep column based on temporal resolution
+time_step = "FORTNIGHT"
+
+if (time_step == "MONTH"):
+    rs_df["PERIOD"] = rs_df["DATE"].str[4:6]
+elif(time_step == "FORTNIGHT"):
+    rs_df["PERIOD"] = rs_df.apply(lambda r: get_fortnight(r["DATE"]), axis=1)
+elif (time_step == "DEKAD"):
+    rs_df["PERIOD"] = rs_df.apply(lambda r: get_dekad(r["DATE"]), axis=1)
+print(rs_df.sort_values(by=["IDREGION", "DATE"]).head(40))
+
+periods = sorted(rs_df["PERIOD"].unique())
+
+# # NOTE for other time steps, need to create a time step column
 all_fts = None
-for time_step in time_steps:
+# TODO: skip the for loop
+# Group by 3 cols ["IDREGION", "YEAR", "PERIOD"]
+
+for time_step in periods:
     if (max_feature_cols):
         ft_names = ["max_" + mxcol + str(time_step) for mxcol in max_feature_cols]
-        ft_df = aggregate_feature(df, group_cols,
-                                max_feature_cols, ft_names,
-                                "dekad", time_step, time_step + 1,
-                                agg_fn="max")
+        ft_df = aggregate_feature(rs_df, group_cols,
+                                  max_feature_cols, ft_names,
+                                  "PERIOD", time_step, time_step + 1,
+                                  agg_fn="max")
+        if (all_fts is None):
+            all_fts = ft_df
+        else:
+            all_fts = pd.merge(all_fts, ft_df, on=group_cols)
 
-    if (avg_feature_cols):
-        ft_names = ["avg_" + avcol + str(time_step) for avcol in avg_feature_cols]
-        ft_df = aggregate_feature(df, group_cols,
-                                  avg_feature_cols, ft_names,
-                                  "dekad", time_step, time_step + 1,
-                                  agg_fn="mean")
+# for time_step in periods:
+#     if (avg_feature_cols):
+#         ft_names = ["avg_" + avcol + str(time_step) for avcol in avg_feature_cols]
+#         ft_df = aggregate_feature(meteo_df, group_cols,
+#                                   avg_feature_cols, ft_names,
+#                                   "PERIOD", time_step, time_step + 1,
+#                                   agg_fn="mean")
 
-    if (all_fts is None):
-        all_fts = ft_df
-    else:
-        all_fts = pd.merge(all_fts, ft_df, on=group_cols)
+#         if (all_fts is None):
+#             all_fts = ft_df
+#         else:
+#             all_fts = pd.merge(all_fts, ft_df, on=group_cols)
 
+print(len(all_fts.columns), list(all_fts.columns))
 print(all_fts.head(5))
