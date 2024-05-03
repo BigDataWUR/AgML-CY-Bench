@@ -73,12 +73,8 @@ class BaseNNModel(BaseModel, nn.Module):
         assert num_epochs > 0
 
         self.batch_size = batch_size
-        self.device = device
         self.to(device)
         
-        optimizer = optim_fn(self.parameters(), **optim_kwargs)
-        if scheduler_fn is not None: scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
-
         # Get torchdataset, random val indices and loader
         train_dataset = TorchDataset(train_dataset)
 
@@ -120,7 +116,8 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 # Forward pass
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                predictions = self(features).squeeze()
+                predictions = self(features)
+                if predictions.dim() > 1: predictions = predictions.squeeze(-1)
                 target = batch[KEY_TARGET]
                 loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -147,7 +144,8 @@ class BaseNNModel(BaseModel, nn.Module):
                                 batch[key] = batch[key].to(device)
 
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                        predictions = self(features).squeeze()
+                        predictions = self(features)
+                        if predictions.dim() > 1: predictions = predictions.squeeze(-1)
                         target = batch[KEY_TARGET]
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -160,17 +158,20 @@ class BaseNNModel(BaseModel, nn.Module):
             if scheduler_fn is not None: scheduler.step()
         return self, {}
 
-    def predict_batch(self, X: list):
+    def predict_batch(self, X: list, device: str = None, batch_size: int = None):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
+          device: str, the device to use, default is "cuda" if available else "cpu"
+          batch_size: int, the batch size, default is self.batch_size stored during fit method
           
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        device = self.device
-        batch_size = self.batch_size
+        if device is None: device = "cuda" if torch.cuda.is_available() else "cpu"
+        if batch_size is None: batch_size = self.batch_size
+
         self.to(device)
         self.eval()
 
@@ -182,7 +183,9 @@ class BaseNNModel(BaseModel, nn.Module):
                 batch = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in batch])
                 batch = {key: batch[key].to(device) for key in batch.keys() if isinstance(batch[key], torch.Tensor)}
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                y_pred = self(features).squeeze().cpu().numpy()
+                y_pred = self(features)
+                if y_pred.dim() > 1: y_pred = y_pred.squeeze(-1)
+                y_pred = y_pred.cpu().numpy()
                 predictions[i:i + len(y_pred)] = y_pred
             return predictions, {}
         
