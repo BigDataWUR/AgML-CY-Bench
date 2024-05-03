@@ -98,8 +98,8 @@ dataset = Dataset.load("maize_us")
 | Crop Statistics       | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
 |-----------------------|-----------------------------------------|----------------------------------------|
 | [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md) |
-| [Mali](data_preparation/crop_statistics_ML/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa shapefiles from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_wise/README.md) |
-| [Argentina](data_preparation/crop_statistics_AR/README.md) | [Argentina](data_preparation/shapefiles_ARG/README.md) | Soil moisture: [](data_preparation/global_soil_moisture_GLDAS/README.md) |
+| [Mali](data_preparation/crop_statistics_ML/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa shapefiles from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md) |
+| [Argentina](data_preparation/crop_statistics_AR/README.md) | [Argentina](data_preparation/shapefiles_ARG/README.md) | Soil moisture: [GLDAS](data_preparation/global_soil_moisture_GLDAS/README.md) |
 | [Australia](data_preparation/crop_statistics_AU/README.md) | [Australia](data_preparation/shapefiles_AUS/README.md) | Evapotranspiration: [FAO](data_preparation/global_ETo_FAO/README.md) |
 | [Brazil](data_preparation/crop_statistics_BR/README.md) | [Brazil](data_preparation/shapefiles_BRA/README.md) | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md) |
 | [China](data_preparation/crop_statistics_CN/README.md) | [China](data_preparation/shapefiles_CN/README.md) | Crop calendars: [ESA WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
