@@ -46,11 +46,19 @@ group_cols = ["loc_id", "year"]
 time_steps = sorted(df["dekad"].unique())
 all_fts = None
 for time_step in time_steps:
-    ft_names = ["max_" + mxcol + str(time_step) for mxcol in max_feature_cols]
-    ft_df = aggregate_feature(df, group_cols,
-                              max_feature_cols, ft_names,
-                              "dekad", time_step, time_step + 1,
-                               agg_fn="max")
+    if (max_feature_cols):
+        ft_names = ["max_" + mxcol + str(time_step) for mxcol in max_feature_cols]
+        ft_df = aggregate_feature(df, group_cols,
+                                max_feature_cols, ft_names,
+                                "dekad", time_step, time_step + 1,
+                                agg_fn="max")
+        
+    if (avg_feature_cols):
+        ft_names = ["avg_" + avcol + str(time_step) for avcol in avg_feature_cols]
+        ft_df = aggregate_feature(df, group_cols,
+                                  avg_feature_cols, ft_names,
+                                  "dekad", time_step, time_step + 1,
+                                  agg_fn="mean")
 
     if (all_fts is None):
         all_fts = ft_df
