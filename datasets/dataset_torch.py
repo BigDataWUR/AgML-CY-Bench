@@ -8,7 +8,6 @@ from util.torch import batch_tensors
 
 
 class TorchDataset(torch.utils.data.Dataset):
-
     def __init__(self, dataset: Dataset):
         """
         PyTorch Dataset wrapper for compatibility with torch DataLoader objects
