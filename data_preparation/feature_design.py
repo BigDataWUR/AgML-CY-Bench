@@ -20,13 +20,15 @@ def get_fortnight(date_str):
 
 
 def get_dekad(date_str):
-    day_= int(date_str[6:])
-    if (day_ <= 10):
-        return 1
-    elif (day_ > 10) & (day_ <=20):
-        return 2
+    month = date_str[4:6]
+    day_of_month = int(date_str[6:])
+    dekad_number = (int(month) -1) * 3 
+    if (day_of_month <= 10):
+        return dekad_number + 1
+    elif (day_of_month > 10) & (day_of_month <=20):
+        return dekad_number + 2
     else:
-        return 3
+        return dekad_number + 3
 
 
 
@@ -42,13 +44,14 @@ def temporal_resample(df, date_col, start_year, end_year, filter_months, time_st
         df = df[df[date_col].str[4:6].astype(int).isin(filter_months)]
 
     if (time_step == "MONTH"):
-        df["PERIOD"] = int(df[date_col].str[4:6])
+        df["PERIOD"] = df[date_col].str[4:6].astype(int)
     elif(time_step == "FORTNIGHT"):
         df["PERIOD"] = df.apply(lambda r: get_fortnight(r[date_col]), axis=1)
     elif (time_step == "DEKAD"):
         df["PERIOD"] = df.apply(lambda r: get_dekad(r[date_col]), axis=1)
 
     return df
+
 
 
 
@@ -67,11 +70,19 @@ def design_features(csv_path,
                     ):
 
     """
-    csv_path(str): path to time series table
-    time_step(str): temporal span to perform aggregation
-    group_col(list): cols to hold in grouping
-    max_feature_cols(list): cols to generate max features acc. to timestep
-    avg_feature_cols(list): cols to generate mean features acc. to timestep
+    args
+        csv_path(str): path to time series table
+        date_col(str): column name containing date info
+        start_year(int): beginning year filter
+        end_year(int): end year filter
+        filter_months(list): selected months e.g. [1,2,10]
+        time_step(str): temporal span to perform aggregation
+        group_col(list): cols to hold in grouping
+        max_feature_cols(list): cols to generate max features acc. to timestep
+        avg_feature_cols(list): cols to generate mean features acc. to timestep
+
+    returns
+        df
     """
 
     df = pd.read_csv(csv_path, header=0)
@@ -114,7 +125,12 @@ def design_features(csv_path,
 
 
 
-# test
-# rs_path = '/app/dev/AgML/feature_design/REMOTE_SENSING_NUTS2_NL.csv'#os.path.join("data", "REMOTE_SENSING_NUTS2_NL.csv")
-# design_features(rs_path)
 
+# # test temporal agg only
+# csv_path = '/app/dev/AgML/feature_design/REMOTE_SENSING_NUTS2_NL.csv'#os.path.join("data", "REMOTE_SENSING_NUTS2_NL.csv")
+# df = pd.read_csv(csv_path, header=0)
+# df = temporal_resample(df, 'DATE', 2010, 2010, [], 'DEKAD')
+# print(df.sort_values(by=['IDREGION', 'DATE']).head(40))
+
+# # test overall function
+# design_features(csv_path)
