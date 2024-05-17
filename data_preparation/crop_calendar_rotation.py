@@ -113,15 +113,20 @@ def rotate_data_by_crop_calendar(df, spinup=90):
 
 #%%
 #Change the path to the location of the data
-rs_df = pd.read_csv("../sample_data/data_US/county_data/REMOTE_SENSING_COUNTY_US.csv", header=0)
-crop_cal_df = pd.read_csv("../sample_data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
+
+rs_path_us = "../sample_data/data_US/county_data/REMOTE_SENSING_COUNTY_US.csv"
+cc_path_us = "../sample_data/data_US/CROP_CALENDAR_COUNTY_US.csv"
 
 #%%
-if ("harvest_date" not in rs_df.columns):
-    crop_cal_df = pd.read_csv("../sample_data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
+rs_df_us = pd.read_csv(rs_path_us, header=0)
+crop_cal_df_us = pd.read_csv(cc_path_us, header=0)
+
+#%%
+if ("harvest_date" not in rs_df_us.columns):
+    crop_cal_df = pd.read_csv(cc_path_us, header=0)
     sel_cols = ["loc_id", "planting_doy", "maturity_doy"]
-    crop_cal_df = crop_cal_df.astype({"planting_doy" : int, "maturity_doy" : int})
-    rs_df = merge_with_crop_calendar(rs_df, crop_cal_df[sel_cols])
+    crop_cal_df_us = crop_cal_df_us.astype({"planting_doy" : int, "maturity_doy" : int})
+    rs_df_us = merge_with_crop_calendar(rs_df_us, crop_cal_df_us[sel_cols])
 
 #%%
 # Uncomment for debugging
@@ -132,11 +137,28 @@ if ("harvest_date" not in rs_df.columns):
 #%%
 # print(rs_df.head(10))
 # print(rs_df.dtypes)
-rs_df_rotated = rotate_data_by_crop_calendar(rs_df)
+rs_df_rotated_us = rotate_data_by_crop_calendar(rs_df_us)
 #print(rs_df_rotated.head(10))
 # print(rs_df_rotated.dtypes)
 
-# %%
-#us_fpar = pd.read_csv("../sample_data/data_US/US_FPAR_wintercereals_springcereals.csv", header=0)
+#%%
+# For france wheat
+
+rs_path_fr = "../sample_data/data_FR/REMOTE_SENSING_NUTS3_FR.csv"
+cc_path_fr = "../sample_data/data_FR/CROP_CALENDAR_NUTSID_wheat_FR.csv"
+
+#%%
+rs_df_fr = pd.read_csv(rs_path_fr, header=0)
+crop_cal_df_fr = pd.read_csv(cc_path_fr, header=0)
+
+#%%
+## The location ID in crop calendar (from France shapefile) and remote sensing data don't match.
+
+if ("harvest_date" not in rs_df_fr.columns):
+    crop_cal_df_fr = pd.read_csv(cc_path_fr, header=0)
+    sel_cols = ["loc_id", "planting_doy", "maturity_doy"]
+    crop_cal_df_fr = crop_cal_df_fr.astype({"planting_doy" : int, "maturity_doy" : int})
+    rs_df_fr = merge_with_crop_calendar(rs_df_fr, crop_cal_df_fr[sel_cols])
+
 
 # %%
