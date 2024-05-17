@@ -14,7 +14,6 @@ from models.nn_models import BaseNNModel
 evaluation_path = os.path.dirname(os.path.realpath(__file__))
 root_path = evaluation_path[:-10]  # remove "evaluation" in the string to get the root path
 
-
 # Configure Comet experiment instance
 _project_name = "AgML-Crop-yield-forecasting"
 
@@ -32,7 +31,7 @@ def get_comet_api_key(file=None) -> str:
     api_key = None
 
     check_api_key_dir = os.path.isdir(os.path.join(evaluation_path, 'api_keys'))
-    file_name = 'comet_ml' if None else file
+    file_name = 'comet_ml' if not file else file
     check_api_key_file = os.path.isdir(os.path.join(evaluation_path, 'api_keys', file_name))
 
     if check_api_key_dir and check_api_key_file:
