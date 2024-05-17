@@ -1,9 +1,8 @@
 import os
-
+import comet_ml
 import comet_ml.integration.pytorch
 from comet_ml import Experiment
-import torch
-import sklearn
+
 from models.model import BaseModel
 from models.sklearn_model import SklearnModel
 from models.trend_model import TrendModel
@@ -129,8 +128,12 @@ def log_to_comet_post_hoc(metrics: dict,
 
 def comet_wrapper(model: BaseModel,
                   comet_experiment: Experiment = None,
-                  comet_api_key: str = None) -> None:
-    """Wrap model before training with a Comet experiment instance"""
+                  comet_api_key: str = None) -> Experiment:
+    """
+    Wrap model before training with a Comet experiment instance
+
+    :return: Comet_ml experiment instance
+    """
 
     experiment = existing_comet(comet_experiment=comet_experiment, comet_api_key=comet_api_key)
 
@@ -138,3 +141,5 @@ def comet_wrapper(model: BaseModel,
 
     if isinstance(model, BaseNNModel):
         comet_ml.integration.pytorch.watch(model, 1)
+
+    return experiment
