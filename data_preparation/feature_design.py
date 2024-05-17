@@ -32,7 +32,7 @@ def get_dekad(date_str):
 
 
 
-def temporal_resample(df, date_col, start_year, end_year, filter_months, time_step = "FORTNIGHT"):
+def temporal_resample(df, date_col, start_year, end_year, include_months, time_step = "FORTNIGHT"):
 
     df = df.astype({date_col : str })
     df['YEAR'] = df[date_col].str[:4].astype(int)
@@ -40,8 +40,8 @@ def temporal_resample(df, date_col, start_year, end_year, filter_months, time_st
     # convert to date and filter date
     df = df[(df['YEAR'] >= start_year) & (df['YEAR'] <= end_year)]
 
-    if len(filter_months)> 0:
-        df = df[df[date_col].str[4:6].astype(int).isin(filter_months)]
+    if len(include_months)> 0:
+        df = df[df[date_col].str[4:6].astype(int).isin(include_months)]
 
     if (time_step == "MONTH"):
         df["PERIOD"] = df[date_col].str[4:6].astype(int)
@@ -57,9 +57,9 @@ def temporal_resample(df, date_col, start_year, end_year, filter_months, time_st
 
 def design_features(csv_path, 
                     date_col='DATE',
-                    start_year=2010,
-                    end_year=2015,
-                    filter_months = [1,2,3],
+                    start_year=2000,
+                    end_year=2023,
+                    include_months = list(range(1, 13)),
                     time_step = 'FORTNIGHT', 
                     group_cols = ["IDREGION", "YEAR"],
                     max_feature_cols = ["FAPAR"], 
@@ -75,7 +75,7 @@ def design_features(csv_path,
         date_col(str): column name containing date info
         start_year(int): beginning year filter
         end_year(int): end year filter
-        filter_months(list): selected months e.g. [1,2,10]
+        include_months(list): selected months e.g. [1,2,10]
         time_step(str): temporal span to perform aggregation
         group_col(list): cols to hold in grouping
         max_feature_cols(list): cols to generate max features acc. to timestep
@@ -87,7 +87,7 @@ def design_features(csv_path,
 
     df = pd.read_csv(csv_path, header=0)
 
-    df = temporal_resample(df, date_col, start_year, end_year, filter_months, time_step)
+    df = temporal_resample(df, date_col, start_year, end_year, include_months, time_step)
 
     # designing features
     time_series_list = []
