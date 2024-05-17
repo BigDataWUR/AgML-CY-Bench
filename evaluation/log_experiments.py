@@ -12,7 +12,7 @@ from models.nn_models import BaseNNModel
 
 # get paths
 evaluation_path = os.path.dirname(os.path.realpath(__file__))
-root_path = evaluation_path[:-10]
+root_path = evaluation_path[:-10]  # remove "evaluation" in the string to get the root path
 
 
 # Configure Comet experiment instance
