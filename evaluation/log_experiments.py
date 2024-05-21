@@ -87,8 +87,9 @@ def log_to_comet_post_hoc(metrics: dict,
                           comet_experiment: Experiment = None,
                           comet_api_key: str = None,
                           name: str = None,
-                          model: str = None,
-                          asset_path: str = None) -> None:
+                          model: BaseModel = None,
+                          asset_path: str = None,
+                          end: bool = False) -> None:
     """
     Log metrics, params, asset and model to Comet_ml
 
@@ -98,18 +99,20 @@ def log_to_comet_post_hoc(metrics: dict,
     :param model: name of the saved model
     :param name: name of the comet experiment
     :param asset_path: path to asset. To log a custom asset (e.g., config file etc.) to Comet.
-    :return:
+    :return: None
     """
 
     experiment = existing_comet(comet_experiment=comet_experiment, comet_api_key=comet_api_key)
+    assert isinstance(metrics, dict)
     experiment.log_parameters(params)
     experiment.log_metrics(metrics)
     experiment.log_code(folder=root_path)
 
     if model is not None:
         # TODO determine where models are saved
-        model_path = os.path.join(root_path, "output", f"{model}.pth")
-        experiment.log_model(f"{model}", model_path)
+        if os.path.exists(os.path.join(root_path, "output", f"{model}.pth")):
+            model_path = os.path.join(root_path, "output", f"{model}.pth")
+            experiment.log_model(f"{model}", model_path)
 
     if asset_path is not None:
         asset_name = os.path.basename(asset_path)
@@ -118,12 +121,16 @@ def log_to_comet_post_hoc(metrics: dict,
 
     if name:
         experiment.set_name(name)
-    elif name and model:
-        experiment.set_name(model)
     else:
-        experiment.set_name(f"CYM-model")
+        experiment.set_name(f"CYF-model")
 
-    experiment.end()
+    if isinstance(model, BaseNNModel):
+        # automatically log Torch model with Comet;
+        # Comet uses the native torch.save and saves the model into the assets in Comet
+        comet_ml.integration.pytorch.log_model(comet_experiment, model=model, model_name=name if name else "CYF-model")
+
+    if end:
+        experiment.end()
 
 
 def comet_wrapper(model: BaseModel,
@@ -141,5 +148,6 @@ def comet_wrapper(model: BaseModel,
 
     if isinstance(model, BaseNNModel):
         comet_ml.integration.pytorch.watch(model, 1)
+        experiment.log_parameters(model._modules)
 
     return experiment
