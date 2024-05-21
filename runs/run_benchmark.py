@@ -16,24 +16,71 @@ from models.sklearn_model import SklearnModel
 from models.nn_models import ExampleLSTM
 
 
-def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwargs):
-    path_results = os.path.join(PATH_RESULTS_DIR, run_name)
+_BASELINE_MODEL_CONSTRUCTORS = {
+    'AverageYieldModel': AverageYieldModel,
+    'LSTM': ExampleLSTM,
+}
+
+BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
+
+_BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
+_BASELINE_MODEL_INIT_KWARGS['LSTM'] = {
+    'n_ts_features': 9,
+    'n_static_features': 1,
+    'hidden_size': 32,
+    'num_layers': 3,
+}
+
+_BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
+
+
+def run_benchmark(run_name: str,
+                  model_name: str,
+                  model_constructor: callable,
+                  model_init_kwargs: dict = None,
+                  model_fit_kwargs: dict = None,
+                  baseline_models: list = None,
+                  ) -> dict:
+    """
+    Run the AgML benchmark.
+    Args:
+        run_name (str): The name of the run. Will be used to store log files and model results
+        model_name (str): The name of the model. Will be used to store log files and model results
+        model_constructor (Callable): The constructor of the model. Will be used to construct the model
+        model_init_kwargs (dict): The kwargs used when constructing the model.
+        model_fit_kwargs (dict): The kwargs used to fit the model.
+        baseline_models (list): A list of names of baseline models to run next to the provided model.
+                                If unspecified, a default list of baseline models will be used.
+    Returns:
+        a dictionary containing the results of the benchmark
+    """
+    baseline_models = baseline_models or BASELINE_MODELS
+    assert all([name in BASELINE_MODELS for name in baseline_models])
+
+    model_init_kwargs = model_init_kwargs or dict()
+    model_fit_kwargs = model_fit_kwargs or dict()
+
+    # Create a directory to store model output
+    path_results = os.path.join(PATH_RESULTS_DIR, run_name)  # TODO -- write to output folder instead
     os.makedirs(path_results, exist_ok=True)
 
-    benchmark_models = {
-        "AverageYieldModel": AverageYieldModel,
-        "LSTM": ExampleLSTM,
-        model_name: model_constructor
+    # Make sure model_name is not already defined
+    assert model_name not in BASELINE_MODELS, f"Model name {model_name} already occurs in the baseline"
+
+    model_constructors = {
+        **_BASELINE_MODEL_CONSTRUCTORS,
+        model_name: model_constructor,
     }
-    models_kwargs = defaultdict(dict)
+
+    models_init_kwargs = defaultdict(dict)
+    models_init_kwargs[model_name] = model_init_kwargs
+    for name, kwargs in _BASELINE_MODEL_INIT_KWARGS.items():
+        models_init_kwargs[name] = kwargs
+
     models_fit_kwargs = defaultdict(dict)
-    models_kwargs[model_name] = model_kwargs
-    models_kwargs['LSTM'] = {
-        'n_ts_features': 9,
-        'n_static_features': 1,
-        'hidden_size': 32,
-        'num_layers': 3,
-    }
+    models_fit_kwargs[model_name] = model_fit_kwargs
+    for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
+        models_fit_kwargs[name] = kwargs
 
     dataset = Dataset.load("test_maize_us")
 
@@ -52,8 +99,8 @@ def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwarg
         }
 
         compiled_results = {}
-        for model_name, model_constructor in benchmark_models.items():
-            model = model_constructor(**models_kwargs[model_name])
+        for model_name, model_constructor in model_constructors.items():
+            model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
             # save predictions
@@ -66,119 +113,66 @@ def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwarg
         df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f'year_{test_year}.csv'))
 
-    return compiled_results
+    df_metrics = _compute_evaluation_results(run_name)
+
+    return {
+        'df_metrics': df_metrics,
+    }
+
+
+def _compute_evaluation_results(run_name: str,) -> pd.DataFrame:
+    path_results = os.path.join(PATH_RESULTS_DIR, run_name)
+
+    files = [f for f in os.listdir(path_results) if os.path.isfile(os.path.join(path_results, f))]
+
+    rows = []
+
+    for file in files:
+        path = os.path.join(path_results, file)
+
+        df = pd.read_csv(path)
+
+        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+
+        years = set(df.index.get_level_values(config.KEY_YEAR))
+        assert len(years) == 1  # Every fold is assumed to contain only one year
+        year = list(years)[0]
+
+        columns = df.columns
+
+        y_true = df[[columns[0]]].values
+
+        for model_name in columns[1:]:
+            y_pred = df[[model_name]].values
+
+            metrics = evaluate_predictions(y_true, y_pred)
+
+            for metric_name, value in metrics.items():
+                rows.append(
+                    {
+                        'model': model_name,
+                        'year': year,
+                        'metric': metric_name,
+                        'value': value,
+                    }
+                )
+
+    df_all = pd.DataFrame(rows)
+    df_all.set_index(['model', 'year', 'metric'], inplace=True)
+
+    return df_all
 
 
 if __name__ == '__main__':
 
-    result = run_benchmark(run_name='test_run',
-                           model_name="AverageYieldModel",
-                           model_constructor=AverageYieldModel,
-                           model_kwargs={},
-                           )
+    # result = run_benchmark(run_name='test_run',
+    #                        model_name="AverageYieldModel",
+    #                        model_constructor=AverageYieldModel,
+    #                        )
 
-    print(result)
+    _compute_evaluation_results(run_name='test_run',)
 
+    # print(result)
 
-
-#
-# def evaluate_saved_predictions():
-#     pass
-
-
-# def run_benchmark(model: BaseModel,
-#                   dataset_name: str,
-#                   model_fit_kwargs: dict,
-#                   verbose: bool = True,
-#                   ) -> dict:
-
-
-
-
-
-    # For all algorithms in the benchmark
-    #    For all years that span the benchmark dataset
-    #        do train test split
-    #        initialize a model
-    #        fit on the training dataset
-    #        predict on test dataset
-    #        save predictions to csv
-
-    # For all algorithms in the benchmark
-    #    For all years that span the benchmark dataset
-    #         load csv of predictions
-    #         load csv of reference predictions in same fold
-    #         compute metrics
-
-
-
-#
-#     # dataset_train, dataset_test = Dataset.load(dataset_name)
-#     dataset = Dataset.load(dataset_name)
-#     dataset_train, dataset_test = Dataset.split(...)
-#
-#     model.fit(dataset_train, **model_fit_kwargs)
-#
-#     eval_result_train = evaluate_model(model,
-#                                        dataset_train,
-#                                        )
-#     eval_result_test = evaluate_model(model,
-#                                       dataset_test,
-#                                       )
-#
-#     return {
-#         'model': model,
-#         'eval_train': eval_result_train,
-#         'eval_test': eval_result_test,
-#     }
-#
-#
-# def _create_table(eval_results: dict, title: str) -> list:
-#
-#     pass
-
-
-
-# from datasets.dataset import Dataset
-# from models.naive_models import AverageYieldModel
-# from models.sklearn_model import SklearnModel
-# from models.nn_models import ExampleLSTM
-# from evaluation.eval import evaluate_predictions
-# from collections import defaultdict
-#
-# from config import KEY_LOC, KEY_YEAR, KEY_TARGET
-# from config import SOIL_COLS, REMOTE_SENSING_COLS, METEO_COLS
-#
-#
-# def run_benchmark(model_name, model_constructor, model_kwargs):
-#     benchmark_models = {
-#         "AverageYieldModel" : AverageYieldModel,
-#         "LSTM" : ExampleLSTM,
-#         model_name : model_constructor
-#     }
-#     models_kwargs = defaultdict(dict)
-#     models_kwargs[model_name] = model_kwargs
-#
-#     dataset = Dataset.load("maize_us")
-#     all_years = dataset.years
-#     for test_year in all_years:
-#         train_years = [y for y in all_years if y != test_year]
-#         test_years = [test_year]
-#         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
-#
-#         compiled_results = {}
-#         for model_name, model_constructor in benchmark_models.items():
-#             model = model_constructor(**models_kwargs[model_name])
-#             model.fit(train_dataset)
-#             predictions, _ = model.predict(test_dataset)
-#             # save predictions
-#             labels = test_dataset.labels
-#             results = evaluate_predictions(labels, predictions)
-#             compiled_results[model_name] = results
-#
-#     return compiled_results
-#
-# def evaluate_saved_predictions():
-#     pass
 
 
