@@ -147,7 +147,7 @@ def load_dfs_test_softwheat_nl() -> tuple:
         os.path.join(path_data_nl, "METEO_DAILY_NUTS2_NL.csv"),
     )
 
-    df_x_meteo["date"] = pd.to_datetime(df_x_meteo["date"], format="%Y%m%d")
+    df_x_meteo["date"] = pd.to_datetime(df_x_meteo["date"], format="%Y%m%d").dt.date
     df_x_meteo["year"] = df_x_meteo["date"].apply(lambda date: date.year)
     df_x_meteo.set_index(["loc_id", "year", "date"], inplace=True)
 
@@ -155,7 +155,7 @@ def load_dfs_test_softwheat_nl() -> tuple:
         os.path.join(path_data_nl, "REMOTE_SENSING_NUTS2_NL.csv"),
     )
 
-    df_x_rs["date"] = pd.to_datetime(df_x_rs["date"], format="%Y%m%d")
+    df_x_rs["date"] = pd.to_datetime(df_x_rs["date"], format="%Y%m%d").dt.date
     df_x_rs["year"] = df_x_rs["date"].apply(lambda date: date.year)
     df_x_rs.set_index(["loc_id", "year", "date"], inplace=True)
 
