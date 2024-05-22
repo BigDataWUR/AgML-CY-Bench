@@ -1,7 +1,7 @@
 import torch
 import torch.utils.data
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
 from datasets.dataset import Dataset
 from util.torch import batch_tensors
@@ -43,7 +43,7 @@ class TorchDataset(torch.utils.data.Dataset):
             **{
                 key: torch.tensor(sample[key], dtype=torch.float32)
                 for key in sample.keys()
-                if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET]
+                if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES]
             },  # TODO -- support nonnumeric data?
         }
 
@@ -61,11 +61,13 @@ class TorchDataset(torch.utils.data.Dataset):
         feature_names.remove(KEY_TARGET)
         feature_names.remove(KEY_LOC)
         feature_names.remove(KEY_YEAR)
+        feature_names.remove(KEY_DATES)
 
         batched_samples = {
             KEY_TARGET: batch_tensors(*[sample[KEY_TARGET] for sample in samples]),
             KEY_LOC: [sample[KEY_LOC] for sample in samples],
             KEY_YEAR: [sample[KEY_YEAR] for sample in samples],
+            KEY_DATES: samples[0][KEY_DATES],
             **{
                 key: batch_tensors(*[sample[key] for sample in samples])
                 for key in feature_names
