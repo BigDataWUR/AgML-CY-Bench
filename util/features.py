@@ -1,40 +1,45 @@
 import os
 import pandas as pd
 
+from config import KEY_LOC, KEY_YEAR, KEY_DATES
+
 
 def fortnight_from_date(date_str):
     month = date_str[4:6]
     day_of_month = int(date_str[6:])
-    fortnight_number = (int(month) -1) * 2 
-    if (day_of_month <= 15):
+    fortnight_number = (int(month) - 1) * 2
+    if day_of_month <= 15:
         return fortnight_number + 1
     else:
         return fortnight_number + 2
+
 
 def dekad_from_date(date_str):
     month = int(date_str[4:6])
     day_of_month = int(date_str[6:])
     dekad = (month - 1) * 3
-    if (day_of_month <= 10):
+    if day_of_month <= 10:
         dekad += 1
-    elif (day_of_month <= 20):
+    elif day_of_month <= 20:
         dekad += 2
     else:
-        dekad += 3 
+        dekad += 3
 
     return dekad
 
-def add_period(df, time_step):
+
+def add_period(df, period_length):
     # NOTE expects data column in string format
     # add a period column based on time step
-    if (time_step == "month"):
+    if period_length == "month":
         df["period"] = df["date"].str[4:6]
-    elif(time_step == "fortnight"):
+    elif period_length == "fortnight":
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
-    elif (time_step == "dekad"):
+    elif period_length == "dekad":
         df["period"] = df.apply(lambda r: dekad_from_date(r["date"]), axis=1)
 
     return df
+
 
 # Period can be a month or fortnight (biweekly or two weeks)
 # Period sum of TAVG, TMIN, TMAX, PREC
@@ -46,13 +51,17 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
     ft_df = ft_df.rename(columns=ft_cols)
 
     # pivot to add a feature column for each period
-    ft_df = ft_df.pivot_table(index=index_cols, columns=period_col,
-                              values=ft_cols.values()).fillna(0).reset_index()
+    ft_df = (
+        ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_cols.values())
+        .fillna(0)
+        .reset_index()
+    )
 
     # combine names of two column levels
     ft_df.columns = [first + second for first, second in ft_df.columns]
 
     return ft_df
+
 
 # Feature 4: Growing degree days
 # TODO: What is the formula?
@@ -60,32 +69,40 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 # Feature 5: Vernalization requirement
 # TODO: What is the formula
 
-def count_threshold(df, index_cols, period_col,
-                    indicator, threshold_exceed=True, threshold=0.0, ft_name=None):
+
+def count_threshold(
+    df,
+    index_cols,
+    period_col,
+    indicator,
+    threshold_exceed=True,
+    threshold=0.0,
+    ft_name=None,
+):
     groupby_cols = index_cols + [period_col]
-    if (threshold_exceed):
+    if threshold_exceed:
         filter_condition = df[indicator] > threshold
     else:
         filter_condition = df[indicator] < threshold
 
     ft_df = df[filter_condition].groupby(groupby_cols).agg(FEATURE=(indicator, "count"))
-    if (ft_name is not None):
-        ft_df = ft_df.rename(columns={"FEATURE" : ft_name})
+    if ft_name is not None:
+        ft_df = ft_df.rename(columns={"FEATURE": ft_name})
 
     # pivot to add a feature column for each period
-    ft_df = ft_df.pivot_table(index=index_cols, columns=period_col,
-                              values=ft_name).fillna(0).reset_index()
+    ft_df = (
+        ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_name)
+        .fillna(0)
+        .reset_index()
+    )
 
     # rename period cols
-    period_cols = ft_df.columns[len(index_cols):]
-    rename_cols = { p : ft_name + "p" + p for p in period_cols }
+    period_cols = ft_df.columns[len(index_cols) :]
+    rename_cols = {p: ft_name + "p" + p for p in period_cols}
     ft_df = ft_df.rename(columns=rename_cols)
 
     return ft_df
 
-from datasets.dataset import Dataset
-from util.data import data_to_pandas
-from config import KEY_DATES
 
 def unpack_time_series(df, indicators):
     # for a data source, dates should match across all indicators
@@ -93,41 +110,44 @@ def unpack_time_series(df, indicators):
 
     # explode time series columns and dates
     df = df.explode(indicators + ["date"]).drop(columns=[KEY_DATES])
-    df = df.astype({"date" : str})
+    df = df.astype({"date": str})
     # pandas tends to format date as "YYYY-mm-dd", remove the hyphens
     df["date"] = df["date"].str.replace("-", "")
 
     return df
 
-def test_feature_design():
-    max_feature_cols = ["fapar"] # ["ndvi", "fapar"]
-    avg_feature_cols = ["tmin", "tmax"] #, "tmax", "tavg", "prec", "rad"]
+
+def design_features(
+    weather_df, soil_df, fapar_df, ndvi_df=None, et0_df=None, soil_moisture_df=None
+):
+    # for soil, we need to comput water holding capacity
+    # TODO: 1. not needed for cybench data. Remove later.
+    # TODO: 2. Add code to make drainage class a categorical feature.
+    if "sm_whc" not in soil_df.columns:
+        soil_df["sm_whc"] = soil_df["sm_fc"] - soil_df["sm_wp"]
+        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
+    else:
+        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
+
+    # Feature design for time series
+    # TODO: 1. add code for cumulative features
+    # TODO: 2. add code for ET0, ndvi, soil moisture
+    index_cols = [KEY_LOC, KEY_YEAR]
+    period_length = "month"
+    max_feature_cols = ["fapar"]  # ["ndvi", "fapar"]
+    avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
     count_thresh_cols = {
-        "tmin" : ["<", "0"], # degrees
-        "tmax" : [">", "35"], # degrees
-        "prec_l" : ["<", "50"], # mm
-        "prec_h" : [">", "100"], # mm (per day)
+        "tmin": ["<", "0"],  # degrees
+        "tmax": [">", "35"],  # degrees
+        "prec_l": ["<", "50"],  # mm
+        "prec_h": [">", "100"],  # mm (per day)
     }
 
-    index_cols = ["loc_id", "year"]
-    test_nl_data = Dataset.load("test_softwheat_nl")
-    data_df = data_to_pandas(test_nl_data)
-    rs_indicators = ["fapar"]
-    meteo_indicators = ["tmin", "tmax", "tavg", "prec"]
-    rs_df = data_df[index_cols + ["dates"] + rs_indicators].copy()
-    meteo_df = data_df[index_cols + ["dates"] + meteo_indicators].copy()
-    rs_df = unpack_time_series(rs_df, rs_indicators)
-    meteo_df = unpack_time_series(meteo_df, meteo_indicators)
+    fapar_df = add_period(fapar_df, period_length)
+    weather_df = add_period(weather_df, period_length)
 
-    time_step = "month"
-
-    group_cols = index_cols + ["period"]
-
-    rs_df = add_period(rs_df, time_step)
-    meteo_df = add_period(meteo_df, time_step)
-
-    max_aggrs = { ind : "max" for ind in max_feature_cols }
-    avg_aggrs = { ind : "mean" for ind in avg_feature_cols }
+    max_aggrs = {ind: "max" for ind in max_feature_cols}
+    avg_aggrs = {ind: "mean" for ind in avg_feature_cols}
 
     # NOTE: If combining max and avg aggregation
     # all_aggrs = {
@@ -135,30 +155,28 @@ def test_feature_design():
     #     **avg_aggrs,
     # }
 
-    max_ft_cols = { ind : "max" + ind for ind in max_feature_cols }
-    avg_ft_cols = { ind : "mean" + ind for ind in avg_feature_cols }
-    rs_fts = aggregate_by_period(rs_df, index_cols, "period",
-                                max_aggrs, max_ft_cols)
-    meteo_fts = aggregate_by_period(meteo_df, index_cols, "period",
-                                    avg_aggrs, avg_ft_cols)
+    max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
+    avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
+    rs_fts = aggregate_by_period(fapar_df, index_cols, "period", max_aggrs, max_ft_cols)
+    weather_fts = aggregate_by_period(
+        weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
+    )
 
-    print(rs_fts.head(5))
-    print(meteo_fts.head(5))
-
-    count_fts = meteo_fts[index_cols].copy()
+    # count of time steps
     for ind, thresh in count_thresh_cols.items():
         threshold_exceed = thresh[0]
         threshold = float(thresh[1])
-        if ("_" in ind):
+        if "_" in ind:
             ind = ind.split("_")[0]
 
         ft_name = ind + "".join(thresh)
-        ind_fts = count_threshold(meteo_df, index_cols, "period",
-                                ind, threshold_exceed, threshold, ft_name)
-        if (not ind_fts.empty):
-            count_fts = count_fts.merge(ind_fts, on=index_cols, how="outer")
-            count_fts = count_fts.fillna(0.0)
+        ind_fts = count_threshold(
+            weather_df, index_cols, "period", ind, threshold_exceed, threshold, ft_name
+        )
+        if not ind_fts.empty:
+            weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="outer")
+            weather_fts = weather_fts.fillna(0.0)
 
-    print(count_fts.head(5))
-
-test_feature_design()
+    all_fts = rs_fts.merge(weather_fts, on=index_cols)
+    all_fts = all_fts.merge(soil_features, on=[KEY_LOC])
+    return all_fts

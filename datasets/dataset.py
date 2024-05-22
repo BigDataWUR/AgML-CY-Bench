@@ -58,7 +58,6 @@ class Dataset:
 
     @staticmethod
     def load(name: str) -> "Dataset":
-
         if name == "test_maize":
             from datasets.configured import load_dfs_test_maize
 
@@ -177,7 +176,7 @@ class Dataset:
         data = {
             KEY_DATES: dict(),
         }
-    
+
         # For all feature dataframes
         for df in self._dfs_x:
             # Check in which category the dataframe fits:

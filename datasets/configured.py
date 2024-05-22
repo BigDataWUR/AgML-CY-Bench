@@ -74,7 +74,6 @@ def load_dfs_test_maize_fr() -> tuple:
 
 
 def load_dfs_test_maize() -> tuple:
-
     df_y_us, dfs_x_us = load_dfs_test_maize_us()
     df_y_fr, dfs_x_fr = load_dfs_test_maize_fr()
 
@@ -170,4 +169,3 @@ def load_dfs_test_softwheat_nl() -> tuple:
     df_y, dfs_x = _align_data(df_y, dfs_x)
 
     return df_y, dfs_x
-

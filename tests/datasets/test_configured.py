@@ -2,7 +2,6 @@ from datasets.configured import load_dfs_test_maize, load_dfs_test_maize_us
 
 
 def test_load_dfs_test_maize():
-
     df_y, dfs_x = load_dfs_test_maize()
     # df_y, dfs_x = load_dfs_test_maize_us()
 
@@ -17,4 +16,3 @@ def test_load_dfs_test_maize():
                 assert i[0] in df_x.index
             else:
                 assert i in df_x.index
-

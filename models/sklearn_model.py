@@ -8,12 +8,15 @@ from sklearn.pipeline import Pipeline
 from models.model import BaseModel
 from datasets.dataset import Dataset
 from util.data import data_to_pandas
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from util.features import unpack_time_series, design_features
+
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from config import SOIL_INDICATORS, WEATHER_INDICATORS, RS_FAPAR, RS_NDVI
 
 
 class SklearnModel(BaseModel):
-    def __init__(self, sklearn_est, feature_cols, scaler=None):
-        self._feature_cols = feature_cols
+    def __init__(self, sklearn_est, scaler=None):
+        self._feature_cols = None
 
         if scaler is None:
             scaler = StandardScaler()
@@ -32,10 +35,22 @@ class SklearnModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        train_df = data_to_pandas(dataset)
+        data_df = data_to_pandas(dataset)
+        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].copy()
+        fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
+        fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
+        weather_df = data_df[
+            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + WEATHER_INDICATORS
+        ].copy()
+        weather_df = unpack_time_series(weather_df, WEATHER_INDICATORS)
+        train_features = design_features(weather_df, soil_df, fapar_df)
+        self._feature_cols = train_features.columns[len([KEY_LOC, KEY_YEAR]) :]
+        train_labels = data_df[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+        train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
+
         train_years = dataset.years
-        X = train_df[self._feature_cols].values
-        y = train_df[KEY_TARGET].values
+        X = train_data[self._feature_cols].values
+        y = train_data[KEY_TARGET].values
         if ("optimize_hyperparameters" in fit_params) and (
             fit_params["optimize_hyperparameters"]
         ):
@@ -46,7 +61,7 @@ class SklearnModel(BaseModel):
             #          with the optimal hyperparameter values.
             #       2. use kfolds=len(train_years) for leave-one-out
             #
-            cv_groups = train_df[KEY_YEAR].values
+            cv_groups = train_data[KEY_YEAR].values
             self._est = self._optimize_hyperparameters(
                 X,
                 y,
@@ -94,6 +109,38 @@ class SklearnModel(BaseModel):
         self._logger.debug(best_params)
 
         return grid_search.best_estimator_
+
+    def predict(self, test_dataset):
+        """Run fitted model on batched data items.
+
+        Args:
+          test_dataset: Dataset
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
+        data_df = data_to_pandas(test_dataset)
+        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].copy()
+        fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
+        fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
+        weather_df = data_df[
+            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + WEATHER_INDICATORS
+        ].copy()
+        weather_df = unpack_time_series(weather_df, WEATHER_INDICATORS)
+        test_features = design_features(weather_df, soil_df, fapar_df)
+        test_labels = data_df[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+        # features can be missing in test data
+        missing_features = [
+            ft for ft in self._feature_cols if ft not in test_features.columns
+        ]
+        for ft in missing_features:
+            test_features[ft] = 0.0
+
+        test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
+
+        X_test = test_data[self._feature_cols].values
+
+        return self._est.predict(X_test), {}
 
     def predict_batch(self, X: list):
         """Run fitted model on batched data items.
