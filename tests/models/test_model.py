@@ -193,7 +193,7 @@ def test_nn_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize model, assumes that all features are in np.ndarray format
-    n_total_features = len(train_dataset[0].keys()) - 3
+    n_total_features = len(train_dataset[0].keys()) - 4
     ts_features = [
         key
         for key in train_dataset[0].keys()
