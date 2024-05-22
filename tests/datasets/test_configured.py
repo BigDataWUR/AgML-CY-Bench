@@ -17,4 +17,3 @@ def test_load_dfs_test_maize():
                 assert i[0] in df_x.index
             else:
                 assert i in df_x.index
-
