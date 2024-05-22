@@ -17,30 +17,32 @@ from models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
-    'AverageYieldModel': AverageYieldModel,
-    'LSTM': ExampleLSTM,
+    "AverageYieldModel": AverageYieldModel,
+    "LSTM": ExampleLSTM,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_INIT_KWARGS['LSTM'] = {
-    'n_ts_features': 9,
-    'n_static_features': 1,
-    'hidden_size': 32,
-    'num_layers': 3,
+_BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
+    "n_ts_features": 9,
+    "n_static_features": 1,
+    "hidden_size": 32,
+    "num_layers": 3,
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 
 
-def run_benchmark(run_name: str,
-                  model_name: str,
-                  model_constructor: callable,
-                  model_init_kwargs: dict = None,
-                  model_fit_kwargs: dict = None,
-                  baseline_models: list = None,
-                  ) -> dict:
+def run_benchmark(
+    run_name: str,
+    model_name: str,
+    model_constructor: callable,
+    model_init_kwargs: dict = None,
+    model_fit_kwargs: dict = None,
+    baseline_models: list = None,
+    dataset_name: str = "test_maize_us",
+) -> dict:
     """
     Run the AgML benchmark.
     Args:
@@ -51,6 +53,7 @@ def run_benchmark(run_name: str,
         model_fit_kwargs (dict): The kwargs used to fit the model.
         baseline_models (list): A list of names of baseline models to run next to the provided model.
                                 If unspecified, a default list of baseline models will be used.
+        dataset_name (str): The name of the dataset to load
     Returns:
         a dictionary containing the results of the benchmark
     """
@@ -61,11 +64,14 @@ def run_benchmark(run_name: str,
     model_fit_kwargs = model_fit_kwargs or dict()
 
     # Create a directory to store model output
-    path_results = os.path.join(PATH_RESULTS_DIR, run_name)  # TODO -- write to output folder instead
+
+    path_results = os.path.join(PATH_RESULTS_DIR, run_name)
     os.makedirs(path_results, exist_ok=True)
 
     # Make sure model_name is not already defined
-    assert model_name not in BASELINE_MODELS, f"Model name {model_name} already occurs in the baseline"
+    assert (
+        model_name not in BASELINE_MODELS
+    ), f"Model name {model_name} already occurs in the baseline"
 
     model_constructors = {
         **_BASELINE_MODEL_CONSTRUCTORS,
@@ -82,7 +88,7 @@ def run_benchmark(run_name: str,
     for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
         models_fit_kwargs[name] = kwargs
 
-    dataset = Dataset.load("test_maize_us")
+    dataset = Dataset.load(dataset_name)
 
     all_years = dataset.years
     for test_year in all_years:
@@ -95,7 +101,7 @@ def run_benchmark(run_name: str,
         model_output = {
             config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
             config.KEY_YEAR: [year for _, year in test_dataset.indices()],
-            'targets': labels,
+            "targets": labels,
         }
 
         compiled_results = {}
@@ -111,19 +117,25 @@ def run_benchmark(run_name: str,
 
         df = pd.DataFrame.from_dict(model_output)
         df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
-        df.to_csv(os.path.join(path_results, f'year_{test_year}.csv'))
+        df.to_csv(os.path.join(path_results, f"year_{test_year}.csv"))
 
     df_metrics = _compute_evaluation_results(run_name)
 
     return {
-        'df_metrics': df_metrics,
+        "df_metrics": df_metrics,
     }
 
 
-def _compute_evaluation_results(run_name: str,) -> pd.DataFrame:
+def _compute_evaluation_results(
+    run_name: str,
+) -> pd.DataFrame:
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
 
-    files = [f for f in os.listdir(path_results) if os.path.isfile(os.path.join(path_results, f))]
+    files = [
+        f
+        for f in os.listdir(path_results)
+        if os.path.isfile(os.path.join(path_results, f))
+    ]
 
     rows = []
 
@@ -150,29 +162,14 @@ def _compute_evaluation_results(run_name: str,) -> pd.DataFrame:
             for metric_name, value in metrics.items():
                 rows.append(
                     {
-                        'model': model_name,
-                        'year': year,
-                        'metric': metric_name,
-                        'value': value,
+                        "model": model_name,
+                        "year": year,
+                        "metric": metric_name,
+                        "value": value,
                     }
                 )
 
     df_all = pd.DataFrame(rows)
-    df_all.set_index(['model', 'year', 'metric'], inplace=True)
+    df_all.set_index(["model", "year", "metric"], inplace=True)
 
     return df_all
-
-
-if __name__ == '__main__':
-
-    # result = run_benchmark(run_name='test_run',
-    #                        model_name="AverageYieldModel",
-    #                        model_constructor=AverageYieldModel,
-    #                        )
-
-    _compute_evaluation_results(run_name='test_run',)
-
-    # print(result)
-
-
-

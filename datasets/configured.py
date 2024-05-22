@@ -126,4 +126,3 @@ def _align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
     index_y_location_selection = set([loc_id for loc_id, _ in index_y_selection])
 
     return df_y, dfs_x
-

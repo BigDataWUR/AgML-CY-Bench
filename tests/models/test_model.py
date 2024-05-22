@@ -186,6 +186,7 @@ def test_sklearn_model():
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
 
+
 def test_nn_model():
     train_dataset = Dataset.load("test_maize_us")
     test_dataset = Dataset.load("test_maize_us")
@@ -193,17 +194,33 @@ def test_nn_model():
 
     # Initialize model, assumes that all features are in np.ndarray format
     n_total_features = len(train_dataset[0].keys()) - 3
-    ts_features = [key for key in train_dataset[0].keys() if type(train_dataset[0][key]) == np.ndarray]
+    ts_features = [
+        key
+        for key in train_dataset[0].keys()
+        if type(train_dataset[0][key]) == np.ndarray
+    ]
     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
-   
-    model = ExampleLSTM(len(ts_features), n_total_features - len(ts_features), hidden_size=64, num_layers=2, output_size=1)
+
+    model = ExampleLSTM(
+        len(ts_features),
+        n_total_features - len(ts_features),
+        hidden_size=64,
+        num_layers=2,
+        output_size=1,
+    )
     scheduler_fn = torch.optim.lr_scheduler.StepLR
     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
     # Train model
-    model.fit(  train_dataset, batch_size=3200, num_epochs=10, device=device, 
-                optim_kwargs={"lr":0.01}, 
-                scheduler_fn=scheduler_fn, scheduler_kwargs=scheduler_kwargs)
+    model.fit(
+        train_dataset,
+        batch_size=3200,
+        num_epochs=10,
+        device=device,
+        optim_kwargs={"lr": 0.01},
+        scheduler_fn=scheduler_fn,
+        scheduler_kwargs=scheduler_kwargs,
+    )
 
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
@@ -212,7 +229,10 @@ def test_nn_model():
     evaluation_result = evaluate_model(model, test_dataset)
     print(evaluation_result)
 
-    min_expected_values = {"normalized_rmse": 0, "mape": 0.00,}
+    min_expected_values = {
+        "normalized_rmse": 0,
+        "mape": 0.00,
+    }
     for metric, expected_value in min_expected_values.items():
         assert (
             metric in evaluation_result
@@ -221,5 +241,6 @@ def test_nn_model():
             evaluation_result[metric] >= expected_value
         ), f"Value of metric '{metric}' does not match expected value"
         # Check metric is not NaN
-        assert not np.isnan(evaluation_result[metric]), f"Value of metric '{metric}' is NaN"
-
+        assert not np.isnan(
+            evaluation_result[metric]
+        ), f"Value of metric '{metric}' is NaN"
