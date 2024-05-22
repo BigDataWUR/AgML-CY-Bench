@@ -21,6 +21,8 @@ KEY_LOC = "loc_id"
 KEY_YEAR = "year"
 # Key used for yield targets
 KEY_TARGET = "yield"
+# Key used for dates matching observations
+KEY_DATES = "dates"
 
 # Logging
 PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")

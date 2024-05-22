@@ -126,3 +126,45 @@ def _align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
     index_y_location_selection = set([loc_id for loc_id, _ in index_y_selection])
 
     return df_y, dfs_x
+
+
+def load_dfs_test_softwheat_nl() -> tuple:
+    path_data_nl = os.path.join(config.PATH_DATA_DIR, "data_NL")
+
+    df_y = pd.read_csv(
+        os.path.join(path_data_nl, "YIELD_NUTS2_NL.csv"),
+        index_col=["loc_id", "year"],
+    )
+
+    df_y = df_y.loc[df_y["crop_name"] == "Soft wheat"][["yield"]]
+
+    df_x_soil = pd.read_csv(
+        os.path.join(path_data_nl, "SOIL_NUTS2_NL.csv"),
+        index_col=["loc_id"],
+    )[["sm_wp", "sm_fc", "sm_sat", "rooting_depth"]]
+
+    df_x_meteo = pd.read_csv(
+        os.path.join(path_data_nl, "METEO_DAILY_NUTS2_NL.csv"),
+    )
+
+    df_x_meteo["date"] = pd.to_datetime(df_x_meteo["date"], format="%Y%m%d").dt.date
+    df_x_meteo["year"] = df_x_meteo["date"].apply(lambda date: date.year)
+    df_x_meteo.set_index(["loc_id", "year", "date"], inplace=True)
+
+    df_x_rs = pd.read_csv(
+        os.path.join(path_data_nl, "REMOTE_SENSING_NUTS2_NL.csv"),
+    )
+
+    df_x_rs["date"] = pd.to_datetime(df_x_rs["date"], format="%Y%m%d").dt.date
+    df_x_rs["year"] = df_x_rs["date"].apply(lambda date: date.year)
+    df_x_rs.set_index(["loc_id", "year", "date"], inplace=True)
+
+    dfs_x = (
+        df_x_soil,
+        df_x_meteo,
+        df_x_rs,
+    )
+
+    df_y, dfs_x = _align_data(df_y, dfs_x)
+
+    return df_y, dfs_x
