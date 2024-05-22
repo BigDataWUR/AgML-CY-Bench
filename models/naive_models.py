@@ -66,14 +66,16 @@ class AverageYieldModel(BaseModel):
             # If there is no matching group in training data,
             # predict the global average
             if filtered.empty:
-                self._logger.warning("No matching group found; predicting global average")
+                self._logger.warning(
+                    "No matching group found; predicting global average"
+                )
                 y_pred = self._train_df[KEY_TARGET].mean()
             else:
                 y_pred = filtered["GROUP_AVG"].values[0]
 
             predictions[i] = y_pred
 
-        return predictions, {}
+        return predictions.flatten(), {}
 
     def save(self, model_name):
         """Save model, e.g. using pickle.

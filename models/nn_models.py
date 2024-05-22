@@ -11,32 +11,26 @@ from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class BaseNNModel(BaseModel, nn.Module):
-    def __init__(   self, 
-                    *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(BaseModel, self).__init__()
         super(nn.Module, self).__init__()
 
-
-    def fit(self, 
-            train_dataset: Dataset,
-            val_fraction: float = 0.1,
-            val_every_n_epochs: int = 1,
-
-            num_epochs: int = 1,
-            batch_size: int = 10,
-
-            loss_fn: callable = None,
-            loss_kwargs: dict = None,
-
-            optim_fn: callable = None,
-            optim_kwargs: dict = None,
-
-            scheduler_fn: callable = None,
-            scheduler_kwargs: dict = None,
-
-            device: str = None,
-
-             **fit_params):
+    def fit(
+        self,
+        train_dataset: Dataset,
+        val_fraction: float = 0.1,
+        val_every_n_epochs: int = 1,
+        num_epochs: int = 1,
+        batch_size: int = 10,
+        loss_fn: callable = None,
+        loss_kwargs: dict = None,
+        optim_fn: callable = None,
+        optim_kwargs: dict = None,
+        scheduler_fn: callable = None,
+        scheduler_kwargs: dict = None,
+        device: str = None,
+        **fit_params,
+    ):
         """
         Fit or train the model.
 
@@ -58,15 +52,18 @@ class BaseNNModel(BaseModel, nn.Module):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        
 
-        # Set default values 
-        if loss_fn is None: loss_fn = torch.nn.functional.mse_loss
-        if loss_kwargs is None: loss_kwargs = {"reduction": "mean"}
-        if optim_fn is None: optim_fn = torch.optim.Adam
-        if optim_kwargs is None: optim_kwargs = {}
+        # Set default values
+        if loss_fn is None:
+            loss_fn = torch.nn.functional.mse_loss
+        if loss_kwargs is None:
+            loss_kwargs = {"reduction": "mean"}
+        if optim_fn is None:
+            optim_fn = torch.optim.Adam
+        if optim_kwargs is None:
+            optim_kwargs = {}
 
-        if device is None: 
+        if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
             print(f"Warning: Device not specified, using {device}")
 
@@ -74,7 +71,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self.batch_size = batch_size
         self.to(device)
-        
+
         # Get torchdataset, random val indices and loader
         train_dataset = TorchDataset(train_dataset)
 
@@ -84,22 +81,28 @@ class BaseNNModel(BaseModel, nn.Module):
         train_ids = list(set(range(n)) - set(val_ids))
 
         train_batch_size = min(batch_size, len(train_ids))
-        train_loader = torch.utils.data.DataLoader(train_dataset, 
-                                                   batch_size=train_batch_size, 
-                                                   sampler=torch.utils.data.SubsetRandomSampler(train_ids),
-                                                   collate_fn=train_dataset.collate_fn)
-        
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=train_batch_size,
+            sampler=torch.utils.data.SubsetRandomSampler(train_ids),
+            collate_fn=train_dataset.collate_fn,
+        )
+
         if val_fraction > 0:
             val_batch_size = min(batch_size, len(val_ids))
-            val_loader = torch.utils.data.DataLoader(train_dataset, 
-                                                    batch_size=val_batch_size,
-                                                    sampler=torch.utils.data.SubsetRandomSampler(val_ids),
-                                                    collate_fn=train_dataset.collate_fn)
-        else: val_loader = None
+            val_loader = torch.utils.data.DataLoader(
+                train_dataset,
+                batch_size=val_batch_size,
+                sampler=torch.utils.data.SubsetRandomSampler(val_ids),
+                collate_fn=train_dataset.collate_fn,
+            )
+        else:
+            val_loader = None
 
         # Load optimizer and scheduler
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
-        if scheduler_fn is not None: scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
+        if scheduler_fn is not None:
+            scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
 
         # Training loop
         for epoch in range(num_epochs):
@@ -110,14 +113,15 @@ class BaseNNModel(BaseModel, nn.Module):
                 # Set gradients to zero
                 optimizer.zero_grad()
 
-                for key in batch: 
+                for key in batch:
                     if isinstance(batch[key], torch.Tensor):
                         batch[key] = batch[key].to(device)
 
                 # Forward pass
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                 predictions = self(features)
-                if predictions.dim() > 1: predictions = predictions.squeeze(-1)
+                if predictions.dim() > 1:
+                    predictions = predictions.squeeze(-1)
                 target = batch[KEY_TARGET]
                 loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -130,22 +134,24 @@ class BaseNNModel(BaseModel, nn.Module):
                     f"Epoch {epoch+1}/{num_epochs} | Loss: {loss.item():.4f}"
                 )
 
-
-            if val_loader is not None and (epoch+1) % val_every_n_epochs == 0:
+            if val_loader is not None and (epoch + 1) % val_every_n_epochs == 0:
                 self.eval()
 
                 # Validation loop
                 with torch.no_grad():
                     val_losses = []
-                    tqdm_val = tqdm(val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}")
+                    tqdm_val = tqdm(
+                        val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}"
+                    )
                     for batch in tqdm_val:
-                        for key in batch: 
+                        for key in batch:
                             if isinstance(batch[key], torch.Tensor):
                                 batch[key] = batch[key].to(device)
 
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                         predictions = self(features)
-                        if predictions.dim() > 1: predictions = predictions.squeeze(-1)
+                        if predictions.dim() > 1:
+                            predictions = predictions.squeeze(-1)
                         target = batch[KEY_TARGET]
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
@@ -154,8 +160,9 @@ class BaseNNModel(BaseModel, nn.Module):
                         tqdm_val.set_description(
                             f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {loss.item():.4f}"
                         )
-                    
-            if scheduler_fn is not None: scheduler.step()
+
+            if scheduler_fn is not None:
+                scheduler.step()
         return self, {}
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
@@ -165,12 +172,14 @@ class BaseNNModel(BaseModel, nn.Module):
           X: a list of data items, each of which is a dict
           device: str, the device to use, default is "cuda" if available else "cpu"
           batch_size: int, the batch size, default is self.batch_size stored during fit method
-          
+
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        if device is None: device = "cuda" if torch.cuda.is_available() else "cpu"
-        if batch_size is None: batch_size = self.batch_size
+        if device is None:
+            device = "cuda" if torch.cuda.is_available() else "cpu"
+        if batch_size is None:
+            batch_size = self.batch_size
 
         self.to(device)
         self.eval()
@@ -180,15 +189,21 @@ class BaseNNModel(BaseModel, nn.Module):
             for i in range(0, len(X), batch_size):
                 batch_end = min(i + batch_size, len(X))
                 batch = X[i:batch_end]
-                batch = TorchDataset.collate_fn([TorchDataset._cast_to_tensor(sample) for sample in batch])
-                batch = {key: batch[key].to(device) for key in batch.keys() if isinstance(batch[key], torch.Tensor)}
+                batch = TorchDataset.collate_fn(
+                    [TorchDataset._cast_to_tensor(sample) for sample in batch]
+                )
+                batch = {
+                    key: batch[key].to(device)
+                    for key in batch.keys()
+                    if isinstance(batch[key], torch.Tensor)
+                }
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                 y_pred = self(features)
-                if y_pred.dim() > 1: y_pred = y_pred.squeeze(-1)
+                if y_pred.dim() > 1:
+                    y_pred = y_pred.squeeze(-1)
                 y_pred = y_pred.cpu().numpy()
-                predictions[i:i + len(y_pred)] = y_pred
+                predictions[i : i + len(y_pred)] = y_pred
             return predictions, {}
-        
 
     def save(self, model_name):
         """Save model using torch.save.
@@ -201,7 +216,7 @@ class BaseNNModel(BaseModel, nn.Module):
     @classmethod
     def load(cls, model_name):
         """Load model using torch.load.
-        
+
         Args:
             model_name: Filename that was used to save the model.
 
@@ -209,25 +224,45 @@ class BaseNNModel(BaseModel, nn.Module):
             The loaded model.
         """
         return torch.load(model_name)
-    
+
 
 class ExampleLSTM(BaseNNModel):
-    def __init__(self, n_ts_features, n_static_features, hidden_size, num_layers, output_size=1, *args, **kwargs):
+    def __init__(
+        self,
+        n_ts_features,
+        n_static_features,
+        hidden_size,
+        num_layers,
+        output_size=1,
+        *args,
+        **kwargs,
+    ):
         super().__init__(*args, **kwargs)
         self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
 
     def forward(self, x):
-        max_n_dim = max([len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)])
-        x_ts = torch.cat([v.unsqueeze(2) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim], dim=2)
-        x_static = torch.cat([v.unsqueeze(1) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim], dim=1)
+        max_n_dim = max(
+            [len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)]
+        )
+        x_ts = torch.cat(
+            [
+                v.unsqueeze(2)
+                for k, v in x.items()
+                if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim
+            ],
+            dim=2,
+        )
+        x_static = torch.cat(
+            [
+                v.unsqueeze(1)
+                for k, v in x.items()
+                if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim
+            ],
+            dim=1,
+        )
 
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         x = self._fc(x)
         return x
-
-
-        
-
-

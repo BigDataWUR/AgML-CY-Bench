@@ -116,6 +116,9 @@ class Dataset:
         """
         return self._df_y[KEY_TARGET].values
 
+    def indices(self) -> list:
+        return self._df_y.index.values
+
     def __getitem__(self, index) -> dict:
         """
         Get a single data point in the dataset
