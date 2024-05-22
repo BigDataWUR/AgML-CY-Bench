@@ -25,16 +25,14 @@ def dekad_from_date(date_str):
     return dekad
 
 def add_period(df, time_step):
+    # NOTE expects data column in string format
     # add a period column based on time step
-    df = df.astype({"DATE" : str })
-    df["YEAR"] = df["DATE"].str[:4]
-
-    if (time_step == "MONTH"):
-        df["PERIOD"] = df["DATE"].str[4:6]
-    elif(time_step == "FORTNIGHT"):
-        df["PERIOD"] = df.apply(lambda r: fortnight_from_date(r["DATE"]), axis=1)
-    elif (time_step == "DEKAD"):
-        df["PERIOD"] = df.apply(lambda r: dekad_from_date(r["DATE"]), axis=1)
+    if (time_step == "month"):
+        df["period"] = df["date"].str[4:6]
+    elif(time_step == "fortnight"):
+        df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
+    elif (time_step == "dekad"):
+        df["period"] = df.apply(lambda r: dekad_from_date(r["date"]), axis=1)
 
     return df
 
@@ -48,7 +46,7 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
     ft_df = ft_df.rename(columns=ft_cols)
 
     # pivot to add a feature column for each period
-    ft_df = ft_df.pivot_table(index=index_cols, columns="PERIOD",
+    ft_df = ft_df.pivot_table(index=index_cols, columns=period_col,
                               values=ft_cols.values()).fillna(0).reset_index()
 
     # combine names of two column levels
@@ -75,7 +73,7 @@ def count_threshold(df, index_cols, period_col,
         ft_df = ft_df.rename(columns={"FEATURE" : ft_name})
 
     # pivot to add a feature column for each period
-    ft_df = ft_df.pivot_table(index=index_cols, columns="PERIOD",
+    ft_df = ft_df.pivot_table(index=index_cols, columns=period_col,
                               values=ft_name).fillna(0).reset_index()
 
     # rename period cols
@@ -85,25 +83,45 @@ def count_threshold(df, index_cols, period_col,
 
     return ft_df
 
+from datasets.dataset import Dataset
+from util.data import data_to_pandas
+from config import KEY_DATES
+
+def unpack_time_series(df, indicators):
+    # for a data source, dates should match across all indicators
+    df["date"] = df.apply(lambda r: r[KEY_DATES][indicators[0]], axis=1)
+
+    # explode time series columns and dates
+    df = df.explode(indicators + ["date"]).drop(columns=[KEY_DATES])
+    df = df.astype({"date" : str})
+    # pandas tends to format date as "YYYY-mm-dd", remove the hyphens
+    df["date"] = df["date"].str.replace("-", "")
+
+    return df
+
 def test_feature_design():
-    max_feature_cols = ["FAPAR"] # ["ndvi", "fapar"]
-    avg_feature_cols = ["TMIN", "TMAX"] #, "tmax", "tavg", "prec", "rad"]
+    max_feature_cols = ["fapar"] # ["ndvi", "fapar"]
+    avg_feature_cols = ["tmin", "tmax"] #, "tmax", "tavg", "prec", "rad"]
     count_thresh_cols = {
-        "TMIN" : ["<", "0"], # degrees
-        "TMAX" : [">", "35"], # degrees
-        "PREC_L" : ["<", "50"], # mm
-        "PREC_H" : [">", "100"], # mm (per day)
+        "tmin" : ["<", "0"], # degrees
+        "tmax" : [">", "35"], # degrees
+        "prec_l" : ["<", "50"], # mm
+        "prec_h" : [">", "100"], # mm (per day)
     }
-    # count_sccessive_thresh_cols = [] # ["tmin", "tmax", "prec"]
 
-    meteo_path = os.path.join("data", "METEO_DAILY_NUTS2_NL.csv")
-    rs_path = os.path.join("data", "REMOTE_SENSING_NUTS2_NL.csv")
-    meteo_df = pd.read_csv(meteo_path, header=0)
-    rs_df = pd.read_csv(rs_path, header=0)
+    index_cols = ["loc_id", "year"]
+    test_nl_data = Dataset.load("test_softwheat_nl")
+    data_df = data_to_pandas(test_nl_data)
+    rs_indicators = ["fapar"]
+    meteo_indicators = ["tmin", "tmax", "tavg", "prec"]
+    rs_df = data_df[index_cols + ["dates"] + rs_indicators].copy()
+    meteo_df = data_df[index_cols + ["dates"] + meteo_indicators].copy()
+    rs_df = unpack_time_series(rs_df, rs_indicators)
+    meteo_df = unpack_time_series(meteo_df, meteo_indicators)
 
-    time_step = "MONTH"
-    index_cols = ["IDREGION", "YEAR"]
-    group_cols = index_cols + ["PERIOD"]
+    time_step = "month"
+
+    group_cols = index_cols + ["period"]
 
     rs_df = add_period(rs_df, time_step)
     meteo_df = add_period(meteo_df, time_step)
@@ -119,9 +137,9 @@ def test_feature_design():
 
     max_ft_cols = { ind : "max" + ind for ind in max_feature_cols }
     avg_ft_cols = { ind : "mean" + ind for ind in avg_feature_cols }
-    rs_fts = aggregate_by_period(rs_df, index_cols, "PERIOD",
+    rs_fts = aggregate_by_period(rs_df, index_cols, "period",
                                 max_aggrs, max_ft_cols)
-    meteo_fts = aggregate_by_period(meteo_df, index_cols, "PERIOD",
+    meteo_fts = aggregate_by_period(meteo_df, index_cols, "period",
                                     avg_aggrs, avg_ft_cols)
 
     print(rs_fts.head(5))
@@ -135,7 +153,7 @@ def test_feature_design():
             ind = ind.split("_")[0]
 
         ft_name = ind + "".join(thresh)
-        ind_fts = count_threshold(meteo_df, index_cols, "PERIOD",
+        ind_fts = count_threshold(meteo_df, index_cols, "period",
                                 ind, threshold_exceed, threshold, ft_name)
         if (not ind_fts.empty):
             count_fts = count_fts.merge(ind_fts, on=index_cols, how="outer")
