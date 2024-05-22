@@ -40,6 +40,7 @@ class TorchDataset(torch.utils.data.Dataset):
             KEY_LOC: sample[KEY_LOC],
             KEY_YEAR: sample[KEY_YEAR],
             KEY_TARGET: torch.tensor(sample[KEY_TARGET], dtype=torch.float32),
+            KEY_DATES: sample[KEY_DATES],
             **{
                 key: torch.tensor(sample[key], dtype=torch.float32)
                 for key in sample.keys()
