@@ -75,7 +75,7 @@ class AverageYieldModel(BaseModel):
 
             predictions[i] = y_pred
 
-        return predictions, {}
+        return predictions.flatten(), {}
 
     def save(self, model_name):
         """Save model, e.g. using pickle.
