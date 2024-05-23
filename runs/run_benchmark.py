@@ -118,7 +118,7 @@ if __name__ == '__main__':
         'optimize_hyperparameters': True,
         'param_space': {
             'optim_kwargs': {
-                "lr": [0.01, 0.001, 0.0001],
+                "lr": [0.01, 0.001],
                 'weight_decay': [0.0001],
             },
         },
@@ -130,7 +130,7 @@ if __name__ == '__main__':
 
 
     result = run_benchmark(
-        run_name='test_lstm_2_3_layers',
+        run_name='test_lstm_2_layers',
         model_name=model_name,
         model_constructor=model_constructor,
         model_kwargs=model_kwargs,
