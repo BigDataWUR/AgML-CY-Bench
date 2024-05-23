@@ -15,8 +15,9 @@ from config import SOIL_INDICATORS, WEATHER_INDICATORS, RS_FAPAR, RS_NDVI
 
 
 class SklearnModel(BaseModel):
-    def __init__(self, sklearn_est, scaler=None):
-        self._feature_cols = None
+    def __init__(self, sklearn_est, feature_cols=None, scaler=None):
+        self._feature_cols = feature_cols
+        self._predesigned_features = False
 
         if scaler is None:
             scaler = StandardScaler()
@@ -35,20 +36,22 @@ class SklearnModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        data_df = data_to_pandas(dataset)
-        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].copy()
-        fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
-        fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
-        weather_df = data_df[
-            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + WEATHER_INDICATORS
-        ].copy()
-        weather_df = unpack_time_series(weather_df, WEATHER_INDICATORS)
-        train_features = design_features(weather_df, soil_df, fapar_df)
-        self._feature_cols = train_features.columns[len([KEY_LOC, KEY_YEAR]) :]
-        train_labels = data_df[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
-        train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
-
+        train_data = data_to_pandas(dataset)
         train_years = dataset.years
+        # NOTE: We want to support dataset that already contains pre-designed features
+        if ("predesigned_features" in fit_params) and fit_params[
+            "predesigned_features"
+        ]:
+            self._predesigned_features = True
+        else:
+            train_features = self._design_features(train_data)
+            self._feature_cols = [
+                ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
+            ]
+            train_labels = train_data[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+            train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
+            train_years = sorted(train_data[KEY_YEAR].unique())
+
         X = train_data[self._feature_cols].values
         y = train_data[KEY_TARGET].values
         if ("optimize_hyperparameters" in fit_params) and (
@@ -110,33 +113,50 @@ class SklearnModel(BaseModel):
 
         return grid_search.best_estimator_
 
-    def predict(self, test_dataset):
-        """Run fitted model on batched data items.
+    def _design_features(self, data_df):
+        """Design features using data samples.
 
         Args:
-          test_dataset: Dataset
+          data_df: A pandas dataframe of data samples from Dataset
 
         Returns:
-          A tuple containing a np.ndarray and a dict with additional information.
+          A pandas dataframe with KEY_LOC, KEY_YEAR and features.
         """
-        data_df = data_to_pandas(test_dataset)
-        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].copy()
+        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].drop_duplicates()
         fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
         fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
         weather_df = data_df[
             [KEY_LOC, KEY_YEAR] + [KEY_DATES] + WEATHER_INDICATORS
         ].copy()
         weather_df = unpack_time_series(weather_df, WEATHER_INDICATORS)
-        test_features = design_features(weather_df, soil_df, fapar_df)
-        test_labels = data_df[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
-        # features can be missing in test data
-        missing_features = [
-            ft for ft in self._feature_cols if ft not in test_features.columns
-        ]
-        for ft in missing_features:
-            test_features[ft] = 0.0
+        features = design_features(weather_df, soil_df, fapar_df)
 
-        test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
+        return features
+
+    def predict(self, dataset):
+        """Run fitted model on batched data items.
+
+        Args:
+          dataset: Dataset
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
+        test_data = data_to_pandas(dataset)
+        if not self._predesigned_features:
+            test_features = self._design_features(test_data)
+            test_labels = test_data[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+
+            # match features with training data
+            missing_features = [
+                ft for ft in self._feature_cols if ft not in test_features.columns
+            ]
+            for ft in missing_features:
+                test_features[ft] = 0.0
+
+            sel_cols = [KEY_LOC, KEY_YEAR] + self._feature_cols
+            test_features = test_features[sel_cols]
+            test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
 
         X_test = test_data[self._feature_cols].values
 

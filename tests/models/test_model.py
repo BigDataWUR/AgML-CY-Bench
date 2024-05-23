@@ -31,7 +31,7 @@ def test_average_yield_model():
     # test prediction for an existing item
     sel_loc = "US-01-001"
     assert sel_loc in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_features=[])
+    dataset = Dataset(data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     sel_year = 2018
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -135,7 +135,7 @@ def test_trend_model():
 def test_sklearn_model():
     dataset_sw_nl = Dataset.load("test_softwheat_nl")
     all_years = list(range(2001, 2019))
-    test_years = [2018]
+    test_years = [2017, 2018]
     train_years = [yr for yr in all_years if yr not in test_years]
     train_dataset, test_dataset = dataset_sw_nl.split_on_years(
         (train_years, test_years)
@@ -147,11 +147,11 @@ def test_sklearn_model():
     model.fit(train_dataset)
 
     test_preds, _ = model.predict(test_dataset)
-    print(test_preds.shape)
 
-    # TODO: There is a bug that triggers this assert to fail when test_years has multiple years.
     assert test_preds.shape[0] == len(test_dataset)
 
+    # TODO: Uncomment after evaluate_model calls predict() with dataset.
+    # TODO: Need alternative to hardcoding expected metrics.
     # evaluation_result = evaluate_model(model, test_dataset)
     # expected_values = {
     #     "normalized_rmse": 14.49,

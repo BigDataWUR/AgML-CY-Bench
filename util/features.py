@@ -174,9 +174,9 @@ def design_features(
             weather_df, index_cols, "period", ind, threshold_exceed, threshold, ft_name
         )
         if not ind_fts.empty:
-            weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="outer")
+            weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
             weather_fts = weather_fts.fillna(0.0)
 
-    all_fts = rs_fts.merge(weather_fts, on=index_cols)
-    all_fts = all_fts.merge(soil_features, on=[KEY_LOC])
+    all_fts = soil_features.merge(rs_fts, on=[KEY_LOC])
+    all_fts = all_fts.merge(weather_fts, on=index_cols)
     return all_fts
