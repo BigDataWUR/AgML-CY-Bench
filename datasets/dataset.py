@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+import config
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
 
 class Dataset:
@@ -82,6 +83,15 @@ class Dataset:
             from datasets.configured import load_dfs_test_maize_fr
 
             df_y, dfs_x = load_dfs_test_maize_fr()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        if name == "test_softwheat_nl":
+            from datasets.configured import load_dfs_test_softwheat_nl
+
+            df_y, dfs_x = load_dfs_test_softwheat_nl()
             return Dataset(
                 df_y,
                 dfs_x,
@@ -175,7 +185,9 @@ class Dataset:
         :param year: year index value
         :return: a dict containing all feature data corresponding to the specified index
         """
-        data = dict()
+        data = {
+            config.KEY_DATES: dict(),
+        }
         # For all feature dataframes
         for df in self._dfs_x:
             # Check in which category the dataframe fits:
@@ -224,9 +236,15 @@ class Dataset:
                 # Obtain the values contained in the filtered dataframe
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
 
+                dates = {key: df_loc.index.values for key in df_loc.columns}
+
                 data = {
                     **data_loc,
                     **data,
+                }
+                data[config.KEY_DATES] = {
+                    **dates,
+                    **data[config.KEY_DATES],
                 }
 
         return data
@@ -263,6 +281,7 @@ class Dataset:
             assert KEY_LOC not in column_names
             assert KEY_YEAR not in column_names
             assert KEY_TARGET not in column_names
+            assert KEY_DATES not in column_names
 
         # Make sure there are no overlaps in feature names
         if len(dfs_x) > 1:
