@@ -55,7 +55,7 @@ def test_average_yield_model():
     # test prediction for a non-existent item
     sel_loc = "US-01-003"
     assert sel_loc not in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_features=[])
+    dataset = Dataset(data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
