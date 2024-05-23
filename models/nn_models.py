@@ -12,7 +12,7 @@ from datasets.dataset import Dataset
 from models.model import BaseModel
 from util.data import flatten_nested_dict, unflatten_nested_dict
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
 
 class BaseNNModel(BaseModel, nn.Module):
@@ -181,16 +181,7 @@ class BaseNNModel(BaseModel, nn.Module):
         self.feature_sds = {}
         all_train_samples = TorchDataset.collate_fn([train_dataset[i] for i in range(len(train_dataset))])
         for key, features in all_train_samples.items():
-            if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR]:
-                self.feature_means[key] = features.mean()
-                self.feature_sds[key] = features.std()
-
-        # Store training set feature means and sds for normalization
-        self.feature_means = {}
-        self.feature_sds = {}
-        all_train_samples = TorchDataset.collate_fn([train_dataset[i] for i in range(len(train_dataset))])
-        for key, features in all_train_samples.items():
-            if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR]:
+            if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR, KEY_DATES]:
                 self.feature_means[key] = features.mean()
                 self.feature_sds[key] = features.std()
 
@@ -212,7 +203,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 # Normalize features
                 for key in features:
-                    if key not in [KEY_LOC, KEY_YEAR]:
+                    if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         features[key] = (features[key] - self.feature_means[key]) / self.feature_sds[key]
 
 
@@ -249,7 +240,7 @@ class BaseNNModel(BaseModel, nn.Module):
                         features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                         # Normalize features
                         for key in features:
-                            if key not in [KEY_LOC, KEY_YEAR]:
+                            if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                                 features[key] = (features[key] - self.feature_means[key]) / self.feature_sds[key]
                         predictions = self(features)
                         if predictions.dim() > 1:
@@ -302,7 +293,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 }
                 features = {k: v for k, v in batch.items() if k != KEY_TARGET}
                 for key in features:
-                    if key not in [KEY_LOC, KEY_YEAR]:
+                    if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         features[key] = (features[key] - self.feature_means[key]) / self.feature_sds[key]
                 y_pred = self(features)
                 if y_pred.dim() > 1:
