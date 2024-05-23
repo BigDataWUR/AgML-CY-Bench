@@ -176,7 +176,7 @@ def test_sklearn_model():
         ridge,
         feature_cols=feature_cols,
     )
-    model.fit(train_dataset, **{ "predesigned_features" : True })
+    model.fit(train_dataset, **{"predesigned_features": True})
 
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
@@ -200,7 +200,7 @@ def test_sklearn_model():
     fit_params = {
         "optimize_hyperparameters": True,
         "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
-        "predesigned_features" : True,
+        "predesigned_features": True,
     }
     model.fit(train_dataset, **fit_params)
     test_preds, _ = model.predict(test_dataset)

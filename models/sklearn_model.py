@@ -122,6 +122,7 @@ class SklearnModel(BaseModel):
         Returns:
           A pandas dataframe with KEY_LOC, KEY_YEAR and features.
         """
+        # static data is repeated for every year. Drop duplicates.
         soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].drop_duplicates()
         fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
         fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
@@ -146,16 +147,6 @@ class SklearnModel(BaseModel):
         if not self._predesigned_features:
             test_features = self._design_features(test_data)
             test_labels = test_data[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
-
-            # match features with training data
-            missing_features = [
-                ft for ft in self._feature_cols if ft not in test_features.columns
-            ]
-            for ft in missing_features:
-                test_features[ft] = 0.0
-
-            sel_cols = [KEY_LOC, KEY_YEAR] + self._feature_cols
-            test_features = test_features[sel_cols]
             test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
 
         X_test = test_data[self._feature_cols].values

@@ -72,6 +72,7 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 
 def count_threshold(
     df,
+    index_df,
     index_cols,
     period_col,
     indicator,
@@ -85,21 +86,32 @@ def count_threshold(
     else:
         filter_condition = df[indicator] < threshold
 
-    ft_df = df[filter_condition].groupby(groupby_cols).agg(FEATURE=(indicator, "count"))
-    if ft_name is not None:
-        ft_df = ft_df.rename(columns={"FEATURE": ft_name})
+    if df[filter_condition].empty:
+        ft_df = index_df.copy()
+    else:
+        ft_df = (
+            df[filter_condition]
+            .groupby(groupby_cols)
+            .agg(FEATURE=(indicator, "count"))
+            .reset_index()
+        )
+        if ft_name is not None:
+            ft_df = ft_df.rename(columns={"FEATURE": ft_name})
 
-    # pivot to add a feature column for each period
-    ft_df = (
-        ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_name)
-        .fillna(0)
-        .reset_index()
-    )
+        # pivot to add a feature column for each period
+        ft_df = (
+            ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_name)
+            .fillna(0)
+            .reset_index()
+        )
 
-    # rename period cols
-    period_cols = ft_df.columns[len(index_cols) :]
+    # fill in missing features with zeros and rename period cols
+    period_cols = df["period"].unique()
     rename_cols = {p: ft_name + "p" + p for p in period_cols}
     ft_df = ft_df.rename(columns=rename_cols)
+    missing_features = [ft for ft in rename_cols.values() if ft not in ft_df.columns]
+    for ft in missing_features:
+        ft_df[ft] = 0.0
 
     return ft_df
 
@@ -162,7 +174,10 @@ def design_features(
         weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
     )
 
-    # count of time steps
+    # count time steps matching threshold conditions
+    # NOTE: Passing index_df to count_threshold()
+    #       to skip calling drop_duplicates() on weather_df multiple times.
+    index_df = weather_df[index_cols].drop_duplicates()
     for ind, thresh in count_thresh_cols.items():
         threshold_exceed = thresh[0]
         threshold = float(thresh[1])
@@ -171,11 +186,18 @@ def design_features(
 
         ft_name = ind + "".join(thresh)
         ind_fts = count_threshold(
-            weather_df, index_cols, "period", ind, threshold_exceed, threshold, ft_name
+            weather_df,
+            index_df,
+            index_cols,
+            "period",
+            ind,
+            threshold_exceed,
+            threshold,
+            ft_name,
         )
-        if not ind_fts.empty:
-            weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
-            weather_fts = weather_fts.fillna(0.0)
+
+        weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
+        weather_fts = weather_fts.fillna(0.0)
 
     all_fts = soil_features.merge(rs_fts, on=[KEY_LOC])
     all_fts = all_fts.merge(weather_fts, on=index_cols)
