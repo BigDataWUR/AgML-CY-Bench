@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
@@ -117,6 +118,15 @@ class Dataset:
         """
         return set.union(*[set(df.columns) for df in self._dfs_x])
 
+    def targets(self) -> np.array:
+        """
+        Obtain an numpy array of targets or labels
+        """
+        return self._df_y[KEY_TARGET].values
+
+    def indices(self) -> list:
+        return self._df_y.index.values
+
     def __getitem__(self, index) -> dict:
         """
         Get a single data point in the dataset
@@ -176,7 +186,6 @@ class Dataset:
         data = {
             KEY_DATES: dict(),
         }
-
         # For all feature dataframes
         for df in self._dfs_x:
             # Check in which category the dataframe fits:
@@ -224,6 +233,8 @@ class Dataset:
                 # Data in temporal dimension is assumed to be sorted
                 # Obtain the values contained in the filtered dataframe
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
+                dates = {key: df_loc.index.values for key in df_loc.columns}
+
                 dates = {key: df_loc.index.values for key in df_loc.columns}
 
                 data = {

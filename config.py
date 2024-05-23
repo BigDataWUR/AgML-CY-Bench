@@ -11,6 +11,10 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where benchmark results
+PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
+os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
+
 # Key used for the location index
 KEY_LOC = "loc_id"
 # Key used for the year index
