@@ -50,7 +50,7 @@ def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwarg
         'optimize_hyperparameters': True,
         'param_space': {
             'optim_kwargs': {
-                "lr": [0.01, 0.001, 0.0001],
+                "lr": [0.01, 0.001],
                 'weight_decay': [0.0001],
             },
         },
