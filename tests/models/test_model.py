@@ -133,6 +133,7 @@ def test_trend_model():
 
 
 def test_sklearn_model():
+    # Test with raw data
     dataset_sw_nl = Dataset.load("test_softwheat_nl")
     all_years = list(range(2001, 2019))
     test_years = [2017, 2018]
@@ -147,7 +148,34 @@ def test_sklearn_model():
     model.fit(train_dataset)
 
     test_preds, _ = model.predict(test_dataset)
+    assert test_preds.shape[0] == len(test_dataset)
 
+    # Test with predesigned features
+    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
+    # Training dataset
+    train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
+    train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
+    train_yields = train_df[[KEY_TARGET]].copy()
+    feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
+    train_features = train_df[feature_cols].copy()
+    train_dataset = Dataset(train_yields, [train_features])
+
+    # Test dataset
+    test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
+    test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
+    test_yields = test_df[[KEY_TARGET]].copy()
+    test_features = test_df[feature_cols].copy()
+    test_dataset = Dataset(test_yields, [test_features])
+
+    # Model
+    ridge = Ridge(alpha=0.5)
+    model = SklearnModel(
+        ridge,
+        feature_cols=feature_cols,
+    )
+    model.fit(train_dataset, **{ "predesigned_features" : True })
+
+    test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
 
     # TODO: Uncomment after evaluate_model calls predict() with dataset.
@@ -169,6 +197,7 @@ def test_sklearn_model():
     fit_params = {
         "optimize_hyperparameters": True,
         "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+        "predesigned_features" : True,
     }
     model.fit(train_dataset, **fit_params)
     test_preds, _ = model.predict(test_dataset)
