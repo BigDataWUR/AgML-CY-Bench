@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 
 import pandas as pd
+import torch
 
 import config
 from config import PATH_RESULTS_DIR
@@ -16,7 +17,7 @@ from models.sklearn_model import SklearnModel
 from models.nn_models import ExampleLSTM
 
 
-def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwargs):
+def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwargs, model_fit_kwargs) -> dict:
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
     os.makedirs(path_results, exist_ok=True)
 
@@ -28,12 +29,35 @@ def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwarg
     models_kwargs = defaultdict(dict)
     models_fit_kwargs = defaultdict(dict)
     models_kwargs[model_name] = model_kwargs
+    models_fit_kwargs[model_name] = model_fit_kwargs
+
     models_kwargs['LSTM'] = {
         'n_ts_features': 9,
         'n_static_features': 1,
         'hidden_size': 32,
-        'num_layers': 3,
+        'num_layers': 1,
     }
+
+    models_fit_kwargs['LSTM'] = {
+        'batch_size': 32,
+        'num_epochs': 5,
+        'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+        'optim_fn': torch.optim.Adam,
+        'scheduler_fn': torch.optim.lr_scheduler.StepLR,
+        'scheduler_kwargs': {"step_size": 2, "gamma": 0.8},
+        'val_fraction': 0.1,
+
+        'optimize_hyperparameters': True,
+        'param_space': {
+            'optim_kwargs': {
+                "lr": [0.01, 0.001, 0.0001],
+                'weight_decay': [0.0001],
+            },
+        },
+        'do_kfold': False,
+        'kfolds': 5,
+    }
+
 
     dataset = Dataset.load("test_maize_us")
 
@@ -71,11 +95,47 @@ def run_benchmark(run_name: str, model_name: str, model_constructor, model_kwarg
 
 if __name__ == '__main__':
 
-    result = run_benchmark(run_name='test_run',
-                           model_name="AverageYieldModel",
-                           model_constructor=AverageYieldModel,
-                           model_kwargs={},
-                           )
+    model_name = 'LSTM_2_layers'
+    model_constructor = ExampleLSTM
+
+    model_kwargs = {
+        'n_ts_features': 9,
+        'n_static_features': 1,
+        'hidden_size': 32,
+        'num_layers': 2,
+    }
+
+
+    model_fit_kwargs = {
+        'batch_size': 32,
+        'num_epochs': 5,
+        'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+        'optim_fn': torch.optim.Adam,
+        'scheduler_fn': torch.optim.lr_scheduler.StepLR,
+        'scheduler_kwargs': {"step_size": 2, "gamma": 0.8},
+        'val_fraction': 0.1,
+
+        'optimize_hyperparameters': True,
+        'param_space': {
+            'optim_kwargs': {
+                "lr": [0.01, 0.001, 0.0001],
+                'weight_decay': [0.0001],
+            },
+        },
+        'do_kfold': False,
+        'kfolds': 5,
+    }
+
+
+
+
+    result = run_benchmark(
+        run_name='test_lstm_2_3_layers',
+        model_name=model_name,
+        model_constructor=model_constructor,
+        model_kwargs=model_kwargs,
+        model_fit_kwargs=model_fit_kwargs,
+        )
 
     print(result)
 

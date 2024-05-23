@@ -16,13 +16,11 @@ from config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class BaseNNModel(BaseModel, nn.Module):
-    def __init__(   self, 
-                    *args, **kwargs):
+    def __init__(self, **kwargs):
         super(BaseModel, self).__init__()
         super(nn.Module, self).__init__()
 
-        self._init_args = (args, kwargs)
-
+        self._init_args = kwargs
 
     def fit(self, dataset: Dataset,
             optimize_hyperparameters: bool = False,
@@ -38,49 +36,58 @@ class BaseNNModel(BaseModel, nn.Module):
             best_setting = None
 
             settings = self._generate_settings(param_space, kwargs)
-            for setting in settings:
+            for i, setting in enumerate(settings):
                 val_loss = None
                 if do_kfold:
                     # Split data into k folds
                     all_years = dataset.years
-
                     list_all_years = list(all_years)
-                    random.shuffle(list_all_years) # Is this seeded?
+                    random.shuffle(list_all_years)
                     cv_folds = [list_all_years[i::kfolds] for i in range(kfolds)]
 
+                    # For each fold, create new model and datasets, train and record val loss. Finally, average val loss.
                     val_loss_fold = []
-                    for val_fold in cv_folds:
-                        # Create train and val datasets for inner fold
+                    for j, val_fold in enumerate(cv_folds):
+                        print(f"Running inner fold {j+1}/{kfolds} for hyperparameter setting {i+1}/{len(settings)}")
                         val_years = val_fold
                         train_years = [y for y in all_years if y not in val_years]
                         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
-                        new_model = self.__class__(*self._init_args[0], **self._init_args[1])
-                        _, output = new_model.train(train_dataset=train_dataset, val_dataset=val_dataset, *args, **setting)
+                        new_model = self.__class__(**self._init_args)
+                        _, output = new_model.train_model(train_dataset=train_dataset, val_dataset=val_dataset, *args, **setting)
                         val_loss_fold.append(output["val_loss"])
                     val_loss = np.mean(val_loss_fold)
 
                 else:
-                    new_model = self.__class__(*self._init_args[0], **self._init_args[1])
-                    _, output = new_model.fit(*args, **setting)
+                    # Train new model with single randomly sampled validation set
+                    print(f"Running setting {i+1}/{len(settings)}")
+                    new_model = self.__class__(**self._init_args)
+                    _, output = new_model.fit(dataset=dataset, *args, **setting)
                     if "val_loss" not in output:
                         raise ValueError("No validation loss recorder, set val_fraction > 0 when tuning without kfold cross validation.")
                     val_loss = output["val_loss"]
                 
                 assert val_loss is not None
 
+                print(f"For setting {i+1}/{len(settings)}, average final validation loss: {val_loss}")
+                print(f"Settings: {setting}")
+
                 # Store best model setting
                 if val_loss < best_loss:
                     best_loss = val_loss
                     best_setting = setting
             
-            return self.fit(*args, **best_setting)
+            # Finally, train model with best setting
+            final_model, final_output = self.fit(dataset=dataset, *args, **best_setting)
+            print(f"Final validation loss of outer fold: {final_output['val_loss']}")
+            print(f"Final best setting of outer fold: {best_setting}")
+            return final_model, final_output
         else:
            
-            model, output = self.train(*args, **kwargs)
+            model, output = self.train_model(dataset, *args, **kwargs)
             return model, output
         
 
-    def train(self, 
+    def train_model(self, 
             train_dataset: Dataset,
             val_dataset: Dataset = None,
             val_fraction: float = 0.1,
@@ -106,6 +113,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
         Args:
             train_dataset: Dataset,
+            val_dataset: Dataset, default is None. If None, val_fraction is used to split train_dataset into train and val.
             val_fraction: float, percentage of data to use for validation, default is 0.1
             val_every_n_epochs: int, validation frequency, default is 1
             num_epochs: int, the number of epochs to train the model, default is 1
@@ -238,13 +246,14 @@ class BaseNNModel(BaseModel, nn.Module):
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
                         val_losses.append(loss.item())
+                        mean_loss = np.mean(val_losses)
 
                         tqdm_val.set_description(
-                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {loss.item():.4f}"
+                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {mean_loss:.4f}"
                         )
                     
             if scheduler_fn is not None: scheduler.step()
-        return self, {"train_loss": np.mean(losses.detach().cpu().numpy()), "val_loss": np.mean(val_losses.detach().cpu().numpy()) if val_loader is not None else None}
+        return self, {"train_loss": np.mean(losses), "val_loss": np.mean(val_losses) if val_loader is not None else None}
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
         """Run fitted model on batched data items.
@@ -327,8 +336,15 @@ class BaseNNModel(BaseModel, nn.Module):
     
 
 class ExampleLSTM(BaseNNModel):
-    def __init__(self, n_ts_features, n_static_features, hidden_size, num_layers, output_size=1, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, n_ts_features, n_static_features, hidden_size, num_layers, output_size=1, **kwargs):
+        # Add all arguments to init_args to enable model reconstruction in fit method
+        kwargs["n_ts_features"] = n_ts_features
+        kwargs["n_static_features"] = n_static_features
+        kwargs["hidden_size"] = hidden_size
+        kwargs["num_layers"] = num_layers
+        kwargs["output_size"] = output_size
+        super().__init__(**kwargs)
+
         self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
 
@@ -336,9 +352,6 @@ class ExampleLSTM(BaseNNModel):
         max_n_dim = max([len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)])
         x_ts = torch.cat([v.unsqueeze(2) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim], dim=2)
         x_static = torch.cat([v.unsqueeze(1) for k, v in x.items() if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim], dim=1)
-
-        print(x_ts.mean(), x_ts.std())
-        print(x_static.mean(), x_static.std())
 
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
