@@ -1,6 +1,8 @@
 library(tidyverse)
 library(sf)
 
+loc = '/datasets/work/af-sandpit/work/Jonathan/AgML/AgML-crop-yield-forecasting/data_preparation/'
+
 # loading data from gov website ; download on 05/03/2024
 df = read.csv("fdp-beta-regional-historical.csv") #file origin https://www.agriculture.gov.au/sites/default/files/documents/fdp-beta-regional-historical.csv
 head(df)
@@ -42,3 +44,16 @@ ggplot(wheat_df)+
   geom_line(aes(x=harvest_year,y=yield))+
   facet_wrap(~adm_id)+
   theme_bw()
+
+# Creating joined shape with statistics
+wheat_df = read.csv(paste0(loc,'crop_statistics_AU/','wheat_Australia.csv'))
+head(wheat_df)
+
+shape = read_sf(paste0(loc,'shapefiles_AU/','ABARES_regions_boundaries.shp'))
+names(shape) = c('ste','adm_id','oid_','name','geometry')
+head(shape)
+
+new_shape = merge(wheat_df, shape, by='adm_id', all.x = T)
+head(new_shape)
+
+write_sf(new_shape, paste0(loc,'shapefiles_AU/','ABARES_regions_with_stats.shp'))

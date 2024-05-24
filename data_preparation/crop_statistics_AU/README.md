@@ -26,7 +26,7 @@ Richetti, Jonathan
 
 **Variables** [unit]: harvested area [ha], Production [t], Yield [t/ha].
 
-**Temporal coverage**: From: 1990 - To: 2022
+**Temporal coverage**: From: 1990 To: 2022
 
 **Temporal resolution**: Yearly
 
@@ -42,8 +42,6 @@ Not available.
 
 ## Provenance 
 Farm survey definitions and methods used to produce these statistics are available on the ABARES website. For further analysis and information about the design of these statistics see Boult and Jackson (2019).
-
-Boult, C & Jackson, T 2019, ‘Disaggregating farm performance statistics by size, 2017–18’, in Agricultural Commodities: March quarter 2019, Australian Bureau of Agricultural and Resource Economics and Sciences, Canberra.
 
 # License 
 All ABARES publications are released with a Creative Commons licence to allow users free use of the content within the publication, subject to the conditions of the licence. The ABARES Creative Commons statement says:
@@ -92,3 +90,5 @@ The views and analysis presented in ABARES publications, including this one, ref
 
 ## References
 ABARES (2024) Australian Bureau of Agricultural and Resource Economics and Sciences Farm Data Portal. Accessed on 2024/03/05. https://www.agriculture.gov.au/abares/data/farm-data-portal#data-download
+
+Boult, C & Jackson, T 2019, ‘Disaggregating farm performance statistics by size, 2017–18’, in Agricultural Commodities: March quarter 2019, Australian Bureau of Agricultural and Resource Economics and Sciences, Canberra.
