@@ -66,16 +66,20 @@ def update_date(harvest_date, diff_with_harvest):
 
 def merge_with_crop_calendar(df, crop_cal_df):
     df = df.merge(crop_cal_df, on=["loc_id"])
-    df["planting_date"] = rs_df.apply(lambda r: doy_to_date(r["planting_doy"], r["year"]),
-                                        axis=1)
-    df["harvest_date"] = rs_df.apply(lambda r: doy_to_date(r["maturity_doy"], r["year"]),
-                                        axis=1)
-    df["date"] = rs_df.apply(lambda r: dekad_to_date(r["dekad"], r["year"]),
-                                axis=1)
+    df["planting_date"] = df.apply(lambda r: doy_to_date(r["planting_doy"], r["year"]),
+                                   axis=1)
+    df["harvest_date"] = df.apply(lambda r: doy_to_date(r["maturity_doy"], r["year"]),
+                                  axis=1)
+    df["date"] = df.apply(lambda r: dekad_to_date(r["dekad"], r["year"]),
+                          axis=1)
 
     return df
 
-def rotate_data_by_crop_calendar(df):
+def rotate_data_by_crop_calendar(df, crop_cal_df):
+    crop_cal_cols = ["loc_id", "planting_doy", "maturity_doy"]
+    crop_cal_df = crop_cal_df.astype({"planting_doy" : int, "maturity_doy" : int})
+    df = merge_with_crop_calendar(df, crop_cal_df[crop_cal_cols])
+
     df["new_year"] = np.where(df["date"] > df["harvest_date"],
                               df["year"] + 1,
                               df["year"])
@@ -88,21 +92,14 @@ def rotate_data_by_crop_calendar(df):
     df["harvest_date"] = pd.to_datetime(df["harvest_date"], format="%Y%m%d")
     df["harvest_diff"] = (df["date"] - df["harvest_date"]).dt.days
     # NOTE pd.to_datetime() creates a Timestamp object
-    df["new_date"] = df.apply(lambda r: update_date(r["harvest_date"].date(),
-                                                    r["harvest_diff"]),
+    df = df.rename(columns={"date" : "original_date"})
+    df["date"] = df.apply(lambda r: update_date(r["harvest_date"].date(),
+                                                r["harvest_diff"]),
                               axis=1)
     return df
 
-rs_df = pd.read_csv("REMOTE_SENSING_COUNTY_US.csv", header=0)
-if ("harvest_date" not in rs_df.columns):
-    crop_cal_df = pd.read_csv("data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
-    sel_cols = ["loc_id", "planting_doy", "maturity_doy"]
-    crop_cal_df = crop_cal_df.astype({"planting_doy" : int, "maturity_doy" : int})
-    rs_df = merge_with_crop_calendar(rs_df, crop_cal_df[sel_cols])
-
-# Uncomment for debugging
-# rs_df = rs_df[rs_df["loc_id"] == "US-19-001"]
-sel_cols = ["loc_id", "year", "dekad", "fapar", "planting_date", "harvest_date", "date"]
-rs_df = rs_df[sel_cols]
-rs_df = rotate_data_by_crop_calendar(rs_df)
-# print(rs_df.head(40))
+rs_df = pd.read_csv("data/data_US/county_data/REMOTE_SENSING_COUNTY_US.csv", header=0)
+crop_cal_df = pd.read_csv("data/data_US/CROP_CALENDAR_COUNTY_US.csv", header=0)
+rs_df = rotate_data_by_crop_calendar(rs_df, crop_cal_df)
+rs_df = rs_df[["loc_id", "original_date", "new_year", "date", "fapar"]]
+print(rs_df.head(40))
