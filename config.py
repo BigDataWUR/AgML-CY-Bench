@@ -11,12 +11,18 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where benchmark results
+PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
+os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
+
 # Key used for the location index
 KEY_LOC = "loc_id"
 # Key used for the year index
 KEY_YEAR = "year"
 # Key used for yield targets
 KEY_TARGET = "yield"
+# Key used for dates matching observations
+KEY_DATES = "dates"
 
 # Logging
 PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
@@ -31,9 +37,7 @@ LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "standard": {
-            "format": '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
-        },
+        "standard": {"format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s"},
     },
     "handlers": {
         "file_handler": {
@@ -43,16 +47,12 @@ LOGGING_CONFIG = {
             "filename": os.path.join(PATH_LOGS_DIR, LOG_FILE),
             "maxBytes": 10485760,
             "backupCount": 20,
-            "encoding": "utf8"
+            "encoding": "utf8",
         }
     },
     "loggers": {
-        "": {
-            "handlers": ["file_handler"],
-            "level": LOG_LEVEL,
-            "propagate": True
-        }
-    } 
+        "": {"handlers": ["file_handler"], "level": LOG_LEVEL, "propagate": True}
+    },
 }
 
 logging.config.dictConfig(LOGGING_CONFIG)
