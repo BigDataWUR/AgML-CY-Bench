@@ -15,11 +15,12 @@ from models.trend_model import TrendModel
 from models.naive_models import AverageYieldModel
 from models.nn_models import BaseNNModel
 
+from runs.run_benchmark import run_benchmark
 from datasets.dataset import Dataset
 from datasets.dataset_torch import TorchDataset
 from models.nn_models import ExampleLSTM
 from evaluation.eval import evaluate_model
-from evaluation.log_experiments import comet_wrapper, log_to_comet_post_hoc
+from evaluation.log_experiments import comet_wrapper, log_to_comet_post_hoc, log_benchmark_to_comet
 
 from config import PATH_DATA_DIR
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
@@ -113,5 +114,29 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
                           end=end)
 
 
+def example_run_benchmark(comet_experiment=None):
+    """
+    Example of logging metrics in Comet anonymously for a benchmark run with an LSTM model
+    """
+    model_init_kwargs = {"n_ts_features": 9,
+                         "n_static_features": 1,
+                         "hidden_size": 8,
+                         "num_layers": 1, }
+    model_fit_kwargs = {'num_epochs': 3}
+
+    model_name = 'ShallowLSTM'
+
+    run_name = 'shallow_1'
+
+    results = run_benchmark(run_name, model_name, ExampleLSTM,
+                            model_init_kwargs=model_init_kwargs,
+                            model_fit_kwargs=model_fit_kwargs)
+
+    log_benchmark_to_comet(results, model_name, run_name,
+                           comet_experiment=comet_experiment,
+                           params=model_init_kwargs | model_fit_kwargs,
+                           end=True)
+
+
 if __name__ == "__main__":
-    example_for_logging_torch_model()
+    example_run_benchmark()
