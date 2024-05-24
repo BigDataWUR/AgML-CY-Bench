@@ -1,19 +1,19 @@
 import pandas as pd
 import numpy as np
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
 
 class Dataset:
     def __init__(
         self,
         data_target: pd.DataFrame = None,
-        data_features: list = None,
+        data_inputs: list = None,
     ):
         """
         Dataset class for regional yield forecasting
 
-        Targets/features are provided using properly formatted pandas dataframes.
+        Targets/inputs are provided using properly formatted pandas dataframes.
 
         :param data_target: pandas.DataFrame that contains yield statistics
                             Dataframe should meet the following requirements:
@@ -21,14 +21,14 @@ class Dataset:
                                   Expected column name is stored in `config.KEY_TARGET`
                                 - The dataframe is indexed by (location id, year) using the correct naming
                                   Expected names are stored in `config.KEY_LOC`, `config.KEY_YEAR`, resp.
-        :param data_features: list of pandas.Dataframe objects each containing features
+        :param data_inputs: list of pandas.Dataframe objects each containing inputs
                             Dataframes should meet the following requirements:
-                                - Features are assumed to be numeric
+                                - inputs are assumed to be numeric
                                 - Columns should be named by their respective feature names
                                 - Dataframes cannot have overlapping column (i.e. feature) names
                                 - Each dataframe can be indexed in three different ways:
-                                    - By location only -- for static location features
-                                    - By location and year -- for yearly occurring features
+                                    - By location only -- for static location inputs
+                                    - By location and year -- for yearly occurring inputs
                                     - By location, year, and some extra level assumed to be temporal (e.g. daily,
                                       dekadal, ...)
                                   The index levels should be named properly, i.e.
@@ -39,14 +39,14 @@ class Dataset:
         # If no data is given, create an empty dataset
         if data_target is None:
             data_target = self._empty_df_target()
-        if data_features is None:
-            data_features = list()
+        if data_inputs is None:
+            data_inputs = list()
 
         # Validate input data
-        assert self._validate_dfs(data_target, data_features)
+        assert self._validate_dfs(data_target, data_inputs)
 
         self._df_y = data_target
-        self._dfs_x = list(data_features)
+        self._dfs_x = list(data_inputs)
 
         # Sort all data for faster lookups
         self._df_y.sort_index(inplace=True)
@@ -59,7 +59,6 @@ class Dataset:
 
     @staticmethod
     def load(name: str) -> "Dataset":
-
         if name == "test_maize":
             from datasets.configured import load_dfs_test_maize
 
@@ -82,6 +81,15 @@ class Dataset:
             from datasets.configured import load_dfs_test_maize_fr
 
             df_y, dfs_x = load_dfs_test_maize_fr()
+            return Dataset(
+                df_y,
+                dfs_x,
+            )
+
+        if name == "test_softwheat_nl":
+            from datasets.configured import load_dfs_test_softwheat_nl
+
+            df_y, dfs_x = load_dfs_test_softwheat_nl()
             return Dataset(
                 df_y,
                 dfs_x,
@@ -175,7 +183,9 @@ class Dataset:
         :param year: year index value
         :return: a dict containing all feature data corresponding to the specified index
         """
-        data = dict()
+        data = {
+            KEY_DATES: dict(),
+        }
         # For all feature dataframes
         for df in self._dfs_x:
             # Check in which category the dataframe fits:
@@ -223,10 +233,17 @@ class Dataset:
                 # Data in temporal dimension is assumed to be sorted
                 # Obtain the values contained in the filtered dataframe
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
+                dates = {key: df_loc.index.values for key in df_loc.columns}
+
+                dates = {key: df_loc.index.values for key in df_loc.columns}
 
                 data = {
                     **data_loc,
                     **data,
+                }
+                data[KEY_DATES] = {
+                    **dates,
+                    **data[KEY_DATES],
                 }
 
         return data
@@ -263,6 +280,7 @@ class Dataset:
             assert KEY_LOC not in column_names
             assert KEY_YEAR not in column_names
             assert KEY_TARGET not in column_names
+            assert KEY_DATES not in column_names
 
         # Make sure there are no overlaps in feature names
         if len(dfs_x) > 1:
@@ -323,10 +341,10 @@ class Dataset:
         return (
             Dataset(
                 data_target=df_y_1,
-                data_features=data_dfs1,
+                data_inputs=data_dfs1,
             ),
             Dataset(
                 data_target=df_y_2,
-                data_features=data_dfs2,
+                data_inputs=data_dfs2,
             ),
         )
