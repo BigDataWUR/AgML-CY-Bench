@@ -15,7 +15,9 @@ from config import PATH_RESULTS_DIR
 
 # get paths
 evaluation_path = os.path.dirname(os.path.realpath(__file__))
-root_path = evaluation_path[:-10]  # remove "evaluation" in the string to get the root path
+root_path = evaluation_path[
+            :-10
+            ]  # remove "evaluation" in the string to get the root path
 
 # Configure Comet experiment instance
 _project_name = "AgML-Crop-yield-forecasting"
@@ -35,18 +37,22 @@ def get_comet_api_key(file=None) -> str:
 
     check_api_key_dir = os.path.isdir(os.path.join(evaluation_path, 'api_keys'))
     file_name = 'comet_ml' if not file else file
-    check_api_key_file = os.path.isdir(os.path.join(evaluation_path, 'api_keys', file_name))
+    check_api_key_file = os.path.isdir(
+        os.path.join(evaluation_path, 'api_keys', file_name)
+    )
 
     if check_api_key_dir and check_api_key_file:
-        with open(os.path.join(evaluation_path, 'api_keys', 'comet_ml'), 'r') as f:
+        with open(os.path.join(evaluation_path, "api_keys", "comet_ml"), "r") as f:
             api_key = f.readline()
     return api_key
 
 
-def existing_comet(comet_experiment: Experiment,
-                   comet_api_key: str = None,
-                   project_name: str = None,
-                   workspace: str = None) -> Experiment:
+def existing_comet(
+        comet_experiment: Experiment,
+        comet_api_key: str = None,
+        project_name: str = None,
+        workspace: str = None
+) -> Experiment:
     """
     If api_key is not defined, comet_ml will start in anonymous mode and the logs can be accessed
         through the URL provided in the console
@@ -67,7 +73,7 @@ def existing_comet(comet_experiment: Experiment,
                 auto_log_co2=True,
                 auto_metric_logging=True,
                 auto_param_logging=True,
-                auto_histogram_gradient_logging=True
+                auto_histogram_gradient_logging=True,
             )
         else:
             comet_ml.init(anonymous=True)
@@ -78,7 +84,7 @@ def existing_comet(comet_experiment: Experiment,
                 auto_log_co2=True,
                 auto_metric_logging=True,
                 auto_param_logging=True,
-                auto_histogram_gradient_logging=True
+                auto_histogram_gradient_logging=True,
             )
     else:
         experiment = comet_experiment
@@ -86,14 +92,16 @@ def existing_comet(comet_experiment: Experiment,
     return experiment
 
 
-def log_to_comet_post_hoc(metrics: dict,
-                          params: dict,
-                          comet_experiment: Experiment = None,
-                          comet_api_key: str = None,
-                          name: str = None,
-                          model: BaseModel = None,
-                          asset_path: str = None,
-                          end: bool = False) -> None:
+def log_to_comet_post_hoc(
+        metrics: dict,
+        params: dict,
+        comet_experiment: Experiment = None,
+        comet_api_key: str = None,
+        name: str = None,
+        model: BaseModel = None,
+        asset_path: str = None,
+        end: bool = False
+) -> None:
     """
     Log metrics, params, asset and model to Comet_ml
 
@@ -137,16 +145,20 @@ def log_to_comet_post_hoc(metrics: dict,
         experiment.end()
 
 
-def comet_wrapper(model: BaseModel,
-                  comet_experiment: Experiment = None,
-                  comet_api_key: str = None) -> Experiment:
+def comet_wrapper(
+        model: BaseModel,
+        comet_experiment: Experiment = None,
+        comet_api_key: str = None
+) -> Experiment:
     """
     Wrap model before training with a Comet experiment instance
 
     :return: Comet_ml experiment instance
     """
 
-    experiment = existing_comet(comet_experiment=comet_experiment, comet_api_key=comet_api_key)
+    experiment = existing_comet(
+        comet_experiment=comet_experiment, comet_api_key=comet_api_key
+    )
 
     experiment.log_code(folder=root_path)
 
@@ -157,13 +169,15 @@ def comet_wrapper(model: BaseModel,
     return experiment
 
 
-def log_benchmark_to_comet(results_dict: dict,
-                           model_name: str,
-                           run_name: str,
-                           params: dict = None,
-                           comet_experiment: Experiment = None,
-                           comet_api_key: str = None,
-                           end: bool = True) -> None:
+def log_benchmark_to_comet(
+        results_dict: dict,
+        model_name: str,
+        run_name: str,
+        params: dict = None,
+        comet_experiment: Experiment = None,
+        comet_api_key: str = None,
+        end: bool = True
+) -> None:
     """
     Function to log benchmark results to comet
     """
@@ -223,12 +237,14 @@ def log_benchmark_to_comet(results_dict: dict,
         experiment.end()
 
 
-def log_benchmark_to_comet_post_hoc(run_name: str,
-                                    model_name: str,
-                                    params: dict = None,
-                                    comet_experiment: Experiment = None,
-                                    comet_api_key: str = None,
-                                    end: bool = True) -> None:
+def log_benchmark_to_comet_post_hoc(
+        run_name: str,
+        model_name: str,
+        params: dict = None,
+        comet_experiment: Experiment = None,
+        comet_api_key: str = None,
+        end: bool = True
+) -> None:
     """
     Log benchmark results to comet after the training run from saved files
     """
