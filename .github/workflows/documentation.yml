@@ -14,7 +14,7 @@ jobs:
           pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy pandocfilters
       - name: Convert README.rst
         run: |
-          pandoc -f markdown_github -t rst README.md -o doc/README.rst --filter doc/path_adjust_filter.py
+          pandoc -f markdown_github -t rst README.md --wrap=none -o doc/README.rst --filter doc/path_adjust_filter.py
       - name: Sphinx apidoc
         run: |
           sphinx-apidoc -o doc ./

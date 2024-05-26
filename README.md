@@ -98,16 +98,18 @@ dataset = Dataset.load("maize_us")
 | Crop Statistics       | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
 |-----------------------|-----------------------------------------|----------------------------------------|
 | [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md) |
-| [Mali](data_preparation/crop_statistics_ML/README.md). Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1. | Use Africa shapefiles from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md) |
+| [Mali](data_preparation/crop_statistics_ML/README.md)<sup>1</sup>| Use Africa shapefiles from FEWSNET | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md) |
 | [Argentina](data_preparation/crop_statistics_AR/README.md) | [Argentina](data_preparation/shapefiles_AR/README.md) | Soil moisture: [GLDAS](data_preparation/global_soil_moisture_GLDAS/README.md) |
 | [Australia](data_preparation/crop_statistics_AU/README.md) | [Australia](data_preparation/shapefiles_AU/README.md) | Evapotranspiration: [FAO](data_preparation/global_ETo_FAO/README.md) |
 | [Brazil](data_preparation/crop_statistics_BR/README.md) | [Brazil](data_preparation/shapefiles_BR/README.md) | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md) |
 | [China](data_preparation/crop_statistics_CN/README.md) | [China](data_preparation/shapefiles_CN/README.md) | Crop calendars: [ESA WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
 | [EU](data_preparation/crop_statistics_EU/README.md) | [EU](data_preparation/shapefiles_EU/README.md) | NDVI: [MOD09CMG](data_preparation/global_MOD09CMG/README.md) |
-| [Germany](data_preparation/crop_statistics_DE/README.md). Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1. | Use EU shapefiles | Crop Masks: [ESA WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md) |
+| [Germany](data_preparation/crop_statistics_DE/README.md)<sup>2</sup>| Use EU shapefiles | Crop Masks: [ESA WorldCereal](data_preparation/global_crop_AFIs_ESA_WC/README.md) |
 | [India](data_preparation/crop_statistics_IN/README.md) | [India](data_preparation/shapefiles_IN/README.md) |  |
 | [Mexico](data_preparation/crop_statistics_MX/README.md) | [Mexico](data_preparation/shapefiles_MX/README.md) |  |
 | [US](data_preparation/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) |  |
+<sup>1</sup>: Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1.
+<sup>2</sup>: Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1.
 
 ### Leaderboard
 | Model Name                           | NRMSE         | MAPE |
