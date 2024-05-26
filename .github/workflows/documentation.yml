@@ -10,8 +10,8 @@ jobs:
       - uses: actions/setup-python@v5
       - name: Install dependencies
         run: |
-          sudo apt-get install pandoc pandocfilters
-          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy
+          sudo apt-get install pandoc
+          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy pandocfilters
       - name: Convert README.rst
         run: |
           pandoc -f markdown_github -t rst README.md -o doc/README.rst --filter doc/path_adjust_filter.py
