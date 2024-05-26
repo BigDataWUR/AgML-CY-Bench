@@ -5,7 +5,7 @@ def adjust_paths(key, value, format, meta):
         [[ident, classes, kvs], txt, target] = value
         href, title = target
         # Adjust the href as needed
-        prepend_path = 'http://github.com/BigDataWUR/AgML-crop-yield-forecasting/blob/main'
+        prepend_path = 'https://github.com/BigDataWUR/AgML-crop-yield-forecasting/tree/main/'
         if not href.startswith(('http://', 'https://', '#')):  # Avoid modifying absolute URLs and anchor links
             href = prepend_path + href
         return pf.Link([ident, classes, kvs], txt, [href, title])
