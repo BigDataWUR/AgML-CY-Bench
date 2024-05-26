@@ -26,12 +26,11 @@ between mid-season and harvest and 2 weeks before harvest. These time points dep
 
 #### Coverage for maize
 Undifferentiated Maize or Grain Maize where differentiated
-<img src=doc/images/maize_coverage_map.png>
+![Maize Coverage Map](doc/images/maize_coverage_map.png)
 
 #### Coverage for wheat
 Undifferentiated Wheat or Winter Wheat where differentiated
-
-<img src=doc/images/wheat_coverage_map.png>
+![Wheat Coverage Map](doc/images/wheat_coverage_map.png)
 
 ### Getting started
 `cybench` is an open source python library to load CY-Bench dataset and run the CY-Bench tasks.
@@ -108,6 +107,7 @@ dataset = Dataset.load("maize_us")
 | [India](data_preparation/crop_statistics_IN/README.md) | [India](data_preparation/shapefiles_IN/README.md) |  |
 | [Mexico](data_preparation/crop_statistics_MX/README.md) | [Mexico](data_preparation/shapefiles_MX/README.md) |  |
 | [US](data_preparation/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) |  |
+
 <sup>1</sup>: Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level 1.
 <sup>2</sup>: Germany data at admin level 3. Germany data is also included in the EU dataset, but there it is at admin level 1.
 
