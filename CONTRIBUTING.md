@@ -1,7 +1,7 @@
 # Contributing to AgML Crop Yield Forecasting
 
 At the moment, there are two ways to contribute to the AgML Subnational Crop Yield Forecasting benchmark.
-1. [Contribute to data documentation and preparation](data_preparation/CONTRIBUTING.md]).
+1. [Contribute to data documentation and preparation](data_preparation/CONTRIBUTING.md).
 2. Contribute to code and documentation of the python package.
 
 We aim to make it possible to contribute models to the benchmark soon.
