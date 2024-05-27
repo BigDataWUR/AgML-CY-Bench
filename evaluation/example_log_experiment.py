@@ -20,7 +20,11 @@ from datasets.dataset import Dataset
 from datasets.dataset_torch import TorchDataset
 from models.nn_models import ExampleLSTM
 from evaluation.eval import evaluate_model
-from evaluation.log_experiments import comet_wrapper, log_to_comet_post_hoc, log_benchmark_to_comet
+from evaluation.log_experiments import (
+    comet_wrapper,
+    log_to_comet_post_hoc,
+    log_benchmark_to_comet,
+)
 
 from config import PATH_DATA_DIR
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
@@ -37,36 +41,48 @@ def example_for_logging_torch_model(comet_experiment=None):
 
     # Initialize model, assumes that all features are in np.ndarray format
     n_total_features = len(train_dataset[0].keys()) - 3
-    ts_features = [key for key in train_dataset[0].keys() if type(train_dataset[0][key]) == np.ndarray]
+    ts_features = [
+        key
+        for key in train_dataset[0].keys()
+        if type(train_dataset[0][key]) == np.ndarray
+    ]
     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
 
-    model = ExampleLSTM(len(ts_features), n_total_features - len(ts_features), hidden_size=64, num_layers=2,
-                        output_size=1)
+    model = ExampleLSTM(
+        len(ts_features),
+        n_total_features - len(ts_features),
+        hidden_size=64,
+        num_layers=2,
+        output_size=1,
+    )
     scheduler_fn = torch.optim.lr_scheduler.StepLR
     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
     """Wrap model and log other metrics to comet"""
     comet_experiment = comet_wrapper(model=model, comet_experiment=comet_experiment)
 
-    fit_kwargs = {"batch_size": 3200,
-                  "num_epochs": 15,
-                  "device": device,
-                  "scheduler_fn": scheduler_fn,
-                  "scheduler_kwargs": scheduler_kwargs}
+    fit_kwargs = {
+        "batch_size": 3200,
+        "num_epochs": 15,
+        "device": device,
+        "scheduler_fn": scheduler_fn,
+        "scheduler_kwargs": scheduler_kwargs,
+    }
     optim_kwargs = {"lr": 0.01}
-    model.fit(train_dataset, **fit_kwargs,
-              optim_kwargs=optim_kwargs)
+    model.fit(train_dataset, **fit_kwargs, optim_kwargs=optim_kwargs)
 
     evaluation_result = evaluate_model(model, test_dataset)
 
     """End of training and logging of results and the model itself"""
 
-    log_to_comet_post_hoc(metrics=evaluation_result,
-                          # combine dicts of some defined parameter kwargs
-                          params=fit_kwargs | optim_kwargs | scheduler_kwargs,
-                          comet_experiment=comet_experiment,
-                          model=model,
-                          name=f'ExampleLSTM-Model')
+    log_to_comet_post_hoc(
+        metrics=evaluation_result,
+        # combine dicts of some defined parameter kwargs
+        params=fit_kwargs | optim_kwargs | scheduler_kwargs,
+        comet_experiment=comet_experiment,
+        model=model,
+        name=f"ExampleLSTM-Model",
+    )
 
 
 def example_for_logging_sklearn_model(comet_experiment=None, end=False):
@@ -107,35 +123,47 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
     feature_cols_dict = {"feature_cols": feature_cols}
 
     """Log post hoc only, making sure all metrics and params are passed"""
-    log_to_comet_post_hoc(comet_experiment=comet_experiment,
-                          metrics=evaluation_result,
-                          params=feature_cols_dict | fit_params,
-                          model=model,
-                          end=end)
+    log_to_comet_post_hoc(
+        comet_experiment=comet_experiment,
+        metrics=evaluation_result,
+        params=feature_cols_dict | fit_params,
+        model=model,
+        end=end,
+    )
 
 
 def example_run_benchmark(comet_experiment=None):
     """
     Example of logging metrics in Comet anonymously for a benchmark run with an LSTM model
     """
-    model_init_kwargs = {"n_ts_features": 9,
-                         "n_static_features": 1,
-                         "hidden_size": 8,
-                         "num_layers": 1, }
-    model_fit_kwargs = {'num_epochs': 3}
+    model_init_kwargs = {
+        "n_ts_features": 9,
+        "n_static_features": 1,
+        "hidden_size": 8,
+        "num_layers": 1,
+    }
+    model_fit_kwargs = {"num_epochs": 3}
 
-    model_name = 'ShallowLSTM'
+    model_name = "ShallowLSTM"
 
-    run_name = 'shallow_1'
+    run_name = "shallow_1"
 
-    results = run_benchmark(run_name, model_name, ExampleLSTM,
-                            model_init_kwargs=model_init_kwargs,
-                            model_fit_kwargs=model_fit_kwargs)
+    results = run_benchmark(
+        run_name,
+        model_name,
+        ExampleLSTM,
+        model_init_kwargs=model_init_kwargs,
+        model_fit_kwargs=model_fit_kwargs,
+    )
 
-    log_benchmark_to_comet(results, model_name, run_name,
-                           comet_experiment=comet_experiment,
-                           params=model_init_kwargs | model_fit_kwargs,
-                           end=True)
+    log_benchmark_to_comet(
+        results,
+        model_name,
+        run_name,
+        comet_experiment=comet_experiment,
+        params=model_init_kwargs | model_fit_kwargs,
+        end=True,
+    )
 
 
 if __name__ == "__main__":
