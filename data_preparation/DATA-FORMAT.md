@@ -38,16 +38,29 @@ This format was proposed by Rahel, Weston, Donghoon and Dilli. Please get in tou
 ## Predictor time series
 These will be prepared separately for different crops. Appropriate crop masks will be applied during preparation.
 
+**crop_name**: e.g. winter wheat, grain maize, rice.
+
 **adm_id**: Identifier for administrative unit. This identifier needs to be unique and could include country code and a way to extract identifier for larger administrative units (e.g. state or province).
 
-**date**: (daily for all except for FPAR, which is dekadal, i.e. every ~10 days)
+**date**: (daily for all except for FPAR, which is dekadal, i.e. every ~10 days, and NDVI, which is roughly every week).
 
 One or more predictor variables
 
 ## Static data (e.g. soil)
+**crop_name**: e.g. winter wheat, grain maize, rice
+
 **adm_id**: Identifier for administrative unit. This identifier needs to be unique and could include country code and a way to extract identifier for larger administrative units (e.g. state or province).
 
 One or more soil properties
 
 ## Crop calendar
-TBD
+**crop_name**: e.g. winter wheat, grain maize, rice.
+
+**adm_id**: Identifier for administrative unit. This identifier needs to be unique and could include country code and a way to extract identifier for larger administrative units (e.g. state or province).
+
+**planting_doy**: Day of the year for start of season (SOS) or planting.
+
+**maturity_doy**: Day of the year for end of season (EOS) or harvest or maturity.
+
+NOTE: For crops with seasons crossing calendar year boundaries, `planting_doy` may be larger than `maturity_doy`.
+
