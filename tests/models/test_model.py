@@ -136,7 +136,7 @@ def test_trend_model():
 
 
 def test_sklearn_model():
-    # Test with raw data
+    # Test 1: Test with raw data
     dataset_sw_nl = Dataset.load("test_softwheat_nl")
     all_years = list(range(2001, 2019))
     test_years = [2017, 2018]
@@ -153,7 +153,7 @@ def test_sklearn_model():
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
 
-    # Test with predesigned features
+    # Test 2: Test with predesigned features
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
@@ -181,22 +181,21 @@ def test_sklearn_model():
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
 
-    # TODO: Uncomment after evaluate_model calls predict() with dataset.
     # TODO: Need alternative to hardcoding expected metrics.
-    # evaluation_result = evaluate_model(model, test_dataset)
-    # expected_values = {
-    #     "normalized_rmse": 14.49,
-    #     "mape": 0.14,
-    # }
-    # for metric, expected_value in expected_values.items():
-    #     assert (
-    #         metric in evaluation_result
-    #     ), f"Metric '{metric}' not found in evaluation result"
-    #     assert (
-    #         round(evaluation_result[metric], 2) == expected_value
-    #     ), f"Value of metric '{metric}' does not match expected value"
+    evaluation_result = evaluate_model(model, test_dataset)
+    expected_values = {
+        "normalized_rmse": 14.49,
+        "mape": 0.14,
+    }
+    for metric, expected_value in expected_values.items():
+        assert (
+            metric in evaluation_result
+        ), f"Metric '{metric}' not found in evaluation result"
+        assert (
+            round(evaluation_result[metric], 2) == expected_value
+        ), f"Value of metric '{metric}' does not match expected value"
 
-    # Model with hyperparameter optimization
+    # Test 3: Test hyperparameter optimization
     fit_params = {
         "optimize_hyperparameters": True,
         "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
