@@ -22,9 +22,11 @@ jobs:
         run: |
           sphinx-build doc _build -va
       - name: Deploy
+        if: github.ref == 'refs/heads/master'
         uses: peaceiris/actions-gh-pages@v3
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: _build/
           force_orphan: true
+          cname: cybench.agml.org
