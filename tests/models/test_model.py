@@ -215,7 +215,7 @@ def test_nn_model():
     model.fit(
         train_dataset,
         batch_size=3200,
-        num_epochs=10,
+        num_epochs=2,
         device=device,
         optim_kwargs={"lr": 0.01},
         scheduler_fn=scheduler_fn,

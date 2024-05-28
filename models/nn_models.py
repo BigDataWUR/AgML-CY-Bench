@@ -10,7 +10,7 @@ from sklearn.model_selection import ParameterGrid
 from datasets.dataset_torch import TorchDataset
 from datasets.dataset import Dataset
 from models.model import BaseModel
-from util.data import flatten_nested_dict, unflatten_nested_dict
+from util.data import flatten_nested_dict, unflatten_nested_dict, generate_settings
 
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
@@ -29,13 +29,22 @@ class BaseNNModel(BaseModel, nn.Module):
             kfolds: int = 5,
             *args, **kwargs):
         
+        # Set seed if seed is provided
+        if "seed" in kwargs:
+            seed = kwargs["seed"]
+            torch.manual_seed(seed)
+            np.random.seed(seed)
+            random.seed(seed)
+
+        self.best_model = None
+
         if optimize_hyperparameters:
             assert param_space is not None
 
             best_loss = float("inf")
             best_setting = None
 
-            settings = self._generate_settings(param_space, kwargs)
+            settings = generate_settings(param_space, kwargs)
             for i, setting in enumerate(settings):
                 val_loss = None
                 if do_kfold:
@@ -54,7 +63,12 @@ class BaseNNModel(BaseModel, nn.Module):
                         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
                         new_model = self.__class__(**self._init_args)
                         _, output = new_model.train_model(train_dataset=train_dataset, val_dataset=val_dataset, *args, **setting)
-                        val_loss_fold.append(output["val_loss"])
+                        
+                        # If early stopping is used, use best val loss. Otherwise, use final val loss.
+                        if output["best_val_loss"] is not None:
+                            val_loss_fold.append(output["best_val_loss"])
+                        else:
+                            val_loss_fold.append(output["val_loss"])
                     val_loss = np.mean(val_loss_fold)
 
                 else:
@@ -64,11 +78,15 @@ class BaseNNModel(BaseModel, nn.Module):
                     _, output = new_model.fit(dataset=dataset, *args, **setting)
                     if "val_loss" not in output:
                         raise ValueError("No validation loss recorder, set val_fraction > 0 when tuning without kfold cross validation.")
-                    val_loss = output["val_loss"]
-                
+                    
+                    # If early stopping is used, use best val loss. Otherwise, use final val loss.
+                    if output["best_val_loss"] is not None:
+                        val_loss = output["best_val_loss"]
+                    else:
+                        val_loss = output["val_loss"]
                 assert val_loss is not None
 
-                print(f"For setting {i+1}/{len(settings)}, average final validation loss: {val_loss}")
+                print(f"For setting {i+1}/{len(settings)}, average validation loss: {val_loss}")
                 print(f"Settings: {setting}")
 
                 # Store best model setting
@@ -84,14 +102,22 @@ class BaseNNModel(BaseModel, nn.Module):
         else:
            
             model, output = self.train_model(dataset, *args, **kwargs)
-            return model, output
+
+            # If early stopping is used, use best val loss and save best model for prediction
+            if output["best_val_loss"] is not None:
+                self.best_model = output["best_model"]
+                return self.best_model, output
+            else:
+                return model, output
         
 
     def train_model(self, 
             train_dataset: Dataset,
             val_dataset: Dataset = None,
             val_fraction: float = 0.1,
+            val_split_by_year: bool = False,
             val_every_n_epochs: int = 1,
+            do_early_stopping: bool = False,
             num_epochs: int = 1,
             batch_size: int = 10,
             loss_fn: callable = None,
@@ -110,7 +136,9 @@ class BaseNNModel(BaseModel, nn.Module):
             train_dataset: Dataset,
             val_dataset: Dataset, default is None. If None, val_fraction is used to split train_dataset into train and val.
             val_fraction: float, percentage of data to use for validation, default is 0.1
+            val_split_by_year: bool, whether to split validation data by year, default is False
             val_every_n_epochs: int, validation frequency, default is 1
+            do_early_stopping: bool, whether to use early stopping, default is False
             num_epochs: int, the number of epochs to train the model, default is 1
             batch_size: int, the batch size, default is 10
             loss_fn: callable, the loss function, default is torch.nn.functional.mse_loss
@@ -146,19 +174,19 @@ class BaseNNModel(BaseModel, nn.Module):
         self.batch_size = batch_size
         self.to(device)
 
-        # Get torchdataset, random val indices and loader
-        train_dataset = TorchDataset(train_dataset)
-
         if val_dataset is not None:
+            train_dataset = TorchDataset(train_dataset)
             val_dataset = TorchDataset(val_dataset)
             train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, collate_fn=train_dataset.collate_fn, shuffle=True, drop_last=True)
             val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn)
-        else:
+        elif val_fraction > 0 and not val_split_by_year:
             n = len(train_dataset)
             n_val = int(n * val_fraction)
             val_ids = np.random.choice(n, n_val, replace=False).tolist()
             train_ids = list(set(range(n)) - set(val_ids))
             assert len(set(val_ids).intersection(set(train_ids))) == 0
+
+            train_dataset = TorchDataset(train_dataset)
 
             train_loader = torch.utils.data.DataLoader(train_dataset, 
                                                     batch_size=batch_size, 
@@ -169,7 +197,22 @@ class BaseNNModel(BaseModel, nn.Module):
                                                     batch_size=batch_size,
                                                     sampler=torch.utils.data.SubsetRandomSampler(val_ids),
                                                     collate_fn=train_dataset.collate_fn)
-            else: val_loader = None
+        elif val_fraction > 0 and val_split_by_year:
+            all_years = train_dataset.years
+            list_all_years = list(all_years)
+            random.shuffle(list_all_years)
+            n_val = int(np.ceil(len(all_years) * val_fraction))
+            val_years = list_all_years[:n_val]
+            train_years = list_all_years[n_val:]
+            train_dataset, val_dataset = train_dataset.split_on_years((train_years, val_years))
+            train_dataset = TorchDataset(train_dataset)
+            val_dataset = TorchDataset(val_dataset)
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, collate_fn=train_dataset.collate_fn, shuffle=True, drop_last=True)
+            val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn)
+        else: 
+            train_dataset = TorchDataset(train_dataset)
+            train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, collate_fn=train_dataset.collate_fn, shuffle=True, drop_last=True)
+            val_loader = None
 
         # Load optimizer and scheduler
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
@@ -179,11 +222,20 @@ class BaseNNModel(BaseModel, nn.Module):
         # Store training set feature means and sds for normalization
         self.feature_means = {}
         self.feature_sds = {}
-        all_train_samples = TorchDataset.collate_fn([train_dataset[i] for i in range(len(train_dataset))])
+        if val_dataset is not None:
+            all_train_samples = TorchDataset.collate_fn([train_dataset[i] for i in range(len(train_dataset))] + [val_dataset[i] for i in range(len(val_dataset))])
+        else:
+            all_train_samples = TorchDataset.collate_fn([train_dataset[i] for i in range(len(train_dataset))])
         for key, features in all_train_samples.items():
             if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR, KEY_DATES]:
                 self.feature_means[key] = features.mean()
                 self.feature_sds[key] = features.std()
+
+        all_train_losses = []
+        all_val_losses = []
+
+        best_val_loss = float("inf")
+        best_model = None
 
         # Training loop
         for epoch in range(num_epochs):
@@ -218,9 +270,12 @@ class BaseNNModel(BaseModel, nn.Module):
                 optimizer.step()
                 losses.append(loss.item())
 
+                mean_train_loss = np.mean(losses)
+
                 pbar.set_description(
-                    f"Epoch {epoch+1}/{num_epochs} | Loss: {loss.item():.4f}"
+                    f"Epoch {epoch+1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
                 )
+            all_train_losses.append(mean_train_loss)
 
 
             if val_loader is not None and (epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1):
@@ -249,15 +304,27 @@ class BaseNNModel(BaseModel, nn.Module):
                         loss = loss_fn(predictions, target, **loss_kwargs)
 
                         val_losses.append(loss.item())
-                        mean_loss = np.mean(val_losses)
+                        mean_val_loss = np.mean(val_losses)
 
                         tqdm_val.set_description(
-                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {mean_loss:.4f}"
+                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
                         )
+                    all_val_losses.append(mean_val_loss)
+                    if mean_val_loss < best_val_loss and do_early_stopping:
+                        best_val_loss = mean_val_loss
+                        best_model = copy.deepcopy(self)
 
             if scheduler_fn is not None:
                 scheduler.step()
-        return self, {"train_loss": np.mean(losses), "val_loss": np.mean(val_losses) if val_loader is not None else None}
+        return self, {
+            "train_loss": np.mean(losses), 
+            "val_loss": np.mean(val_losses) if val_loader is not None else None,
+            "train_losses": all_train_losses,
+            "val_losses": all_val_losses if val_loader is not None else None,
+            "best_val_loss": best_val_loss,
+            "best_val_epoch": np.argmin(all_val_losses) if val_loader is not None else None,
+            "best_model": best_model,
+            }
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
         """Run fitted model on batched data items.
@@ -275,8 +342,13 @@ class BaseNNModel(BaseModel, nn.Module):
         if batch_size is None:
             batch_size = self.batch_size
 
-        self.to(device)
-        self.eval()
+        if self.best_model is not None:
+            model = self.best_model
+        else:
+            model = self
+
+        model.to(device)
+        model.eval()
 
         with torch.no_grad():
             predictions = np.zeros((len(X)))
@@ -295,7 +367,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 for key in features:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         features[key] = (features[key] - self.feature_means[key]) / self.feature_sds[key]
-                y_pred = self(features)
+                y_pred = model(features)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)
                 y_pred = y_pred.cpu().numpy()
@@ -322,30 +394,6 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         return torch.load(model_name)
     
-    
-    def _generate_settings(self,
-                           param_space: dict,
-                           standard_settings: dict):
-        
-        # Flatten both dicts
-        param_space = flatten_nested_dict(param_space)
-        standard_settings = flatten_nested_dict(standard_settings)
-
-        # Generate all combinations of parameter values
-        combs = list(ParameterGrid(param_space))
-
-        # For each comb, deepcopy standard_settings and replace values
-        settings = []
-        for comb in combs:
-            setting = copy.deepcopy(standard_settings)
-            setting.update(comb)
-            settings.append(setting)
-
-        # Unflatten settings
-        settings = [unflatten_nested_dict(setting) for setting in settings]
-
-        return settings
-    
 
 class ExampleLSTM(BaseNNModel):
     def __init__(
@@ -363,6 +411,7 @@ class ExampleLSTM(BaseNNModel):
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
+
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
@@ -392,3 +441,6 @@ class ExampleLSTM(BaseNNModel):
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         x = self._fc(x)
         return x
+    
+
+
