@@ -1,0 +1,32 @@
+name: Docs
+on: [push, pull_request, workflow_dispatch]
+permissions:
+    contents: write
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+      - name: Install dependencies
+        run: |
+          sudo apt-get install pandoc
+          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy pandocfilters
+      - name: Convert README.rst
+        run: |
+          pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
+      - name: Sphinx apidoc
+        run: |
+          sphinx-apidoc -o doc ./
+      - name: Sphinx build
+        run: |
+          sphinx-build doc _build -va
+      - name: Deploy
+        if: github.ref == 'refs/heads/main'
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          publish_branch: gh-pages
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/
+          force_orphan: true
+          cname: cybench.agml.org

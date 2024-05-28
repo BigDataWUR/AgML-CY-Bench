@@ -7,17 +7,16 @@ Thank you for your interest in contributing to the AgML Subnational Crop Yield F
 
 ## Contributing crop statistics
 1. First check if crop statistics for the country or region of interest is already included.
-2. If not, create an issue and follow the [contributing guidelines](../README.md). Create a new directory under `data_preparation`.
+2. If not, create an issue and follow the [contributing guidelines](../CONTRIBUTING.md). Create a new directory under `data_preparation`.
 3. Create a data card (`README.md`) following [the template](DATA-CARD-TEMPLATE.md) in the new directory.
 4. As much as possible, look for ways to automatically export and prepare the dataset. This way the steps can be followed by other community members to prepare the data. Use existing APIs if available. If not, document the steps required to export the data. Add a notebook or script to document the steps to download data, to explore the data and to prepare it in [the expected format](DATA-FORMAT.md). Add the notebook or script in the new directory.
 5. Follow the [contributing guidelines](../README.md) to get your changes reviewed and merge when approved.
 
-## Contributing predictor data
-Coming soon.
-
-## Contributing crop masks
-Coming soon.
-
-## Contributing crop calendars
-Coming soon.
-
+## Contributing predictor data, crop masks and crop calendars
+1. First check if the predictor data source is already included.
+2. If not, create an issue and follow the [contributing guidelines](../CONTRIBUTING.md). Create a new directory under `data_preparation`.
+3. Create a data card (`README.md`) following [the template](DATA-CARD-TEMPLATE.md) in the new directory. Document information about the data source, publisher, provenance information, license, how to cite, etc.
+4. Check [data sources comparison document](DATA-SOURCES-SELECTION.md) to see how the new source compares with included data source or other sources considered. Update [data sources comparison document](DATA-SOURCES-SELECTION.md) with pros and cons and justifications for why the new source is preferable.
+5. Download the predictor and prepare it for inclusion in the benchmark dataset. A predictor data preparation script will be shared soon.
+6. For crop masks, data preparation may not be necessary.
+7. Send an email to AgML list email (agml@mail.agml.org) to include the new data source in the benchmark. Include "CY-Bench" or "Subnational crop yield forecasting" in the subject.
