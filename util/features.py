@@ -6,6 +6,14 @@ from config import KEY_LOC, KEY_YEAR, KEY_DATES
 
 
 def fortnight_from_date(date_str):
+    """Get the fortnight number from date.
+
+    Args:
+      date_str: date string in YYYYmmdd format
+
+    Returns:
+      Fortnight number, "YYYY0101" to "YYYY0115" -> 1.
+    """
     month = date_str[4:6]
     day_of_month = int(date_str[6:])
     fortnight_number = (int(month) - 1) * 2
@@ -16,6 +24,16 @@ def fortnight_from_date(date_str):
 
 
 def dekad_from_date(date_str):
+    """Get the dekad number from date.
+
+    Args:
+      date_str: date string in YYYYmmdd format
+
+    Returns:
+      Dekad number, e.g. "YYYY0101" to "YYYY010" -> 1,
+                         "YYYY0111" to "YYYY0120" -> 2,
+                         "YYYY0121" to "YYYY0131" -> 3
+    """
     month = int(date_str[4:6])
     day_of_month = int(date_str[6:])
     dekad = (month - 1) * 3
@@ -30,6 +48,16 @@ def dekad_from_date(date_str):
 
 
 def add_period(df, period_length):
+    """Add a period column.
+
+    Args:
+      df : pd.DataFrame
+
+      period_length: string, which can be "month", "fortnight" or "dekad"
+
+    Returns:
+      pd.DataFrame
+    """
     # NOTE expects data column in string format
     # add a period column based on time step
     if period_length == "month":
@@ -45,6 +73,23 @@ def add_period(df, period_length):
 # Period can be a month or fortnight (biweekly or two weeks)
 # Period sum of TAVG, TMIN, TMAX, PREC
 def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
+    """Aggregate data into features by period.
+
+    Args:
+      df : pd.DataFrame
+
+      index_cols: list of indices, which are location and year
+
+      period_col: string, column added by add_period()
+
+      aggrs: dict containing columns to aggregate (keys) and corresponding
+             aggregation function (values)
+
+      ft_cols: dict for renaming columns to feature columns
+
+    Returns:
+      pd.DataFrame with features
+    """
     groupby_cols = index_cols + [period_col]
     ft_df = df.groupby(groupby_cols).agg(aggrs).reset_index()
 
@@ -80,6 +125,26 @@ def count_threshold(
     threshold=0.0,
     ft_name=None,
 ):
+    """Aggregate data into features by period.
+
+    Args:
+      df : pd.DataFrame
+
+      index_cols: list of indices, which are location and year
+
+      period_col: string, column added by add_period()
+
+      indicator: string, indicator column to aggregate
+
+      threshold_exceed: boolean
+
+      threshold: float
+
+      ft_name: string name for aggregated indicator
+
+    Returns:
+      pd.DataFrame with features
+    """
     groupby_cols = index_cols + [period_col]
     if threshold_exceed:
         threshold_lambda = lambda x: 1 if (x[indicator] > threshold) else 0
@@ -110,6 +175,16 @@ def count_threshold(
 
 
 def unpack_time_series(df, indicators):
+    """Unpack time series from lists into separate rows by date.
+
+    Args:
+      df : pd.DataFrame
+
+      indicators: list of indicators to unpack
+
+    Returns:
+      pd.DataFrame
+    """
     # for a data source, dates should match across all indicators
     df["date"] = df.apply(lambda r: r[KEY_DATES][indicators[0]], axis=1)
 
@@ -125,6 +200,24 @@ def unpack_time_series(df, indicators):
 def design_features(
     weather_df, soil_df, fapar_df, ndvi_df=None, et0_df=None, soil_moisture_df=None
 ):
+    """Design features based domain expertise.
+
+    Args:
+      weather_df : pd.DataFrame, weather variables
+
+      soil_df: pd.DataFrame, soil properties
+
+      fapar_df : pd.DataFrame, fraction of absorbed photosynthetically active radiation
+
+      ndvi_df: pd.DataFrame, normalized difference vegetation index
+
+      et0_df: pd.DataFrame, potential evapotraspiration
+
+      soil_moisture_df: pd.DataFrame, soil moisture (surface and root zone)
+
+    Returns:
+      pd.DataFrame of features
+    """
     # for soil, we need to comput water holding capacity
     # TODO: 1. not needed for cybench data. Remove later.
     # TODO: 2. Add code to make drainage class a categorical feature.
