@@ -35,9 +35,9 @@ Oumnia Ennaji
 Inti Ernesto Luna Aviles
 
 ## Dataset overview
-The dataset has different attributes depending on the year of the census. In general, crop yield statistics are available at state level with the exception of the last census (2022) which in addition has information at the municipality level.
+The data set has different attributes depending on the year of the census. In general, crop yield statistics are available at the state level, with the exception of the most recent census (2022), which contains additional information at the municipality level. To normalize the data, an aggregation step by state and crop_name was performed to obtain all records at the state level.
 
-The census provides information for many crop types. However, here we just focus on the maize crop types.
+The census provides information on many types of crops. However, we focus here only on maize crops, as these are of great importance for Mexico and we believe that they contain the most reliable information.
 
 ### Census 2022 Specific Information
 
@@ -46,22 +46,8 @@ The census provides information for many crop types. However, here we just focus
 **Varieties**: Yellow / White / Forage Corn
 
 **Variables**: 
-'State'
-'Municipality'
-'Crop'
- 'Active agricultural production units - Total'
- 'Active agricultural production units - With open agriculture'
- 'Cultivated area - Sown' [unit]:hectares
- 'Cultivated area - Harvested' [unit]:hectares
- 'Production ' (yield) [unit]:tonnes
- 'Water Modality - Temporary - Production unit',
- 'Water Modality - Temporary - Cultivated area - Sown' [unit]:hectares 
- 'Water Modality - Temporary - Cultivated area - Harvested' [unit]:hectares
- 'Water Modality - Temporary - Production' [unit]:tonnes
- 'Water Modality - Irrigation - Production unit' [unit]:tonnes
- 'Water Modality - Irrigation - Cultivated area - Sown' [unit]:hectares
- 'Water Modality - Irrigation - Cultivated area - Harvested' [unit]:hectares
- 'Water Modality - Irrigation - Production' [unit]:tonnes
+
+crop_name, 	country_code, 	adm_id, 	planted_area [unit]:hectares, 	harvest_area [unit]:hectares, 	harvest_year, 	yield [unit]:tonnes/ha, 	production [unit]:megatonnes
 
 **Temporal coverage**:
 
@@ -76,15 +62,8 @@ Date Published: 2023-11-17
 
 **Varieties** : White / Yellow
 
-**Variables**: 'State','Crop','Total Cultivated area - Sown' [unit]:hectares
-'Total Cultivated area - Harvested' [unit]:hectares
-'Water Modality - Temporary - Cultivated area - Sown' [unit]:hectares
-'Water Modality - Temporary - Cultivated area - Harvested' [unit]:hectares
-'Water Modality - Irrigation - Cultivated area - Sown' [unit]:hectares
-'Water Modality - Irrigation - Cultivated area - Harvested' [unit]:hectares
-'Total production'[unit]:tonnes
-'Water Modality - Temporary - Production'[unit]:tonnes
-'Water Modality - Irrigation - Production'[unit]:tonnes
+**Variables**: 
+crop_name, 	country_code, 	adm_id, 	planted_area [unit]:hectares, 	harvest_area [unit]:hectares, 	harvest_year, 	yield [unit]:tonnes/ha, 	production [unit]:megatonnes
 
 **Temporal coverage**:
 
@@ -100,17 +79,7 @@ Date Published: 2020
 **Varieties**: White / Yellow
 
 **Variables**: 
-'State'
-'Crop'
-'Total Cultivated area - Sown' [unit]:hectares
-'Total Cultivated area - Harvested' [unit]:hectares
-           	'Total production'[unit]:tonnes
-       	'Water Modality - Temporary - Cultivated area - Sown' [unit]:hectares
-        	'Water Modality - Temporary - Cultivated area - Harvested' [unit]:hectares
-          	'Water Modality - Temporary - Production'[unit]:tonnes
-        	'Water Modality - Irrigation - Cultivated area - Sown' [unit]:hectares
-          	'Water Modality - Irrigation - Cultivated area - Harvested' [unit]:hectares
-          	'Water Modality - Irrigation - Production'[unit]:tonnes
+crop_name, 	country_code, 	adm_id, 	planted_area [unit]:hectares, 	harvest_area [unit]:hectares, 	harvest_year, 	yield [unit]:tonnes/ha, 	production [unit]:megatonnes
 
 **Temporal coverage**:
 
@@ -127,11 +96,7 @@ Date Published: 8th of January, 2019
 
 **Variables**:
 
-'State'
-'Crop'
-'Total Cultivated area - Sown' [unit]:hectares
-'Total Cultivated area - Harvested' [unit]:hectares
-           	'Total production'[unit]:tonnes
+crop_name, 	country_code, 	adm_id, 	planted_area [unit]:hectares, 	harvest_area [unit]:hectares, 	harvest_year, 	yield [unit]:tonnes/ha, 	production [unit]:megatonnes
 
 **Temporal coverage**:
 
