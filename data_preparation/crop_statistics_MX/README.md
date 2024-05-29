@@ -46,6 +46,7 @@ The census provides information on many types of crops. However, we focus here o
 **Varieties**: Yellow / White / Forage Corn
 
 **Variables**: 
+**Variable adm_id**: It was created using the original data number id for each state (32 states) and country code prefix was added "MX" and it has 4 digits like "MX01 or MX32" representing state 1 and 32. If the user wants to know the state name, please refer to "LUT_state.csv".
 
 crop_name, 	country_code, 	adm_id, 	planted_area [unit]:hectares, 	harvest_area [unit]:hectares, 	harvest_year, 	yield [unit]:tonnes/ha, 	production [unit]:megatonnes
 
