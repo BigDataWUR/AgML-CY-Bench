@@ -255,9 +255,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       for (yr in start_year:end_year) {
         # NOTE: doing a loop per month to handle daily data.
         # for fpar and ndvi, we could skip this loop and process one year at a time. 
-        file_list <- list.files(path=file.path(# PREDICTORS_DATA_PATH,
-                                              # indicator_source, indicator
-                                              "."),
+        file_list <- list.files(path=file.path(PREDICTORS_DATA_PATH,
+                                               indicator_source, indicator),
                                 pattern=glob2rx(paste0(filename_pattern, as.character(yr), "*")),
                                 full.names=TRUE)
         if (length(file_list) == 0){
