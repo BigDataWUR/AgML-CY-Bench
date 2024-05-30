@@ -179,7 +179,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     ###############
     if (!is_ts) {
       ind_rast <- rast(paste0(file.path(PREDICTORS_DATA_PATH,
-                              indicator_source, ind),
+                              indicator_source, indicator),
                               filename_pattern, ".tif"))
       # resample crop mask to indicator extent and resolution
       if (!resampled) {
@@ -238,9 +238,9 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       colnames(ind_df) <- c("crop_name", "adm_id", indicator)
 
       if (!dir.exists(file.path(AGML_ROOT, "R-output",
-                                crop, region, ind))) {
+                                crop, region, indicator))) {
         dir.create(file.path(AGML_ROOT, "R-output",
-                             crop, region, ind),
+                             crop, region, indicator),
                   recursive=TRUE)
       }
       write.csv(ind_df,
