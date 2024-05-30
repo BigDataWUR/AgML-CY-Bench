@@ -4,12 +4,6 @@ library(terra)
 library(reshape2)
 library(stringr)
 
-#############
-# Version 1 #
-#############
-# NOTE: This version makes directly extracts and aggregates
-# from raster stack. Preferred based on suggestion from
-# our R expert.
 
 crops <- c("maize", "wheat")
 start_year <- 2000
