@@ -263,7 +263,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
         }
 
         num_year_files <- length(file_list)
-        max_stack_size <- 3
+        max_stack_size <- 50
         for (i in seq(1, num_year_files, by=max_stack_size)) {
           if ((i+max_stack_size-1) < num_year_files) {
             file_seq <- seq(i, i+max_stack_size-1)
