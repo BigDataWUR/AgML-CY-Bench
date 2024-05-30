@@ -194,8 +194,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       }
 
       # filter invalid values
-      crop_mask[crop_mask > 100] <- 0
-      crop_mask[crop_mask < 0] <- 0
+      crop_mask[crop_mask > 100] <- NA
+      crop_mask[crop_mask < 0] <- NA
 
       # TODO: filter invalid values
 
@@ -213,7 +213,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       ind_df <- as.data.frame(cbind(ind_vals, crop_mask_vals$crop_area_fraction))
       ind_df <- na.exclude(ind_df)
       names(ind_df)[names(ind_df) == "crop_mask_vals$crop_area_fraction"] <- "crop_area_fraction"
-      colnames(ind_df) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
+      colnames(ind_df) <- c("indicator", "x", "y", "adm_id", "crop_area_fraction")
 
       # for now, "drainage_class" is the only categorical data
       if (is_cat){
@@ -291,8 +291,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           }
 
           # filter invalid values
-          crop_mask[crop_mask > 100] <- 0
-          crop_mask[crop_mask < 0] <- 0
+          crop_mask[crop_mask > 100] <- NA
+          crop_mask[crop_mask < 0] <- NA
 
           # TODO: filter invalid values
           # filter and transform indicators
@@ -331,8 +331,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           names(ind_df)[names(ind_df) == "crop_mask_vals$crop_area_fraction"] <- "crop_area_fraction"
           ind_df <- na.exclude(ind_df)
 
-          ind_df <- melt(ind_df, id.vars=c("x",	"y",	"adm_id",	"crop_area_fraction"))
-          colnames(ind_df) <- c("x",	"y",	"adm_id",	"crop_area_fraction",	"ind_file",	"indicator")
+          ind_df <- melt(ind_df, id.vars=c("x",	"y", "adm_id", "crop_area_fraction"))
+          colnames(ind_df) <- c("x", "y", "adm_id",	"crop_area_fraction",	"ind_file",	"indicator")
           ind_df$date <- str_sub(ind_df$ind_file, -8,-1)
 
           # aggregate

@@ -193,8 +193,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       }
 
       # filter invalid values
-      crop_mask[crop_mask > 100] <- 0
-      crop_mask[crop_mask < 0] <- 0
+      crop_mask[crop_mask > 100] <- NA
+      crop_mask[crop_mask < 0] <- NA
 
       # TODO: filter invalid values
 
@@ -292,6 +292,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           }
 
           # filter invalid values
+          # Setting NA values to 0 is fine for weights.
           crop_mask[crop_mask > 100] <- 0
           crop_mask[crop_mask < 0] <- 0
 
@@ -322,11 +323,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           rast_stack = crop(rast_stack, sel_shapes)
           crop_mask = crop(crop_mask, sel_shapes)
 
-          # Make everything within 0-100 range
-          # Setting other values to 0 is fine for weights.
-          crop_mask[crop_mask > 100] = 0
-          crop_mask[crop_mask < 0] = 0
-
           # replicate crop mask to match number of indicator layers
           # we set weights for NA values to 0
           crop_masks = rep(crop_mask, nlyr(rast_stack))
@@ -340,8 +336,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           result_w = extract(crop_masks, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
           result_w$adm_id = sel_shapes$adm_id
 
-          # Divide the result by weights
-          result[-ncol(result)] = result[-ncol(result)]/result_w[-ncol(result_w)]
+          # Divide the result by weights. Added a tiny number to avoid division by Zero.
+          result[-ncol(result)] = result[-ncol(result)]/(result_w[-ncol(result_w)] + 1e-6)
           result <- melt(result)
           
           colnames(result) <- c("adm_id", "ind_file", indicator)
