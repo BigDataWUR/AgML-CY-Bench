@@ -177,9 +177,9 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     # static data #
     ###############
     if (!is_ts) {
-      ind_rast <- rast(paste0(file.path(PREDICTORS_DATA_PATH,
-                              indicator_source, indicator),
-                              filename_pattern, ".tif"))
+      ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
+                                 indicator_source, indicator,
+                                 filename_pattern + ".tif"))
       # resample crop mask to indicator extent and resolution
       if (!resampled) {
         crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
@@ -229,7 +229,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                             by=list(adm_id=ind_df$adm_id), FUN=sum)
         ind_df$indicator <- ind_df$sum_ind/ind_df$sum_weight
         ind_df <- ind_df[, c("adm_id", "indicator")]
-        head(ind_df)
       }
 
       ind_df$crop_name <- crop
@@ -242,6 +241,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                              crop, region, indicator),
                   recursive=TRUE)
       }
+      print(head(ind_df))
       write.csv(ind_df,
                 file.path(AGML_ROOT, "R-output",
                           crop, region, indicator,
@@ -344,14 +344,14 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           result$crop_name <- crop
           result <- result[, c("crop_name", "adm_id",
                                "date", indicator)]
-
+          print(result)
           if (is.null(region_results)) {
             region_results <- result
           } else {
             region_results <- rbind(region_results, result)
           }
         }
-        head(region_results)
+        print(head(region_results))
       }
       if (!dir.exists(file.path(AGML_ROOT, "R-output",
                                 crop, region, indicator))) {
