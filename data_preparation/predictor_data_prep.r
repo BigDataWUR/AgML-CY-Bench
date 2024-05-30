@@ -259,10 +259,15 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       ####################
       region_results <- NULL
       for (yr in start_year:end_year) {
-        # NOTE: doing a loop per month to handle daily data.
-        # for fpar and ndvi, we could skip this loop and process one year at a time. 
-        file_list <- list.files(path=file.path(PREDICTORS_DATA_PATH,
-                                               indicator_source, indicator),
+        # NOTE: AgERA5 data is split by region
+        if (indicator_source == "AgERA5") {
+          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator,
+                                     paste(region, indicator_source, sep="_"))
+        } else {
+          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
+        }
+
+        file_list <- list.files(path=indicator_path,
                                 pattern=glob2rx(paste0(filename_pattern, as.character(yr), "*")),
                                 full.names=TRUE)
         num_year_files <- length(file_list)
@@ -280,7 +285,16 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
 
           sel_files <- file_list[file_seq]
           actual_stack_size <- length(sel_files)
-          rast_stack <- rast(sel_files)
+
+          # Handle NetCDF files.
+          # AgERA5 files (not ET0 files) are NetCDF or .nc files.
+          is_netcdf_file <- endsWith(sel_files[[1]], ".nc")
+          if (is_netcdf_file) {
+            rast_stack <- rast(sel_files, 1)
+          } else {
+            rast_stack <- rast(sel_files)
+          }
+
           # resample crop mask to indicator extent and resolution
           if (!resampled) {
             if (actual_stack_size == 1) {
