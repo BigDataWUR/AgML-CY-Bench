@@ -185,8 +185,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     ###############
     if (!is_ts) {
       ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
-                                 indicator_source, indicator),
-                                 filename_pattern + ".tif")
+                                 indicator_source, indicator,
+                                 filename_pattern + ".tif"))
       # resample crop mask to indicator extent and resolution
       if (!resampled) {
         crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
