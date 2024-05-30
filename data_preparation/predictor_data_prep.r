@@ -105,7 +105,7 @@ is_categorical <- c(FALSE, # "fpar"
                     TRUE) # "drainage_class"
 
 process_indicators <- function(crop, region, start_year, end_year, crop_mask_file) {
-  print(region)
+  # print(region)
 
   ###############################
   # Select shapes or boundaries #
@@ -206,8 +206,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     } else {
       crop_mask <- rast(crop_mask_file)
     }
-    print(resampled_crop_mask_file)
-    print(resampled)
+    # print(resampled_crop_mask_file)
+    # print(resampled)
 
     ###############
     # static data #
@@ -252,7 +252,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                                     indicator=ind_df$indicator),
                             FUN=sum)
         # order by sum_weight
-        head(ind_df)
+        # print(head(ind_df))
         ind_df <- ind_df[order(ind_df$adm_id, -ind_df$sum_weight),]
         # keep only the first item per adm_id
         ind_df <- ind_df[ !duplicated(ind_df$adm_id), ]
@@ -277,7 +277,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                              crop, region, indicator),
                   recursive=TRUE)
       }
-      print(head(ind_df))
+      # print(head(ind_df))
       write.csv(ind_df,
                 file.path(AGML_ROOT, "R-output",
                           crop, region, indicator,
@@ -332,7 +332,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             } else {
               crop_mask <- resample(crop_mask, rast_stack[[1]], method="bilinear")
             }
-            writeRaster(x=crop_mask, filename=resampled_crop_mask_file)
+            writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
           }
 
           # Crop rasters to shapes
@@ -372,6 +372,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           crop_masks = rep(crop_mask, nlyr(rast_stack))
           crop_masks[is.na(rast_stack)] = 0
 
+          # NOTE the order of multiplication matters
           rast_stack = rast_stack * crop_masks
 
           result = extract(rast_stack, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
@@ -389,14 +390,14 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           result$crop_name <- crop
           result <- result[, c("crop_name", "adm_id",
                                "date", indicator)]
-          print(result)
+          # print(head(result))
           if (is.null(region_results)) {
             region_results <- result
           } else {
             region_results <- rbind(region_results, result)
           }
         }
-        print(head(region_results))
+        # print(head(region_results))
       }
       if (!dir.exists(file.path(AGML_ROOT, "R-output",
                                 crop, region, indicator))) {
