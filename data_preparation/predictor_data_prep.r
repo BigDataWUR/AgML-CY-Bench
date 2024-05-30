@@ -111,8 +111,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
   # Select shapes or boundaries #
   ###############################
   sel_shapes <- NULL
-  if ((region == "EU") |
-      region %in% names(EU_countries)) {
+  if (region == "EU") {
     eu_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                                 "shapefiles_EU",
                                 "NUTS_RG_03M_2016_4326.shp"))
@@ -159,8 +158,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                                  "chn_admbnda_adm1_ocha_2020.shp"))
     sel_shapes$adm_id <- sel_shapes$ADM1_PCODE
   # FEWSNET countries: Already have adm_id
-  } else if ((region == "FEWSNET") |
-             (region %in% FEWSNET_countries)) {
+  } else if (region == "FEWSNET") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_FEWSNET",
                        "adm_shapefile_AgML_v0.1.shp"))
