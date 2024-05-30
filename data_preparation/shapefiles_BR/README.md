@@ -7,33 +7,34 @@ The dataset is made available on the Humanitarian Data Exchange (HDX) platform, 
 Supporting information on the dataset is given in the file `CITATION-AND-USE-geoBoundaries.txt`.
 
 ## Link
-https://data.humdata.org/dataset/geoboundaries-admin-boundaries-for-brazil
+https://data.humdata.org/dataset/cod-ab-bra?
 
 ## Publisher
 United Nations Office for the Coordination of Humanitarian Affairs (OCHA)
 
 ## Dataset owner
-The contributor of this dataset is [geoBoundaries](https://www.geoboundaries.org) (see **References** below).
+The data is created by the Instituto Brasileiro de Geografia e Estatística (IBGE) and provided by the Humanitarian Data Exchange. 
 
 ## Data card author
-Maximilian Zachow
+Maximilian Zachow / Raed Hamed
 
 ## Dataset overview
-**Methodology**: The authors state that *all stages of data collection and processing are publicly available, as described in both [peer-reviewed academic outlets](https://doi.org/10.1371/journal.pone.0231866) and in the public code base available through [GitHub](https://github.com/wmgeolab/geoBoundaries).*
+**Methodology**	Based on Instituto Brasileiro de Geografia e Estatística (IBGE) data. P-coded by OCHA, based on Código da Unidade Geográfica. 
 **File format**: Shapefile (SHP), GEOJSON
 **Geomtry types**: Polygons
-**Coordinate reference system**: EPSG:4326
+**Visibility**	Public
 
-## Provenance 
-**Date Published**: 6 January 2022
-**Last updated**: 6 January 2022
-**Expected update frequency**: Live
+## Provenance
+**Time Period of the Dataset** September 30, 2020-September 30, 2020
+**Last Modified**	30 September 2020
+**Dataset Added on HDX**	12 October 2017 
+**Expected Update Frequency**	Every year
 
 ## License
-Open Database License (ODC-ODbL)  
+Creative Commons Attribution for Intergovernmental Organisations (http://creativecommons.org/licenses/by/3.0/igo/legalcode)
 
 ## Additional information
-Not applicable.
+Crop statistics are at admin 2 level and the corresponding shapefile is *bra_admbnda_adm2_ibge_2020.shp*
 
-## References
-Runfola, D. et al. (2020) geoBoundaries: A global database of political administrative boundaries. PLoS ONE 15(4): e0231866. https://doi.org/10.1371/journal.pone.0231866
+## Reference of source data
+https://www.ibge.gov.br/en/geosciences/territorial-organization/territorial-meshes/18890-municipal-mesh.html?edicao=30154
