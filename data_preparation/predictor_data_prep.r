@@ -37,7 +37,13 @@ indicators <- c("fpar",
                 "ET0",
                 "surface_moisture",
                 "rootzone_moisture",
+                "Precipitation_Flux",
+                "Maximum_Temperature",
+                "Minimum_Temperature",
+                "Mean_Temperature",
+                "Solar_Radiation_Flux",
                 "AWC",
+                "bulk_density",
                 "drainage_class")
 # indicator source, also directory name
 indicator_sources <- c("JRC_FPAR500m", # "fpar"
@@ -45,15 +51,29 @@ indicator_sources <- c("JRC_FPAR500m", # "fpar"
                        "FAO_AQUASTAT", # "ET0"
                        "GLDAS", # "surface_moisture"
                        "GLDAS", # "rootzone_moisture"
+                       "AgERA5", # "Precipitation_Flux"
+                       "AgERA5", # "Maximum_Temperature"
+                       "AgERA5", # "Minimum_Temperature"
+                       "AgERA5", # "Mean_Temperature"
+                       "AgERA5", # "Solar_Radiation_Flux"
                        "WISE_Soil", # "AWC"
+                       "WISE_Soil", # "bulk_density"
                        "WISE_Soil") # "drainage_class"
-# this is the part before the date
+
+# NOTE: This is the part before the date for time series raster files.
+# For static data, this is the name of the file without extension.
 filename_prefixes <- c("fpar_", # "fpar"
                        "MOD09CMG_ndvi_", # "ndvi"
                        "AGERA5_ET0_", # "ET0"
                        "GLDAS_surface_moisture_A", # "surface_moisture"
                        "GLDAS_rootzone_moisture_A", # "rootzone_moisture"
+                       "AgERA5_Precipitation_Flux_", # "Precipitation_Flux"
+                       "AgERA5_Maximum_Temperature_", # "Maximum_Temperature"
+                       "AgERA5_Minimum_Temperature_", # "Minimum_Temperature"
+                       "AgERA5_Mean_Temperature_", # "Mean_Temperature"
+                       "AgERA5_Solar_Radiation_Flux_", # "Solar_Radiation_Flux"
                        "available_water_capacity", # "AWC"
+                       "bulk_density", # "bulk_density"
                        "drainage_class") # "drainage_class"
 
 is_time_series <- c(TRUE, # "fpar"
@@ -61,15 +81,27 @@ is_time_series <- c(TRUE, # "fpar"
                     TRUE, # "ET0"
                     TRUE, # "surface_moisture"
                     TRUE, # "rootzone_moisture"
+                    TRUE, # "Precipitation_Flux"
+                    TRUE, # "Maximum_Temperature"
+                    TRUE, # "Minimum_Temperature"
+                    TRUE, # "Mean_Temperature"
+                    TRUE, # "Solar_Radiation_Flux"
                     FALSE, # "AWC"
+                    FALSE, # "bulk_density"
                     FALSE) # "drainage_class"
 
 is_categorical <- c(FALSE, # "fpar"
                     FALSE, # "ndvi"
+                    FALSE, # "ET0"
                     FALSE, # "surface_moisture"
                     FALSE, # "rootzone_moisture"
-                    FALSE, # "ET0"
+                    FALSE, # "Precipitation_Flux"
+                    FALSE, # "Maximum_Temperature"
+                    FALSE, # "Minimum_Temperature"
+                    FALSE, # "Mean_Temperature"
+                    FALSE, # "Solar_Radiation_Flux"
                     FALSE, # "AWC"
+                    FALSE, # "bulk_density"
                     TRUE) # "drainage_class"
 
 process_indicators <- function(crop, region, start_year, end_year, crop_mask_file) {
@@ -110,7 +142,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_AR",
                        "arg_admbnda_adm2_unhcr2017.shp"))
-    # sel_shapes$adm_id <- paste0("AR", str_pad(sel_shapes$idDepartmento, 3, "0"))
+    sel_shapes$adm_id <- sel_shapes$ADM2_PCODE
   } else if (region == "AU") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                                  "shapefiles_AU",
@@ -120,12 +152,13 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_BR",
                        "bra_admbnda_adm2_ibge_2020.shp"))
+    sel_shapes$adm_id <- sel_shapes$ADM2_PCODE
   } else if (region == "CN") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                                  "shapefiles_CN",
                                  "chn_admbnda_adm1_ocha_2020.shp"))
-    sel_shapes$adm_id <- paste("CN", substr(sel_shapes$ADM1_PCODE, 3, 5), sep="-")
-  # FEWSNET: Already has adm_id
+    sel_shapes$adm_id <- sel_shapes$ADM1_PCODE
+  # FEWSNET countries: Already have adm_id
   } else if ((region == "FEWSNET") |
              (region %in% FEWSNET_countries)) {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
@@ -136,13 +169,18 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                        "shapefiles_FEWSNET",
                        "adm_shapefile_AgML_v0.1.shp"))
     sel_shapes <- sel_shapes[substr(sel_shapes$adm_id, 1, 2) == region]
+  # IN: Already has adm_id
   } else if (region == "IN") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_IN",
                        "India_585districts_adm2.shp"))
     sel_shapes <- project(sel_shapes, "EPSG:4326")
-  # TODO: 
-  # } else if (region == "ML") {
+  # ML: Already has adm_id
+  } else if (region == "ML") {
+    sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
+                                 "shapefiles_ML",
+                                 "cmdt_boundary.shp"))
+  # MX: Already has adm_id
   } else if (region == "MX") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_MX",
