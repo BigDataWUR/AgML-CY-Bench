@@ -291,6 +291,10 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             writeRaster(x=crop_mask, filename=resampled_crop_mask_file)
           }
 
+          # Crop rasters to shapes
+          rast_stack = crop(rast_stack, sel_shapes)
+          crop_mask = crop(crop_mask, sel_shapes)
+
           # filter invalid values
           # Setting NA values to 0 is fine for weights.
           crop_mask[crop_mask > 100] <- 0
@@ -318,10 +322,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             # temp_C = temp_K - 273.15
             rast_stack <- rast_stack - 273.15
           }
-
-          # Crop rasters to shapes
-          rast_stack = crop(rast_stack, sel_shapes)
-          crop_mask = crop(crop_mask, sel_shapes)
 
           # replicate crop mask to match number of indicator layers
           # we set weights for NA values to 0
