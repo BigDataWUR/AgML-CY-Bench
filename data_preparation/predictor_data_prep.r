@@ -11,6 +11,12 @@ library(stringr)
 # from raster stack. Preferred based on suggestion from
 # our R expert.
 
+crops <- c("maize", "wheat")
+start_year <- 2000
+end_year <- 2023
+AGML_ROOT <- "/path/to/agml"
+PREDICTORS_DATA_PATH <- file.path(AGML_ROOT, "predictors")
+
 # countries_EU = { "AT" : 2, "BE" : 2, "BG" : 2, "CZ" : 3,
 #                  "DE" : 3, "DK" : 3, "EE" : 3, "EL" : 3, "ES" : 3,
 #                  "FI" : 3, "FR" : 3, "HR" : 2, "HU" : 3,
@@ -40,7 +46,7 @@ indicators <- c("fpar",
                 "AWC",
                 "drainage_class")
 # indicator source, also directory name
-indicator_sources <- c("FPAR_JRC500m", # "fpar"
+indicator_sources <- c("JRC_FPAR500m", # "fpar"
                        "MOD09CMG", # "ndvi"
                        "FAO_AQUASTAT", # "ET0"
                        "GLDAS", # "surface_moisture"
@@ -259,11 +265,11 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                                                indicator_source, indicator),
                                 pattern=glob2rx(paste0(filename_pattern, as.character(yr), "*")),
                                 full.names=TRUE)
-        if (length(file_list) == 0){
+        num_year_files <- length(file_list)
+        if (num_year_files == 0) {
           next
         }
 
-        num_year_files <- length(file_list)
         max_stack_size <- 50
         for (i in seq(1, num_year_files, by=max_stack_size)) {
           if ((i+max_stack_size-1) < num_year_files) {
@@ -335,7 +341,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           result_w$adm_id = sel_shapes$adm_id
 
           # Divide the result by weights
-          result[-ncol(result)] = result[-ncol(result)]/result_w[[-ncol(result_w)]]
+          result[-ncol(result)] = result[-ncol(result)]/result_w[-ncol(result_w)]
           result <- melt(result)
           
           colnames(result) <- c("adm_id", "ind_file", indicator)
@@ -367,12 +373,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
   }
 }
 
-
-crops <- c("maize", "wheat")
-start_year <- 2000
-end_year <- 2023
-AGML_ROOT <- "/path/to/agml"
-PREDICTORS_DATA_PATH <- file.path(AGML_ROOT, "predictors")
 
 for (crop in crops) {
   crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
