@@ -4,12 +4,13 @@ library(terra)
 library(reshape2)
 library(stringr)
 
+
 #############
-# Version 1 #
+# Version 2 #
 #############
-# NOTE: This version makes directly extracts and aggregates
-# from raster stack. Preferred based on suggestion from
-# our R expert.
+# NOTE: NOTE: This version makes use of data.frame after
+# extract to boundaries for aggregation. This is to test
+# if this version saves memory.
 
 # countries_EU = { "AT" : 2, "BE" : 2, "BG" : 2, "CZ" : 3,
 #                  "DE" : 3, "DK" : 3, "EE" : 3, "EL" : 3, "ES" : 3,
@@ -141,7 +142,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                        "shapefiles_IN",
                        "India_585districts_adm2.shp"))
     sel_shapes <- project(sel_shapes, "EPSG:4326")
-  # TODO: 
+  # TODO: Add shapes for Mali (ML)
   # } else if (region == "ML") {
   } else if (region == "MX") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
@@ -253,11 +254,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       ####################
       region_results <- NULL
       for (yr in start_year:end_year) {
-        # NOTE: doing a loop per month to handle daily data.
-        # for fpar and ndvi, we could skip this loop and process one year at a time. 
-        file_list <- list.files(path=file.path(# PREDICTORS_DATA_PATH,
-                                              # indicator_source, indicator
-                                              "."),
+        file_list <- list.files(path=file.path(PREDICTORS_DATA_PATH,
+                                               indicator_source, indicator),
                                 pattern=glob2rx(paste0(filename_pattern, as.character(yr), "*")),
                                 full.names=TRUE)
         if (length(file_list) == 0){
@@ -265,7 +263,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
         }
 
         num_year_files <- length(file_list)
-        max_stack_size <- 50
+        max_stack_size <- 3
         for (i in seq(1, num_year_files, by=max_stack_size)) {
           if ((i+max_stack_size-1) < num_year_files) {
             file_seq <- seq(i, i+max_stack_size-1)
@@ -313,42 +311,40 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             rast_stack <- rast_stack - 273.15
           }
 
-          # Crop rasters to shapes
-          rast_stack = crop(rast_stack, sel_shapes)
-          crop_mask = crop(crop_mask, sel_shapes)
+          # Extract indicator values for boundaries
+          ind_vals <- extract(rast_stack, sel_shapes, xy=TRUE)
+          ind_vals$adm_id <- sel_shapes$adm_id[ind_vals$ID]
+          ind_vals$ID <- NULL
 
-          # Make everything within 0-100 range
-          # Setting other values to 0 is fine for weights.
-          crop_mask[crop_mask > 100] = 0
-          crop_mask[crop_mask < 0] = 0
+          # extract crop mask values
+          crop_mask_vals <- extract(crop_mask, sel_shapes, xy=TRUE)
+          crop_mask_vals$adm_id <- sel_shapes$adm_id[crop_mask_vals$ID]
+          crop_mask_vals$ID <- NULL
+          names(crop_mask_vals) <- c("crop_area_fraction", "x", "y", "adm_id")
+          ind_df <- as.data.frame(cbind(ind_vals, crop_mask_vals$crop_area_fraction))
+          names(ind_df)[names(ind_df) == "crop_mask_vals$crop_area_fraction"] <- "crop_area_fraction"
+          ind_df <- na.exclude(ind_df)
 
-          # replicate crop mask to match number of indicator layers
-          # we set weights for NA values to 0
-          crop_masks = rep(crop_mask, nlyr(rast_stack))
-          crop_masks[is.na(rast_stack)] = 0
+          ind_df <- melt(ind_df, id.vars=c("x",	"y",	"adm_id",	"crop_area_fraction"))
+          colnames(ind_df) <- c("x",	"y",	"adm_id",	"crop_area_fraction",	"ind_file",	"indicator")
+          ind_df$date <- str_sub(ind_df$ind_file, -8,-1)
 
-          rast_stack = crop_masks * rast_stack
+          # aggregate
+          ind_df$weighted_ind <- ind_df$indicator * ind_df$crop_area_fraction
 
-          result = extract(rast_stack, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-          result$adm_id = sel_shapes$adm_id
-
-          result_w = extract(crop_masks, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-          result_w$adm_id = sel_shapes$adm_id
-
-          # Divide the result by weights
-          result[-ncol(result)] = result[-ncol(result)]/result_w[[-ncol(result_w)]]
-          result <- melt(result)
-          
-          colnames(result) <- c("adm_id", "ind_file", indicator)
-          result$date <- str_sub(result$ind_file, -8,-1)
-          result$crop_name <- crop
-          result <- result[, c("crop_name", "adm_id",
-                               "date", indicator)]
+          ind_df <- aggregate(list(sum_ind=ind_df$weighted_ind,
+                                  sum_weight=ind_df$crop_area_fraction),
+                              by=list(adm_id=ind_df$adm_id, date=ind_df$date), FUN=sum)
+          ind_df$indicator <- ind_df$sum_ind/ind_df$sum_weight
+          ind_df$crop_name <- crop
+          ind_df <- ind_df[, c("crop_name", "adm_id", "date", "indicator")]
+          colnames(ind_df) <- c("crop_name", "adm_id", "date", indicator)
+          head(ind_df)
 
           if (is.null(region_results)) {
-            region_results <- result
+            region_results <- ind_df
           } else {
-            region_results <- rbind(region_results, result)
+            region_results <- rbind(region_results, ind_df)
           }
         }
         head(region_results)
@@ -360,8 +356,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                   recursive=TRUE)
       }
       write.csv(region_results,
-                file.path(AGML_ROOT, "R-output",
-                          crop, region, indicator,
+                file.path(# AGML_ROOT, "R-output",
+                          # crop, region, indicator,
                           paste0(indicator, "_", region, ".csv")),
                 row.names=FALSE)
     }
