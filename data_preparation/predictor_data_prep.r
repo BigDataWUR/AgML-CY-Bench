@@ -328,7 +328,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           crop_masks = rep(crop_mask, nlyr(rast_stack))
           crop_masks[is.na(rast_stack)] = 0
 
-          rast_stack = crop_masks * rast_stack
+          rast_stack = rast_stack * crop_masks
 
           result = extract(rast_stack, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
           result$adm_id = sel_shapes$adm_id
