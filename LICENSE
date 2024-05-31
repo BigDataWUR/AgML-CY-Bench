@@ -1,0 +1,20 @@
+# Copyright 2024 AgML community (https://www.agml.org/)
+
+
+# Licensed under the EUPL, Version 1.2 (the "Licence").
+# You may not use this work except in compliance with the Licence.
+# You may obtain a copy of the Licence at:
+# https://joinup.ec.europa.eu/collection/eupl/eupl-text-eupl-12
+
+# Unless required by applicable law or agreed to in
+# writing, software distributed under the Licence is
+# distributed on an "AS IS" basis,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
+# express or implied.
+# See the Licence for the specific language governing
+# permissions and limitations under the Licence.
+
+# NOTE that this license applies only to the python package or Git repository.
+# The data sources included in the AgML crop yield forecasting benchmark have their
+# own license conditions. They are specified in READMEs for each data source
+# under data_preparation/<data_source>.
