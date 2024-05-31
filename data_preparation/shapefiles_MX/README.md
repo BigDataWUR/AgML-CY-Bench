@@ -3,7 +3,7 @@
 ## Short description
 Original Data Title:  Marco Geoestadístico, Censo Agropecuario 2022
 
-The "Mexico - Subnational Administrative Boundaries" dataset represents polygon shapes of Mexico administrative level 0 (states or estado / entidad), 1 (municipalities or municipios) created to match information from the Agricultural Census, 2022.
+The dataset "Mexico - Subnational Administrative Boundaries" represents polygon shapes of Mexican administrative level 1 (states or estado / entidad) and level 2 (municipalities) created to correspond to the 2022 agricultural census information. However, since we have information for 2019, 2017 and 2014 at the state level. We decided to keep the tabular and vector data at the state level only.
 
 The dataset is made available by Instituto Nacional de Estadística y Geografía (INEGI) which is the Mexican National Institute for Statistics & Geography.
 
@@ -26,11 +26,11 @@ Instituto Nacional de Estadística y Geografía (INEGI)
 
 **File format**: Shapefile (SHP)
 
-**Geomtry types**: Polygons
+**Geometry types**: Polygons
 
-**Projection**: Lambert Conformal Conic (LCC)
+**CRS**: EPSG 4326
 
-**Datum**: ITRF2008. Elipsoid: GRS80
+**Datum**: WGS84
 
 **Temporal coverage**:2021-10-01-2023-03-31
 
@@ -42,18 +42,10 @@ Instituto Nacional de Estadística y Geografía (INEGI)
 Open data to reuse and distribute for any purposes.
 
 ## Additional information
-Specific file to use: Marco geoestadistico integrado Diciembre 2022
-File size: 255 MB
-This zip file has three folders: 
--catalogos
--conjunto_de_datos
--metadatos
 
-Shapefiles of interest are inside “conjunto_de_datos” folder:
--00mun (municipalities)
--00ent (states)
+The file "00ent_edited.shp" contains state information only and was edited to match crop_statistics_MX tabular data with only one variable "adm_id". 
 
-Due file size, only 00ent (states) is on github
+The original file comes from "Marco geoestadistico integrado Diciembre 2022/conjunto_de_datos/00ent.shp" 
 
 ## References
 INEGI. Mapa. Mapas-Marco Geoestadístico, Censo Agropecuario 2022. https://www.inegi.org.mx/app/biblioteca/ficha.html?upc=794551067284 (accessed 2024-04-18).

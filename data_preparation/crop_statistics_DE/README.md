@@ -82,6 +82,11 @@ CC-BY 4.0
 ## How to cite
 Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 to 2021 at a harmonized district-level. OpenAgrar https://doi.org/10.3220/DATA20231117103252-0 (2023).
 
+## Footnote
+We should use DE data since it is superior on two counts compared to the EU data source:
+1) DE data has longer time series (..)
+2) DE data has also more number of state ids....(...)
+
 ## References
 Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 to 2021 at a harmonized district-level. OpenAgrar https://doi.org/10.3220/DATA20231117103252-0 (2023).
 

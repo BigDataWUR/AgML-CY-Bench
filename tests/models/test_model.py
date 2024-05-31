@@ -34,7 +34,7 @@ def test_average_yield_model():
     # test prediction for an existing item
     sel_loc = "US-01-001"
     assert sel_loc in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_features=[])
+    dataset = Dataset(data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     sel_year = 2018
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -58,7 +58,7 @@ def test_average_yield_model():
     # test prediction for a non-existent item
     sel_loc = "US-01-003"
     assert sel_loc not in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_features=[])
+    dataset = Dataset(data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
@@ -136,6 +136,24 @@ def test_trend_model():
 
 
 def test_sklearn_model():
+    # Test 1: Test with raw data
+    dataset_sw_nl = Dataset.load("test_softwheat_nl")
+    all_years = list(range(2001, 2019))
+    test_years = [2017, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_dataset, test_dataset = dataset_sw_nl.split_on_years(
+        (train_years, test_years)
+    )
+
+    # Model
+    ridge = Ridge(alpha=0.5)
+    model = SklearnModel(ridge)
+    model.fit(train_dataset)
+
+    test_preds, _ = model.predict(test_dataset)
+    assert test_preds.shape[0] == len(test_dataset)
+
+    # Test 2: Test with predesigned features
     data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
@@ -158,12 +176,12 @@ def test_sklearn_model():
         ridge,
         feature_cols=feature_cols,
     )
-    model.fit(train_dataset)
+    model.fit(train_dataset, **{"predesigned_features": True})
 
     test_preds, _ = model.predict(test_dataset)
-
     assert test_preds.shape[0] == len(test_dataset)
 
+    # TODO: Need alternative to hardcoding expected metrics.
     evaluation_result = evaluate_model(model, test_dataset)
     expected_values = {
         "normalized_rmse": 14.49,
@@ -177,10 +195,11 @@ def test_sklearn_model():
             round(evaluation_result[metric], 2) == expected_value
         ), f"Value of metric '{metric}' does not match expected value"
 
-    # Model with hyperparameter optimization
+    # Test 3: Test hyperparameter optimization
     fit_params = {
         "optimize_hyperparameters": True,
         "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+        "predesigned_features": True,
     }
     model.fit(train_dataset, **fit_params)
     test_preds, _ = model.predict(test_dataset)
