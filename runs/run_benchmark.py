@@ -34,21 +34,23 @@ _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    'batch_size': 32,
+    'batch_size': 16,
     'num_epochs': 50,
     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
     'optim_fn': torch.optim.Adam,
+    'optim_kwargs': {"lr": 0.0001, 'weight_decay': 0.00001},
     'scheduler_fn': torch.optim.lr_scheduler.StepLR,
-    'scheduler_kwargs': {"step_size": 1, "gamma": 0.99},
+    'scheduler_kwargs': {"step_size": 1, "gamma": 1},
     'val_fraction': 0.1,
     'val_split_by_year': True,
     'do_early_stopping': True,
 
-    'optimize_hyperparameters': True,
+
+    'optimize_hyperparameters': False,
     'param_space': {
         'optim_kwargs': {
-            "lr": [0.001, 0.0001],
-            'weight_decay': [0.0001],
+            "lr": [0.0001, 0.00001],
+            'weight_decay': [0.0001, 0.00001],
         },
     },
     'do_kfold': False,

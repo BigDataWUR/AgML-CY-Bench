@@ -34,9 +34,15 @@ def validate_single_model(
     model_fit_kwargs: dict = None,
     baseline_models: list = None,
     dataset_name: str = "test_maize_us",
+    test_years_to_leave_out: list = None,
 ) -> dict:
+    
     """
-    Run a single model on a single fold and return validation results.
+    Run a single model on a single outer fold and return validation results.
+    Test is is left out completely and not used for training or validation.
+    Not used for benchmarking. Use run_benchmark instead. Hyperparameters should be optimized in each outer fold in the benchmark.
+    This function should only be used for exploration of initial hyperparameter settings.
+
     Args:
         run_name (str): The name of the run. Will be used to store log files and model results
         model_name (str): The name of the model. Will be used to store log files and model results
@@ -83,9 +89,17 @@ def validate_single_model(
     dataset = Dataset.load(dataset_name)
 
     all_years = dataset.years
-    test_year = list(all_years)[0]
-    train_years = [y for y in all_years if y != test_year]
-    test_years = [test_year]
+
+
+    if test_years_to_leave_out is None:
+        test_years = [list(all_years)[0]]
+    else:
+        assert all([y in all_years for y in test_years_to_leave_out])
+        test_years = test_years_to_leave_out
+    
+    train_years = [y for y in all_years if y not in test_years]
+    assert len(set(train_years).intersection(set(test_years))) == 0
+
     train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
     compiled_results = {}

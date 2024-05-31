@@ -1,11 +1,10 @@
 import copy
-import itertools
 import random
 import torch
 import torch.nn as nn
 from tqdm import tqdm
 import numpy as np
-from sklearn.model_selection import ParameterGrid
+import logging
 
 from datasets.dataset_torch import TorchDataset
 from datasets.dataset import Dataset
@@ -21,6 +20,7 @@ class BaseNNModel(BaseModel, nn.Module):
         super(nn.Module, self).__init__()
 
         self._init_args = kwargs
+        self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset,
             optimize_hyperparameters: bool = False,
@@ -57,7 +57,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     # For each fold, create new model and datasets, train and record val loss. Finally, average val loss.
                     val_loss_fold = []
                     for j, val_fold in enumerate(cv_folds):
-                        print(f"Running inner fold {j+1}/{kfolds} for hyperparameter setting {i+1}/{len(settings)}")
+                        self._logger.debug(f"Running inner fold {j+1}/{kfolds} for hyperparameter setting {i+1}/{len(settings)}")
                         val_years = val_fold
                         train_years = [y for y in all_years if y not in val_years]
                         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
@@ -73,7 +73,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 else:
                     # Train new model with single randomly sampled validation set
-                    print(f"Running setting {i+1}/{len(settings)}")
+                    self._logger.debug(f"Running setting {i+1}/{len(settings)}")
                     new_model = self.__class__(**self._init_args)
                     _, output = new_model.fit(dataset=dataset, *args, **setting)
                     if "val_loss" not in output:
@@ -86,8 +86,8 @@ class BaseNNModel(BaseModel, nn.Module):
                         val_loss = output["val_loss"]
                 assert val_loss is not None
 
-                print(f"For setting {i+1}/{len(settings)}, average validation loss: {val_loss}")
-                print(f"Settings: {setting}")
+                self._logger.debug(f"For setting {i+1}/{len(settings)}, average validation loss: {val_loss}")
+                self._logger.debug(f"Settings: {setting}")
 
                 # Store best model setting
                 if val_loss < best_loss:
@@ -96,14 +96,15 @@ class BaseNNModel(BaseModel, nn.Module):
             
             # Finally, train model with best setting
             final_model, final_output = self.fit(dataset=dataset, *args, **best_setting)
-            print(f"Final validation loss of outer fold: {final_output['val_loss']}")
-            print(f"Final best setting of outer fold: {best_setting}")
+            self._logger.debug(f"Final validation loss of outer fold: {final_output['val_loss']}")
+            self._logger.debug(f"Final best setting of outer fold: {best_setting}")
             return final_model, final_output
         else:
            
             model, output = self.train_model(dataset, *args, **kwargs)
 
-            # If early stopping is used, use best val loss and save best model for prediction
+            # If early stopping is used, use best val 
+            # loss and save best model for prediction
             if output["best_val_loss"] is not None:
                 self.best_model = output["best_model"]
                 return self.best_model, output
@@ -167,12 +168,15 @@ class BaseNNModel(BaseModel, nn.Module):
 
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            print(f"Warning: Device not specified, using {device}")
+            self._logger.debug(f"Warning: Device not specified, using {device}")
 
         assert num_epochs > 0
 
         self.batch_size = batch_size
         self.to(device)
+
+        if 'seed' in fit_params.keys():
+            random.seed(fit_params['seed'])
 
         if val_dataset is not None:
             train_dataset = TorchDataset(train_dataset)
@@ -204,6 +208,8 @@ class BaseNNModel(BaseModel, nn.Module):
             n_val = int(np.ceil(len(all_years) * val_fraction))
             val_years = list_all_years[:n_val]
             train_years = list_all_years[n_val:]
+            self._logger.debug(f"Validation years: {val_years}")
+            self._logger.debug(f"Training years: {train_years}")
             train_dataset, val_dataset = train_dataset.split_on_years((train_years, val_years))
             train_dataset = TorchDataset(train_dataset)
             val_dataset = TorchDataset(val_dataset)
@@ -324,6 +330,8 @@ class BaseNNModel(BaseModel, nn.Module):
             "best_val_loss": best_val_loss,
             "best_val_epoch": np.argmin(all_val_losses) if val_loader is not None else None,
             "best_model": best_model,
+            "train_years": train_years if val_split_by_year else None,
+            "val_years": val_years if val_split_by_year else None,
             }
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
@@ -343,6 +351,8 @@ class BaseNNModel(BaseModel, nn.Module):
             batch_size = self.batch_size
 
         if self.best_model is not None:
+            # Log
+            self._logger.debug("Using best model from early stopping for prediction")
             model = self.best_model
         else:
             model = self
