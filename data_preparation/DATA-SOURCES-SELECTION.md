@@ -30,26 +30,9 @@ Choices, selection and justification
 Ritvik Sahajpal, Michele Meroni
 
 ## Crop calendars
-<style>
-table th:first-of-type {
-    width: 22%;
-}
-table th:nth-of-type(2) {
-    width: 22%;
-}
-table th:nth-of-type(3) {
-    width: 22%;
-}
-table th:nth-of-type(4) {
-    width: 22%;
-}
-table th:nth-of-type(5) {
-    width: 12%;
-}
-</style>
 
 | Source | Area/crops | Phases reported | Caveat | Open and Free? |
-|---|---|---|---|:--:|
+|------|------|------|------|:---:|
 | [FAO-GIEWS](https://www.fao.org/giews/countrybrief/country.jsp?lang=en&code=DZA) | Country-level, main crops (wheat and maize covered) | Sowing-growing-harvest | It covers food insecure countries (e.g. no US or EU) | Y |
 | [FAO-Crop Calendars](https://cropcalendar.apps.fao.org/#/home) | Many crops, sub-national, sometimes agro-eco zones | Sowing, harvesting | no detailed description, not all countries, sometimes seems not correct | Y |
 | [GEOGLAM](https://cropmonitor.org/index.php/eodatatools/baseline-data/) |  | Planting through Early Vegetative*<br>Vegetative through Reproductive<br>Ripening through Harvest<br>Harvest (End of Season)<br>Out of Season | Not global cover (on public website) | Y |
