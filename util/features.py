@@ -4,7 +4,6 @@ import pandas as pd
 
 from config import KEY_LOC, KEY_YEAR, KEY_DATES
 
-
 def fortnight_from_date(date_str):
     """Get the fortnight number from date.
 
@@ -112,8 +111,45 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 # Feature 4: Growing degree days
 # TODO: What is the formula?
 
+def calc_gdd(tmin, tmax, tbase):
+   
+   # Base temp would be 0 for winter wheat and 10 for corn.
+
+   tmin = np.asarray(tmin)
+   tmax = np.asarray(tmax)
+   
+   tavg = (tmin + tmax) / 2
+   
+   gdd = np.maximum(0, tavg - tbase)
+   
+   return gdd.sum()
+
 # Feature 5: Vernalization requirement
 # TODO: What is the formula
+
+def calc_vern(tmin, tmax):
+   tmin = np.asarray(tmin)
+   tmax = np.asarray(tmax)
+   
+   tavg = (tmin + tmax) / 2
+   
+   def vrn_fac(temp):
+       if temp < 0:
+           return 0
+       elif 0 <= temp <= 4:
+           return temp / 4
+       elif 4 < temp <= 8:
+           return 1
+       elif 8 < temp <= 10:
+           return (10 - temp) / 2
+       else:
+           return 0
+   
+   v_units = np.vectorize(vrn_fac)(tavg)
+   
+   total_v_units = v_units.sum()
+   
+   return total_v_units
 
 
 def count_threshold(
