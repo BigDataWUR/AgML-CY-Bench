@@ -352,6 +352,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             # Setting NA values to 0 is fine for weights.
             crop_mask[crop_mask > 100] <- 0
             crop_mask[crop_mask < 0] <- 0
+            crop_mask_cropped <- TRUE
           }
 
           # Crop rasters to shapes
