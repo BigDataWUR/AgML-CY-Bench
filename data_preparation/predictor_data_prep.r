@@ -205,7 +205,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     crop_mask_cropped <- FALSE
     resampled <- FALSE
     # NOTE: AgERA5 data is cropped to specific regions
-    if ((indictor_source != "AgERA5") &
+    if ((indicator_source != "AgERA5") &
         file.exists(resampled_crop_mask_file)) {
       crop_mask <- rast(resampled_crop_mask_file)
       resampled <- TRUE
