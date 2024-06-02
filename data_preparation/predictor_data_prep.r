@@ -339,6 +339,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             } else {
               crop_mask <- resample(crop_mask, rast_stack[[1]], method="bilinear")
             }
+            resampled <- TRUE
             if (indicator_source != "AgERA5") {
               writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
             }
