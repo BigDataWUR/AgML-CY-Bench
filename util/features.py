@@ -111,14 +111,9 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 # Feature 4: Growing degree days
 # TODO: What is the formula?
 
-def calc_gdd(tmin, tmax, tbase):
+def calc_gdd(tavg, tbase):
    
    # Base temp would be 0 for winter wheat and 10 for corn.
-
-   tmin = np.asarray(tmin)
-   tmax = np.asarray(tmax)
-   
-   tavg = (tmin + tmax) / 2
    
    gdd = np.maximum(0, tavg - tbase)
    
@@ -127,11 +122,7 @@ def calc_gdd(tmin, tmax, tbase):
 # Feature 5: Vernalization requirement
 # TODO: What is the formula
 
-def calc_vern(tmin, tmax):
-   tmin = np.asarray(tmin)
-   tmax = np.asarray(tmax)
-   
-   tavg = (tmin + tmax) / 2
+def calc_vern(tavg):
    
    def vrn_fac(temp):
        if temp < 0:
