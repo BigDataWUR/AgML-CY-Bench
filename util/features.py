@@ -245,9 +245,13 @@ def design_features(
     Returns:
       pd.DataFrame of features
     """
-    # for soil, we need to comput water holding capacity
+    # for soil, we need to compute water holding capacity
     # TODO: 1. not needed for cybench data. Remove later.
     # TODO: 2. Add code to make drainage class a categorical feature.
+
+    if 'DRAIN' in soil_df.columns:
+        soil_df['DRAIN'] = soil_df['DRAIN'].astype('category')
+
     if "sm_whc" not in soil_df.columns:
         soil_df["sm_whc"] = soil_df["sm_fc"] - soil_df["sm_wp"]
         soil_features = soil_df[[KEY_LOC, "sm_whc"]]
@@ -270,6 +274,18 @@ def design_features(
 
     fapar_df = add_period(fapar_df, period_length)
     weather_df = add_period(weather_df, period_length)
+
+    # Climatic water balance
+    if et0_df is not None:
+        weather_df = weather_df.merge(et0_df, on=index_cols)
+        weather_df['cwb'] = weather_df['prec'] - weather_df['ET0']
+
+    weather_df['cumul_cwb'] = weather_df.groupby(KEY_LOC)['cwb'].cumsum()
+
+    # Cumulative NDVI
+    if ndvi_df is not None:
+        ndvi_df = add_period(ndvi_df, period_length)
+        ndvi_df['cumul_ndvi'] = ndvi_df.groupby(KEY_LOC)['ndvi'].cumsum()
 
     max_aggrs = {ind: "max" for ind in max_feature_cols}
     avg_aggrs = {ind: "mean" for ind in avg_feature_cols}
