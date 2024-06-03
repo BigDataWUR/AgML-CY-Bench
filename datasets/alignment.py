@@ -45,18 +45,15 @@ def _update_date(harvest_date, diff_with_harvest):
 
 def _merge_with_crop_calendar(df, crop_cal_df):
     df = df.merge(crop_cal_df, on=[KEY_LOC])
-    df["season_start"] = df.apply(
-        lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1
-    )
-    df["season_end"] = df.apply(
-        lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1
-    )
+    df["season_start"] = df.apply(lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1)
+    df["season_end"] = df.apply(lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1)
 
     return df
 
 
-def rotate_data_by_crop_calendar(df, crop_cal_df, spinup=90,
-                                 ts_index_cols=[KEY_LOC, KEY_YEAR, "date"]):
+def rotate_data_by_crop_calendar(
+    df, crop_cal_df, spinup=90, ts_index_cols=[KEY_LOC, KEY_YEAR, "date"]
+):
     data_cols = [c for c in df.columns if c not in ts_index_cols]
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
@@ -64,9 +61,7 @@ def rotate_data_by_crop_calendar(df, crop_cal_df, spinup=90,
     df = df.astype({"date": "str"})
 
     # The next new year starts right after this year's harvest.
-    df["new_year"] = np.where(
-        df["date"] > df["season_end"], df["year"] + 1, df["year"]
-    )
+    df["new_year"] = np.where(df["date"] > df["season_end"], df["year"] + 1, df["year"])
     df = df.astype({"season_end": str})
     df["harvest_date"] = df.apply(
         lambda r: _update_harvest_year(r["season_end"], r["year"], r["new_year"]),
@@ -130,4 +125,3 @@ def align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
     index_y_location_selection = set([loc_id for loc_id, _ in index_y_selection])
 
     return df_y, dfs_x
-

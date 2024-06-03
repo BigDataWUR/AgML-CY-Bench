@@ -11,20 +11,21 @@ from config import (
     RS_FPAR,
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
-    CROP_CALENDAR_ENTRIES
+    CROP_CALENDAR_ENTRIES,
 )
 
 from datasets.alignment import align_data, rotate_data_by_crop_calendar
 
 
-def _add_year(df:pd.DataFrame) -> pd.DataFrame:
+def _add_year(df: pd.DataFrame) -> pd.DataFrame:
     df["date"] = df["date"].astype(str)
     df[KEY_YEAR] = df["date"].str[:4]
     df[KEY_YEAR] = df[KEY_YEAR].astype(int)
 
     return df
 
-def load_dfs(crop:str, country_code:str) -> tuple:
+
+def load_dfs(crop: str, country_code: str) -> tuple:
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -32,7 +33,7 @@ def load_dfs(crop:str, country_code:str) -> tuple:
         os.path.join(path_data_cn, "_".join(["yield", crop, country_code]) + ".csv"),
         header=0,
     )
-    df_y = df_y.rename(columns={"harvest_year" : KEY_YEAR})
+    df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y = df_y[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
 
     # soil
@@ -44,7 +45,9 @@ def load_dfs(crop:str, country_code:str) -> tuple:
 
     # crop calendar
     df_crop_cal = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["crop_calendar", crop, country_code]) + ".csv"),
+        os.path.join(
+            path_data_cn, "_".join(["crop_calendar", crop, country_code]) + ".csv"
+        ),
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
 
@@ -84,7 +87,9 @@ def load_dfs(crop:str, country_code:str) -> tuple:
 
     # soil moisture
     df_x_soil_moisture = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["soil_moisture", crop, country_code]) + ".csv"),
+        os.path.join(
+            path_data_cn, "_".join(["soil_moisture", crop, country_code]) + ".csv"
+        ),
         header=0,
     )
     df_x_soil_moisture = _add_year(df_x_soil_moisture)
@@ -94,17 +99,12 @@ def load_dfs(crop:str, country_code:str) -> tuple:
 
     df_y = df_y.set_index([KEY_LOC, KEY_YEAR])
     df_x_soil = df_x_soil.set_index([KEY_LOC])
-    dfs_x = (
-        df_x_soil,
-        df_x_meteo,
-        df_x_fpar,
-        df_x_ndvi,
-        df_x_soil_moisture
-    )
+    dfs_x = (df_x_soil, df_x_meteo, df_x_fpar, df_x_ndvi, df_x_soil_moisture)
 
     df_y, dfs_x = align_data(df_y, dfs_x)
 
     return df_y, dfs_x
+
 
 def load_dfs_maize_es() -> tuple:
     return load_dfs("maize", "ES")

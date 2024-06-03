@@ -197,9 +197,7 @@ def unpack_time_series(df, indicators):
     return df
 
 
-def design_features(
-    weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df=None
-):
+def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df=None):
     """Design features based domain expertise.
 
     Args:
@@ -218,7 +216,7 @@ def design_features(
     Returns:
       pd.DataFrame of features
     """
-    soil_features = soil_df.astype({"drainage_class" : 'category'})
+    soil_features = soil_df.astype({"drainage_class": "category"})
 
     # Feature design for time series
     # TODO: 1. add code for cumulative features

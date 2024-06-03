@@ -18,8 +18,9 @@ from config import (
     SOIL_PROPERTIES,
     METEO_INDICATORS,
     RS_FPAR,
-    RS_NDVI
+    RS_NDVI,
 )
+
 
 class SklearnModel(BaseModel):
     def __init__(self, sklearn_est, feature_cols=None, scaler=None):

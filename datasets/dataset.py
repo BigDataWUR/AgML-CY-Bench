@@ -329,8 +329,10 @@ class Dataset:
         # Check existing index.
         # TODO: There might be a better way to do this.
         index_years = self.years
-        years_split = (list(set(years_split[0]).intersection(index_years)),
-                       list(set(years_split[1]).intersection(index_years)))
+        years_split = (
+            list(set(years_split[0]).intersection(index_years)),
+            list(set(years_split[1]).intersection(index_years)),
+        )
 
         for src_df in self._dfs_x:
             n_levels = len(src_df.index.names)
