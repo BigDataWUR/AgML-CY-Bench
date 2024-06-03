@@ -131,13 +131,13 @@ class SklearnModel(BaseModel):
         """
         # static data is repeated for every year. Drop duplicates.
         soil_df = data_df[[KEY_LOC] + SOIL_PROPERTIES].drop_duplicates()
-        fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FPAR]].copy()
-        fapar_df = unpack_time_series(fapar_df, [RS_FPAR])
+        fpar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FPAR]].copy()
+        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
         weather_df = data_df[
             [KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
         ].copy()
         weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
-        features = design_features(weather_df, soil_df, fapar_df)
+        features = design_features(weather_df, soil_df, fpar_df)
 
         return features
 
