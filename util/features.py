@@ -218,21 +218,14 @@ def design_features(
     Returns:
       pd.DataFrame of features
     """
-    # for soil, we need to comput water holding capacity
-    # TODO: 1. not needed for cybench data. Remove later.
-    # TODO: 2. Add code to make drainage class a categorical feature.
-    if "sm_whc" not in soil_df.columns:
-        soil_df["sm_whc"] = soil_df["sm_fc"] - soil_df["sm_wp"]
-        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
-    else:
-        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
+    soil_features = soil_df.astype({"drainage_class" : 'category'})
 
     # Feature design for time series
     # TODO: 1. add code for cumulative features
     # TODO: 2. add code for ET0, ndvi, soil moisture
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["fapar"]  # ["ndvi", "fapar"]
+    max_feature_cols = ["fpar"]  # ["ndvi", "fapar"]
     avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees

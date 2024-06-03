@@ -59,40 +59,40 @@ class Dataset:
 
     @staticmethod
     def load(name: str) -> "Dataset":
-        if name == "test_maize":
-            from datasets.configured import load_dfs_test_maize
+        if name == "maize":
+            from datasets.configured import load_dfs_maize
 
-            df_y, dfs_x = load_dfs_test_maize()
+            df_y, dfs_x = load_dfs_maize()
             return Dataset(
                 df_y,
-                dfs_x,
+                list(dfs_x),
             )
 
-        if name == "test_maize_us":
-            from datasets.configured import load_dfs_test_maize_us
+        if name == "maize_ES":
+            from datasets.configured import load_dfs_maize_es
 
-            df_y, dfs_x = load_dfs_test_maize_us()
+            df_y, dfs_x = load_dfs_maize_es()
             return Dataset(
                 df_y,
-                dfs_x,
+                list(dfs_x),
             )
 
-        if name == "test_maize_fr":
-            from datasets.configured import load_dfs_test_maize_fr
+        if name == "maize_NL":
+            from datasets.configured import load_dfs_maize_nl
 
-            df_y, dfs_x = load_dfs_test_maize_fr()
+            df_y, dfs_x = load_dfs_maize_nl()
             return Dataset(
                 df_y,
-                dfs_x,
+                list(dfs_x),
             )
 
-        if name == "test_softwheat_nl":
-            from datasets.configured import load_dfs_test_softwheat_nl
+        if name == "wheat_NL":
+            from datasets.configured import load_dfs_wheat_nl
 
-            df_y, dfs_x = load_dfs_test_softwheat_nl()
+            df_y, dfs_x = load_dfs_wheat_nl()
             return Dataset(
                 df_y,
-                dfs_x,
+                list(dfs_x),
             )
 
         raise Exception(f'Unrecognized dataset name "{name}"')
