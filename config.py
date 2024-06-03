@@ -16,7 +16,7 @@ PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
 os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
 
 # Key used for the location index
-KEY_LOC = "loc_id"
+KEY_LOC = "adm_id"
 # Key used for the year index
 KEY_YEAR = "year"
 # Key used for yield targets
@@ -24,18 +24,15 @@ KEY_TARGET = "yield"
 # Key used for dates matching observations
 KEY_DATES = "dates"
 
-# Soil indicators
-# for sample data
-SOIL_INDICATORS = ["sm_fc", "sm_wp"]
-# TODO: uncomment for cybench data
-# SOIL_INDICATORS = ["awc", "drainage_class", "bulk_density"]
+# Soil properties
+SOIL_PROPERTIES = ["awc", "drainage_class", "bulk_density"]
 
 # Weather indicators
-WEATHER_INDICATORS = ["tmin", "tmax", "tavg", "prec"]
+METEO_INDICATORS = ["tmin", "tmax", "tavg", "prec", "cwb"]
 
 # Remote sensing indicators.
 # Keep them separate because they have different temporal resolution
-RS_FAPAR = "fapar"
+RS_FPAR = "fpar"
 RS_NDVI = "ndvi"
 
 # Logging
