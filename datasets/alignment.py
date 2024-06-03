@@ -124,7 +124,10 @@ def trim_to_lead_time(df, crop_cal_df, lead_time):
     # keep the minimum number of time steps
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
-    df = df.drop(columns=["cutoff_days", "cutoff_date", "end_of_year"])
+    # NOTE: pandas adds "-" to date
+    df["date"] = df["date"].astype(str)
+    df["date"] = df["date"].str.replace("-", "")
+    df = df.drop(columns=["cutoff_days", "cutoff_date", "end_of_year", "index"])
 
     return df
 

@@ -156,4 +156,4 @@ def load_dfs_maize() -> tuple:
 def load_dfs_wheat_nl() -> tuple:
     return load_dfs("wheat", "NL")
 
-load_dfs("maize", "NL", lead_time="mid-season")
+load_dfs("maize", "NL", "mid-season")
