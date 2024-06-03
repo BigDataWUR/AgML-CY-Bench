@@ -32,6 +32,22 @@ Undifferentiated Maize or Grain Maize where differentiated
 Undifferentiated Wheat or Winter Wheat where differentiated
 ![Wheat Coverage Map](doc/images/wheat_coverage_map.png)
 
+#### Deciphering crop names
+The terms used to reference different varieties or seasons of maize/wheat has been simplified in CY-Bench. The following table describes the representative crop name as provided in the crop statistics
+| Country/Region                       | Maize         | Wheat |
+|--------------------------------------|---------------|------|
+| EU-EUROSTAT | grain maize| soft wheat|
+| Africa-FEWSNET | maize | -|
+| Argentina | corn | wheat|
+| Australia| -| winter wheat|
+| Brazil| grain corn| grain wheat |
+| China| grain corn| grain wheat/spring wheat/winter wheat|
+| India| maize| wheat|
+| Mali| maize| -|
+| Mexico| white/yellow corn| -|
+| USA| grain corn | winter wheat|
+
+
 ### Getting started
 `cybench` is an open source python library to load CY-Bench dataset and run the CY-Bench tasks.
 
