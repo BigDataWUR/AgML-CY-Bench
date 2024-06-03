@@ -3,92 +3,46 @@ import pandas as pd
 
 import pandas as pd
 import numpy as np
-from datetime import datetime
 from datetime import timedelta
 from datetime import date
 
 from config import KEY_LOC, KEY_YEAR
 
 
-def doy_to_date(doy, year):
-    # Based on
-    # https://www.geeksforgeeks.org/python-convert-day-number-to-date-in-particular-year/
-
-    # Pad on the left with 0's.
-    # See https://docs.python.org/3/library/stdtypes.html. Look for str.rjust().
-    if isinstance(doy, int):
-        doy = str(doy)
-    if isinstance(year, int):
-        year = str(year)
-
-    doy.rjust(3 + len(doy), "0")
-    date_str = datetime.strptime(year + "-" + doy, "%Y-%j").strftime("%Y%m%d")
-
-    return date_str
-
-
-def get_cutoff_days(crop_cal_df, lead_time):
+def _add_cutoff_days(df, lead_time):
     if ("days" in lead_time):
-        crop_cal_df["cutoff_days"] = int(lead_time.split("-")[0])
+        df["cutoff_days"] = int(lead_time.split("-")[0])
     else:
         assert ("season" in lead_time)
         if (lead_time == "mid-season"):
-            crop_cal_df["cutoff_days"] = np.where(crop_cal_df["sos"] < crop_cal_df["eos"],
-                                                  (crop_cal_df["eos"] - crop_cal_df["sos"])//2,
-                                                  (365 - crop_cal_df["sos"] + crop_cal_df["eos"])//2)             
+            df["cutoff_days"] = df["season_length"]//2             
         elif (lead_time == "quarter-of-season"):
-            crop_cal_df["cutoff_days"] = np.where(crop_cal_df["sos"] < crop_cal_df["eos"],
-                                                  (crop_cal_df["eos"] - crop_cal_df["sos"])//4,
-                                                  (365 - crop_cal_df["sos"] + crop_cal_df["eos"])//4) 
+            df["cutoff_days"] = f["season_length"]//4
         else:
             raise Exception(f'Unrecognized lead time "{lead_time}"')
-
-    return crop_cal_df[[KEY_LOC, "cutoff_days"]]
-
-def _update_harvest_year(harvest_date, year, new_year):
-    if year != new_year:
-        return harvest_date.replace(str(year), str(new_year))
-
-    return harvest_date
-
-
-def _update_date(harvest_date, diff_with_harvest):
-    # NOTE add the difference between YYYY1231 and harvest_date
-    # Then add diff_with_harvest
-    end_of_year = date(harvest_date.year, 12, 31)
-    end_of_year_delta = (end_of_year - harvest_date).days
-    days_delta = end_of_year_delta + diff_with_harvest
-    return harvest_date + timedelta(days=days_delta)
-
-
-def _merge_with_crop_calendar(df, crop_cal_df):
-    df = df.merge(crop_cal_df, on=[KEY_LOC])
-    df["season_start"] = df.apply(lambda r: doy_to_date(r["sos"], r[KEY_YEAR]), axis=1)
-    df["season_end"] = df.apply(lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1)
 
     return df
 
 
-def rotate_data_by_crop_calendar(
-    df, crop_cal_df, spinup=60, ts_index_cols=[KEY_LOC, KEY_YEAR, "date"]
-):
-    data_cols = [c for c in df.columns if c not in ts_index_cols]
+def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=60):
+    select_cols = list(df.columns)
+    # Merge with crop calendar
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
-    df = _merge_with_crop_calendar(df, crop_cal_df[crop_cal_cols])
-    df = df.astype({"date": "str"})
+    df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
+    df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format='%Y%j')
+    df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format='%Y%j')
 
     # The next new year starts right after this year's harvest.
-    df["new_year"] = np.where(df["date"] > df["season_end"], df["year"] + 1, df["year"])
-    df = df.astype({"season_end": str})
-    df["harvest_date"] = df.apply(
-        lambda r: _update_harvest_year(r["season_end"], r["year"], r["new_year"]),
-        axis=1,
-    )
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
-    df["harvest_date"] = pd.to_datetime(df["harvest_date"], format="%Y%m%d")
-    df["season_start"] = pd.to_datetime(df["season_start"], format="%Y%m%d")
-    df["harvest_diff"] = (df["date"] - df["harvest_date"]).dt.days
+    df["new_year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
+    df["eos_date"] = np.where(df["year"] != df["new_year"],
+                              df["new_year"].astype(str) + df["eos_date"].dt.strftime('-%m-%d'),
+                              df["eos_date"].astype(str))
+    df["eos_date"] = pd.to_datetime(df["eos_date"], format="%Y-%m-%d")
+
+    # Compute difference with eos
+    df["eos_diff"] = (df["date"] - df["eos_date"]).dt.days
     df = df.rename(
         columns={
             "date": "original_date",
@@ -96,38 +50,45 @@ def rotate_data_by_crop_calendar(
             "new_year": KEY_YEAR,
         }
     )
-    # NOTE pd.to_datetime() creates a Timestamp object
-    df["date"] = df.apply(
-        lambda r: _update_date(r["harvest_date"].date(), r["harvest_diff"]), axis=1
-    )
-    df["spinup_date"] = df["season_start"] - pd.Timedelta(days=spinup)
+
+    # update date
+    # 1. Add delta to the end of the year to align eos with Dec 31.
+    # 2. Add delta with eos
+    df["end_of_year"] = pd.to_datetime(df[KEY_YEAR].astype(str) + "1231", format="%Y%m%d")
+    df["date"] = df["eos_date"] + pd.to_timedelta((df["end_of_year"] - df["eos_date"]).dt.days + df["eos_diff"],
+                                                   unit='d')
+
     df = df[
-        (df["original_date"] >= df["spinup_date"])
-        & (df["original_date"] <= df["harvest_date"])
+        (df["original_date"] >= (df["sos_date"] - pd.Timedelta(days=spinup_days)))
+        & (df["original_date"] <= df["eos_date"])
     ]
 
-    df = df[ts_index_cols + data_cols]
+    drop_cols = ["sos_date", "eos_date", "eos_diff"]# ,
+                 #"original_date", "original_year"]
+    df = df.drop(columns=drop_cols)
 
-    return df
+    # Remove years that don't include the complete season
+    df["season_length"] = np.where(df["sos"] < df["eos"],
+                                   (df["eos"] - df["sos"]),
+                                   (365 - df["sos"] + df["eos"]))
 
-def trim_to_lead_time(df, crop_cal_df, lead_time):
-    # Includes number of days
-    df_cutoff_dates = get_cutoff_days(crop_cal_df, lead_time)
+    df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("min")
+    df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
+    df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_length"]]
+    df = df.sort_values(by=index_cols)
 
-    df = df.merge(df_cutoff_dates, on=[KEY_LOC])
-    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
-    df["end_of_year"] = df.apply(lambda r: date(r[KEY_YEAR], 12, 31), axis=1)
-    df["cutoff_date"] = df.apply(lambda r: r["end_of_year"] -
-                                 timedelta(days=r["cutoff_days"]), axis=1)
+    # Determine cutoff days based on lead time.
+    df = _add_cutoff_days(df, lead_time)
+    df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit='d')
     df = df[df["date"] < df["cutoff_date"]]
 
-    # keep the minimum number of time steps
+    # Keep the same number of time steps for all locations and years
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
     # NOTE: pandas adds "-" to date
     df["date"] = df["date"].astype(str)
     df["date"] = df["date"].str.replace("-", "")
-    df = df.drop(columns=["cutoff_days", "cutoff_date", "end_of_year", "index"])
+    df = df[select_cols]
 
     return df
 

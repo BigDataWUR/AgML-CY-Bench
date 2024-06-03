@@ -14,14 +14,11 @@ from config import (
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
     CROP_CALENDAR_ENTRIES,
-    LEAD_TIME,
-    START_YEAR,
-    END_YEAR,
+    FORECAST_LEAD_TIME,
 )
 
 from datasets.alignment import (
     align_data,
-    rotate_data_by_crop_calendar,
     trim_to_lead_time
 )
 
@@ -34,16 +31,19 @@ def _add_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _preprocess_time_series(df, index_cols, df_crop_cal, lead_time):
+def _preprocess_time_series_data(df, index_cols, select_cols,
+                                 df_crop_cal,
+                                 lead_time):
+    df = _add_year(df)
+    df = df[index_cols + select_cols]
     df = df.dropna(axis=0)
-    df = rotate_data_by_crop_calendar(df, df_crop_cal)
-    df = df[(df[KEY_YEAR] >= START_YEAR) & (df[KEY_YEAR] <= END_YEAR)]
-    df = df.sort_values(by=index_cols)
-    df = trim_to_lead_time(df, df_crop_cal, lead_time)
+    df = trim_to_lead_time(df, index_cols, df_crop_cal, lead_time)
 
     return df
 
-def load_dfs(crop: str, country_code: str, lead_time:str=LEAD_TIME) -> tuple:
+
+def load_dfs(crop: str, country_code: str,
+             lead_time:str=FORECAST_LEAD_TIME) -> tuple:
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -78,30 +78,33 @@ def load_dfs(crop: str, country_code: str, lead_time:str=LEAD_TIME) -> tuple:
         os.path.join(path_data_cn, "_".join(["meteo", crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_meteo = _add_year(df_x_meteo)
-    df_x_meteo = df_x_meteo[ts_index_cols + METEO_INDICATORS]
-    df_x_meteo = _preprocess_time_series(df_x_meteo, ts_index_cols, df_crop_cal, lead_time)
+    df_x_meteo = _preprocess_time_series_data(df_x_meteo, ts_index_cols,
+                                              METEO_INDICATORS,
+                                              df_crop_cal, lead_time)
     df_x_meteo = df_x_meteo.set_index(ts_index_cols)
+    print(df_x_meteo.head())
 
     # fpar
     df_x_fpar = pd.read_csv(
         os.path.join(path_data_cn, "_".join([RS_FPAR, crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_fpar = _add_year(df_x_fpar)
-    df_x_fpar = df_x_fpar[ts_index_cols + [RS_FPAR]]
-    df_x_fpar = _preprocess_time_series(df_x_fpar, ts_index_cols, df_crop_cal, lead_time)
+    df_x_fpar = _preprocess_time_series_data(df_x_fpar, ts_index_cols,
+                                             [RS_FPAR],
+                                             df_crop_cal, lead_time)
     df_x_fpar = df_x_fpar.set_index(ts_index_cols)
+    print(df_x_fpar.head())
 
     # ndvi
     df_x_ndvi = pd.read_csv(
         os.path.join(path_data_cn, "_".join([RS_NDVI, crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_ndvi = _add_year(df_x_ndvi)
-    df_x_ndvi = df_x_ndvi[ts_index_cols + [RS_NDVI]]
-    df_x_ndvi = _preprocess_time_series(df_x_ndvi, ts_index_cols, df_crop_cal, lead_time)
+    df_x_ndvi = _preprocess_time_series_data(df_x_ndvi, ts_index_cols,
+                                             [RS_NDVI],
+                                             df_crop_cal, lead_time)
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
+    print(df_x_ndvi.head())
 
     # soil moisture
     df_x_soil_moisture = pd.read_csv(
@@ -110,10 +113,9 @@ def load_dfs(crop: str, country_code: str, lead_time:str=LEAD_TIME) -> tuple:
         ),
         header=0,
     )
-    df_x_soil_moisture = _add_year(df_x_soil_moisture)
-    df_x_soil_moisture = df_x_soil_moisture[ts_index_cols + SOIL_MOISTURE_INDICATORS]
-    df_x_soil_moisture = _preprocess_time_series(df_x_soil_moisture, ts_index_cols, 
-                                                 df_crop_cal, lead_time)
+    df_x_soil_moisture = _preprocess_time_series_data(df_x_soil_moisture, ts_index_cols,
+                                                      SOIL_MOISTURE_INDICATORS,
+                                                      df_crop_cal, lead_time)
     df_x_soil_moisture = df_x_soil_moisture.set_index(ts_index_cols)
 
     df_y = df_y.set_index([KEY_LOC, KEY_YEAR])
@@ -155,5 +157,3 @@ def load_dfs_maize() -> tuple:
 
 def load_dfs_wheat_nl() -> tuple:
     return load_dfs("wheat", "NL")
-
-load_dfs("maize", "NL", "mid-season")

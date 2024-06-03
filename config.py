@@ -44,11 +44,8 @@ CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 # Lead time for forecasting
 # NOTE: can be: "mid-season", "quarter-of-season",
 # "n-days" with n is an integer
-LEAD_TIME = "mid-season"
+FORECAST_LEAD_TIME = "mid-season"
 
-# Minimum and maximum years 
-START_YEAR = 2001
-END_YEAR = 2023
 
 # Logging
 PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
