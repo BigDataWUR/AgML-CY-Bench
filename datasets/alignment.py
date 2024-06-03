@@ -10,14 +10,14 @@ from config import KEY_LOC, KEY_YEAR
 
 
 def _add_cutoff_days(df, lead_time):
-    if ("days" in lead_time):
+    if "days" in lead_time:
         df["cutoff_days"] = int(lead_time.split("-")[0])
     else:
-        assert ("season" in lead_time)
-        if (lead_time == "mid-season"):
-            df["cutoff_days"] = df["season_length"]//2             
-        elif (lead_time == "quarter-of-season"):
-            df["cutoff_days"] = f["season_length"]//4
+        assert "season" in lead_time
+        if lead_time == "mid-season":
+            df["cutoff_days"] = df["season_length"] // 2
+        elif lead_time == "quarter-of-season":
+            df["cutoff_days"] = f["season_length"] // 4
         else:
             raise Exception(f'Unrecognized lead time "{lead_time}"')
 
@@ -26,19 +26,22 @@ def _add_cutoff_days(df, lead_time):
 
 def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=60):
     select_cols = list(df.columns)
+
     # Merge with crop calendar
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
-    df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format='%Y%j')
-    df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format='%Y%j')
+    df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
+    df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
     # The next new year starts right after this year's harvest.
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df["new_year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
-    df["eos_date"] = np.where(df["year"] != df["new_year"],
-                              df["new_year"].astype(str) + df["eos_date"].dt.strftime('-%m-%d'),
-                              df["eos_date"].astype(str))
+    df["eos_date"] = np.where(
+        df["year"] != df["new_year"],
+        df["new_year"].astype(str) + df["eos_date"].dt.strftime("-%m-%d"),
+        df["eos_date"].astype(str),
+    )
     df["eos_date"] = pd.to_datetime(df["eos_date"], format="%Y-%m-%d")
 
     # Compute difference with eos
@@ -54,24 +57,22 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=60):
     # update date
     # 1. Add delta to the end of the year to align eos with Dec 31.
     # 2. Add delta with eos
-    df["end_of_year"] = pd.to_datetime(df[KEY_YEAR].astype(str) + "1231", format="%Y%m%d")
-    df["date"] = df["eos_date"] + pd.to_timedelta((df["end_of_year"] - df["eos_date"]).dt.days + df["eos_diff"],
-                                                   unit='d')
+    df["end_of_year"] = pd.to_datetime(
+        df[KEY_YEAR].astype(str) + "1231", format="%Y%m%d"
+    )
+    df["date"] = df["eos_date"] + pd.to_timedelta(
+        (df["end_of_year"] - df["eos_date"]).dt.days + df["eos_diff"], unit="d"
+    )
 
     df = df[
         (df["original_date"] >= (df["sos_date"] - pd.Timedelta(days=spinup_days)))
         & (df["original_date"] <= df["eos_date"])
     ]
 
-    drop_cols = ["sos_date", "eos_date", "eos_diff"]# ,
-                 #"original_date", "original_year"]
-    df = df.drop(columns=drop_cols)
-
     # Remove years that don't include the complete season
-    df["season_length"] = np.where(df["sos"] < df["eos"],
-                                   (df["eos"] - df["sos"]),
-                                   (365 - df["sos"] + df["eos"]))
-
+    df["season_length"] = np.where(
+        df["sos"] < df["eos"], (df["eos"] - df["sos"]), (365 - df["sos"] + df["eos"])
+    )
     df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("min")
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_length"]]
@@ -79,12 +80,13 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=60):
 
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
-    df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit='d')
+    df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
     df = df[df["date"] < df["cutoff_date"]]
 
     # Keep the same number of time steps for all locations and years
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
+
     # NOTE: pandas adds "-" to date
     df["date"] = df["date"].astype(str)
     df["date"] = df["date"].str.replace("-", "")

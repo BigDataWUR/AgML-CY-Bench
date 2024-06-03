@@ -17,10 +17,7 @@ from config import (
     FORECAST_LEAD_TIME,
 )
 
-from datasets.alignment import (
-    align_data,
-    trim_to_lead_time
-)
+from datasets.alignment import align_data, trim_to_lead_time
 
 
 def _add_year(df: pd.DataFrame) -> pd.DataFrame:
@@ -31,9 +28,7 @@ def _add_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _preprocess_time_series_data(df, index_cols, select_cols,
-                                 df_crop_cal,
-                                 lead_time):
+def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal, lead_time):
     df = _add_year(df)
     df = df[index_cols + select_cols]
     df = df.dropna(axis=0)
@@ -42,8 +37,9 @@ def _preprocess_time_series_data(df, index_cols, select_cols,
     return df
 
 
-def load_dfs(crop: str, country_code: str,
-             lead_time:str=FORECAST_LEAD_TIME) -> tuple:
+def load_dfs(
+    crop: str, country_code: str, lead_time: str = FORECAST_LEAD_TIME
+) -> tuple:
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -78,9 +74,9 @@ def load_dfs(crop: str, country_code: str,
         os.path.join(path_data_cn, "_".join(["meteo", crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_meteo = _preprocess_time_series_data(df_x_meteo, ts_index_cols,
-                                              METEO_INDICATORS,
-                                              df_crop_cal, lead_time)
+    df_x_meteo = _preprocess_time_series_data(
+        df_x_meteo, ts_index_cols, METEO_INDICATORS, df_crop_cal, lead_time
+    )
     df_x_meteo = df_x_meteo.set_index(ts_index_cols)
     print(df_x_meteo.head())
 
@@ -89,9 +85,9 @@ def load_dfs(crop: str, country_code: str,
         os.path.join(path_data_cn, "_".join([RS_FPAR, crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_fpar = _preprocess_time_series_data(df_x_fpar, ts_index_cols,
-                                             [RS_FPAR],
-                                             df_crop_cal, lead_time)
+    df_x_fpar = _preprocess_time_series_data(
+        df_x_fpar, ts_index_cols, [RS_FPAR], df_crop_cal, lead_time
+    )
     df_x_fpar = df_x_fpar.set_index(ts_index_cols)
     print(df_x_fpar.head())
 
@@ -100,9 +96,9 @@ def load_dfs(crop: str, country_code: str,
         os.path.join(path_data_cn, "_".join([RS_NDVI, crop, country_code]) + ".csv"),
         header=0,
     )
-    df_x_ndvi = _preprocess_time_series_data(df_x_ndvi, ts_index_cols,
-                                             [RS_NDVI],
-                                             df_crop_cal, lead_time)
+    df_x_ndvi = _preprocess_time_series_data(
+        df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
+    )
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
     print(df_x_ndvi.head())
 
@@ -113,9 +109,13 @@ def load_dfs(crop: str, country_code: str,
         ),
         header=0,
     )
-    df_x_soil_moisture = _preprocess_time_series_data(df_x_soil_moisture, ts_index_cols,
-                                                      SOIL_MOISTURE_INDICATORS,
-                                                      df_crop_cal, lead_time)
+    df_x_soil_moisture = _preprocess_time_series_data(
+        df_x_soil_moisture,
+        ts_index_cols,
+        SOIL_MOISTURE_INDICATORS,
+        df_crop_cal,
+        lead_time,
+    )
     df_x_soil_moisture = df_x_soil_moisture.set_index(ts_index_cols)
 
     df_y = df_y.set_index([KEY_LOC, KEY_YEAR])
