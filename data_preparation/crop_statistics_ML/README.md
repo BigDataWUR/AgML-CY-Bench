@@ -22,7 +22,7 @@ Janet Mutuku, Celeste Tchampi, Pierre C. Sibiry Traore
 **Variables** [unit]:'country_code', 'cmdt_zone', 'cmdt_sector', 'adm_id', 'season_name',
        'harvest_year', 'crop_name', 'production', 'planted_area', 'yield'
 
-**Temporal coverage**: 1990-2017 (for yield), 1990-1999 (production(mt) and area (ha))
+**Temporal coverage**: 1990-2017 (for yield), 1990-1999 (production(metric tonnes) and area (ha))
 
 
 **Temporal resolution**: Yearly
