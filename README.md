@@ -36,16 +36,17 @@ Undifferentiated Wheat or Winter Wheat where differentiated
 The terms used to reference different varieties or seasons of maize/wheat has been simplified in CY-Bench. The following table describes the representative crop name as provided in the crop statistics
 | Country/Region                       | Maize         | Wheat |
 |--------------------------------------|---------------|------|
-| EU-EUROSTAT | grain maize| soft wheat|
-| Africa-FEWSNET | maize | -|
-| Argentina | corn | wheat|
-| Australia| -| winter wheat|
-| Brazil| grain corn| grain wheat |
-| China| grain corn| grain wheat/spring wheat/winter wheat|
-| India| maize| wheat|
-| Mali| maize| -|
-| Mexico| white/yellow corn| -|
-| USA| grain corn | winter wheat|
+| [EU-EUROSTAT](data_preparation/crop_statistics_EU/README.md) | grain maize| soft wheat|
+| [Africa-FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | maize | -|
+| [Argentina](data_preparation/crop_statistics_AR/README.md) | corn | wheat|
+| [Australia](data_preparation/crop_statistics_AU/README.md)| -| winter wheat|
+| [Brazil](data_preparation/crop_statistics_BR/README.md)| grain corn| grain wheat |
+| [China](data_preparation/crop_statistics_CN/README.md)| grain corn| grain wheat/spring wheat/winter wheat|
+| [Germany](data_preparation/crop_statistics_DE/README.md) | grain maize| winter wheat|
+| [India](data_preparation/crop_statistics_IN/README.md)| maize| wheat|
+| [Mali](data_preparation/crop_statistics_ML/README.md)| maize| -|
+| [Mexico](data_preparation/crop_statistics_MX/README.md)| white/yellow corn| -|
+| [USA](data_preparation/crop_statistics_US/README.md)| grain corn | winter wheat|
 
 
 ### Getting started
