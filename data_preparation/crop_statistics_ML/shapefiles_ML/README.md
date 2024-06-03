@@ -19,10 +19,9 @@ Janet Mutuku, Celeste Tchampi, Pierre C. Sibiry Traore
 ## Dataset overview
 **Crops**: Maize
 
-**Variables** [unit]:'country_code', 'cmdt_zone', 'cmdt_sector', 'adm_id', 'season_name',
-       'harvest_year', 'crop_name', 'production', 'planted_area', 'yield'
+**Variables** [unit]:'country_code', 'cmdt_zone', 'cmdt_sector', 'adm_id'
 
-**Temporal coverage**: 1990-2017 (for yield), 1990-1999 (production(mt) and area (ha))
+**Temporal coverage**: 1990-2017
 
 
 **Temporal resolution**: Yearly
@@ -31,7 +30,7 @@ Janet Mutuku, Celeste Tchampi, Pierre C. Sibiry Traore
 
 **Date Published**: N/A
 
-**Data Modality**: Tabular data
+**Data Modality**: GeoFile
 
 ## Provenance
 **Version**: N/A <br>
