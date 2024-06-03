@@ -35,6 +35,12 @@ METEO_INDICATORS = ["tmin", "tmax", "tavg", "prec", "cwb"]
 RS_FPAR = "fpar"
 RS_NDVI = "ndvi"
 
+# Soil moisture indicators: surface moisture, root zone moisture
+SOIL_MOISTURE_INDICATORS = ["ssm", "rsm"]
+
+# Crop calendar entries: start of season, end of season
+CROP_CALENDAR_ENTRIES = ["sos", "eos"]
+
 # Logging
 PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
 os.makedirs(PATH_LOGS_DIR, exist_ok=True)

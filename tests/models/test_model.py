@@ -206,7 +206,7 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
 
-# TODO: Uncomment after TorchDataset and NN models handle 
+# TODO: Uncomment after TorchDataset and NN models handle
 # different number of time steps for time series data.
 # Number of time steps can vary between sources and within a source.
 
