@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 
 import pandas as pd
+import torch
 
 import config
 from config import PATH_RESULTS_DIR
@@ -27,11 +28,34 @@ _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "n_ts_features": 9,
     "n_static_features": 1,
-    "hidden_size": 32,
-    "num_layers": 3,
+    "hidden_size": 64,
+    "num_layers": 1,
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
+_BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
+    'batch_size': 16,
+    'num_epochs': 50,
+    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+    'optim_fn': torch.optim.Adam,
+    'optim_kwargs': {"lr": 0.0001, 'weight_decay': 0.00001},
+    'scheduler_fn': torch.optim.lr_scheduler.StepLR,
+    'scheduler_kwargs': {"step_size": 1, "gamma": 1},
+    'val_fraction': 0.1,
+    'val_split_by_year': True,
+    'do_early_stopping': True,
+
+
+    'optimize_hyperparameters': False,
+    'param_space': {
+        'optim_kwargs': {
+            "lr": [0.0001, 0.00001],
+            'weight_decay': [0.0001, 0.00001],
+        },
+    },
+    'do_kfold': False,
+    'kfolds': 5,
+}
 
 
 def run_benchmark(

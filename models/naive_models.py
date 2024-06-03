@@ -12,7 +12,7 @@ class AverageYieldModel(BaseModel):
     """A naive yield prediction model.
 
     Predicts the average of the training set by location.
-    If the location is not in the traning data, then predicts the global average.
+    If the location is not in the training data, then predicts the global average.
     """
 
     def __init__(self, group_by=[KEY_LOC]):
