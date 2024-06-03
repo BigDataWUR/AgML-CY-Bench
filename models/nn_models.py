@@ -5,6 +5,7 @@ import numpy as np
 
 from datasets.dataset_torch import TorchDataset
 from datasets.dataset import Dataset
+from datasets.transforms import transform_ts_features_to_dekadal, transform_stack_ts_static_features 
 from models.model import BaseModel
 
 from config import KEY_LOC, KEY_YEAR, KEY_TARGET
@@ -234,34 +235,22 @@ class ExampleLSTM(BaseNNModel):
         hidden_size,
         num_layers,
         output_size=1,
+        transforms=[
+            transform_ts_features_to_dekadal,
+            transform_stack_ts_static_features
+        ],
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_features, output_size)
+        self._transforms = transforms
 
     def forward(self, x):
-        max_n_dim = max(
-            [len(v.shape) for k, v in x.items() if isinstance(v, torch.Tensor)]
-        )
-        x_ts = torch.cat(
-            [
-                v.unsqueeze(2)
-                for k, v in x.items()
-                if isinstance(v, torch.Tensor) and len(v.shape) == max_n_dim
-            ],
-            dim=2,
-        )
-        x_static = torch.cat(
-            [
-                v.unsqueeze(1)
-                for k, v in x.items()
-                if isinstance(v, torch.Tensor) and len(v.shape) < max_n_dim
-            ],
-            dim=1,
-        )
-
+        for transform in self._transforms: x = transform(x)
+        x_ts = x["ts"]
+        x_static = x["static"]
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         x = self._fc(x)
