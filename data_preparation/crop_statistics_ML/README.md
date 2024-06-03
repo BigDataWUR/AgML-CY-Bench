@@ -4,8 +4,7 @@
 The data derived comes from CMDT Monitoring Operational - a Malian Company for the Development of Textiles located in Southern Mali. It consists of 5 CMDT regions and 28 CMDT sectors. It provides key observations from the maize yield data for the different zones/regions and sectors from 1990 to 2017. There is significant spatial and temporal variation in maize productivity in the region, likely driven by differences in agro-climatic conditions, management practices, and potential data limitations. 
 
 ## Link
-
-
+Prepared for AgML-CY-Bench
 
 ## Publisher
 CMDT operational monitoring
