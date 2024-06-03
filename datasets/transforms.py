@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from datasets.dataset import Dataset
 from datasets.dataset_torch import TorchDataset
@@ -21,7 +20,7 @@ def transform_single_ts_feature_to_dekadal(ts_key, value, dates):
     # Transform dates to dekads
     bs = value.shape[0]
     datestrings = [str(date) for date in dates]
-    dekads = torch.tensor([date_to_dekad(date) for date in datestrings])
+    dekads = torch.tensor([date_to_dekad(date) for date in datestrings], device=value.device)
     dekads -= 1
     
     # Aggregate timeseries to dekadal resolution
@@ -78,26 +77,3 @@ def transform_stack_ts_static_features(batch_dict):
     else: static = None
 
     return {"ts": ts, "static": static, "other": other}
-
-def test_transform():
-    import time
-    train_dataset = Dataset.load("test_softwheat_nl")
-    train_dataset = TorchDataset(train_dataset)
-
-    # Get a batch
-    batch = [train_dataset[i] for i in range(16)]
-    batch_0 = TorchDataset.collate_fn(batch).copy()
-    start = time.time()
-    n_repeats = 100
-    for i in range(n_repeats):
-        batch = batch_0.copy()
-        batch = transform_ts_features_to_dekadal(batch)
-        batch = transform_stack_ts_static_features(batch)
-    print("Elapsed time:", time.time() - start)
-    print(f"Time per transform: {(time.time() - start) / n_repeats :.2e} s")
-    return
-
-
-
-if __name__ == "__main__":
-    test_transform()
