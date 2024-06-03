@@ -17,7 +17,7 @@ def _add_cutoff_days(df, lead_time):
         if lead_time == "mid-season":
             df["cutoff_days"] = df["season_length"] // 2
         elif lead_time == "quarter-of-season":
-            df["cutoff_days"] = f["season_length"] // 4
+            df["cutoff_days"] = df["season_length"] // 4
         else:
             raise Exception(f'Unrecognized lead time "{lead_time}"')
 
