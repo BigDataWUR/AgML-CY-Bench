@@ -41,6 +41,12 @@ SOIL_MOISTURE_INDICATORS = ["ssm", "rsm"]
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 
+# Lead time for forecasting
+# NOTE: can be: "mid-season", "quarter-of-season",
+# "n-days" with n is an integer
+FORECAST_LEAD_TIME = "mid-season"
+
+
 # Logging
 PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
 os.makedirs(PATH_LOGS_DIR, exist_ok=True)

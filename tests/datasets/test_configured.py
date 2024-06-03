@@ -1,8 +1,8 @@
-from datasets.configured import load_dfs_maize
+from datasets.configured import load_dfs_maize_nl
 
 
 def test_load_dfs_maize():
-    df_y, dfs_x = load_dfs_maize()
+    df_y, dfs_x = load_dfs_maize_nl()
 
     # Sort indices for fast lookup
     df_y.sort_index(inplace=True)
