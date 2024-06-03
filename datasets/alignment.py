@@ -27,6 +27,24 @@ def doy_to_date(doy, year):
     return date_str
 
 
+def get_cutoff_days(crop_cal_df, lead_time):
+    if ("days" in lead_time):
+        crop_cal_df["cutoff_days"] = int(lead_time.split("-")[0])
+    else:
+        assert ("season" in lead_time)
+        if (lead_time == "mid-season"):
+            crop_cal_df["cutoff_days"] = np.where(crop_cal_df["sos"] < crop_cal_df["eos"],
+                                                  (crop_cal_df["eos"] - crop_cal_df["sos"])//2,
+                                                  (365 - crop_cal_df["sos"] + crop_cal_df["eos"])//2)             
+        elif (lead_time == "quarter-of-season"):
+            crop_cal_df["cutoff_days"] = np.where(crop_cal_df["sos"] < crop_cal_df["eos"],
+                                                  (crop_cal_df["eos"] - crop_cal_df["sos"])//4,
+                                                  (365 - crop_cal_df["sos"] + crop_cal_df["eos"])//4) 
+        else:
+            raise Exception(f'Unrecognized lead time "{lead_time}"')
+
+    return crop_cal_df[[KEY_LOC, "cutoff_days"]]
+
 def _update_harvest_year(harvest_date, year, new_year):
     if year != new_year:
         return harvest_date.replace(str(year), str(new_year))
@@ -45,14 +63,14 @@ def _update_date(harvest_date, diff_with_harvest):
 
 def _merge_with_crop_calendar(df, crop_cal_df):
     df = df.merge(crop_cal_df, on=[KEY_LOC])
-    df["season_start"] = df.apply(lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1)
+    df["season_start"] = df.apply(lambda r: doy_to_date(r["sos"], r[KEY_YEAR]), axis=1)
     df["season_end"] = df.apply(lambda r: doy_to_date(r["eos"], r[KEY_YEAR]), axis=1)
 
     return df
 
 
 def rotate_data_by_crop_calendar(
-    df, crop_cal_df, spinup=90, ts_index_cols=[KEY_LOC, KEY_YEAR, "date"]
+    df, crop_cal_df, spinup=60, ts_index_cols=[KEY_LOC, KEY_YEAR, "date"]
 ):
     data_cols = [c for c in df.columns if c not in ts_index_cols]
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
@@ -89,6 +107,24 @@ def rotate_data_by_crop_calendar(
     ]
 
     df = df[ts_index_cols + data_cols]
+
+    return df
+
+def trim_to_lead_time(df, crop_cal_df, lead_time):
+    # Includes number of days
+    df_cutoff_dates = get_cutoff_days(crop_cal_df, lead_time)
+
+    df = df.merge(df_cutoff_dates, on=[KEY_LOC])
+    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
+    df["end_of_year"] = df.apply(lambda r: date(r[KEY_YEAR], 12, 31), axis=1)
+    df["cutoff_date"] = df.apply(lambda r: r["end_of_year"] -
+                                 timedelta(days=r["cutoff_days"]), axis=1)
+    df = df[df["date"] < df["cutoff_date"]]
+
+    # keep the minimum number of time steps
+    num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+    df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
+    df = df.drop(columns=["cutoff_days", "cutoff_date", "end_of_year"])
 
     return df
 

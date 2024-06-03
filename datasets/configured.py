@@ -1,5 +1,7 @@
 import os
 import pandas as pd
+from datetime import date, timedelta
+
 
 from config import (
     PATH_DATA_DIR,
@@ -12,9 +14,16 @@ from config import (
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
     CROP_CALENDAR_ENTRIES,
+    LEAD_TIME,
+    START_YEAR,
+    END_YEAR,
 )
 
-from datasets.alignment import align_data, rotate_data_by_crop_calendar
+from datasets.alignment import (
+    align_data,
+    rotate_data_by_crop_calendar,
+    trim_to_lead_time
+)
 
 
 def _add_year(df: pd.DataFrame) -> pd.DataFrame:
@@ -25,7 +34,16 @@ def _add_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def load_dfs(crop: str, country_code: str) -> tuple:
+def _preprocess_time_series(df, index_cols, df_crop_cal, lead_time):
+    df = df.dropna(axis=0)
+    df = rotate_data_by_crop_calendar(df, df_crop_cal)
+    df = df[(df[KEY_YEAR] >= START_YEAR) & (df[KEY_YEAR] <= END_YEAR)]
+    df = df.sort_values(by=index_cols)
+    df = trim_to_lead_time(df, df_crop_cal, lead_time)
+
+    return df
+
+def load_dfs(crop: str, country_code: str, lead_time:str=LEAD_TIME) -> tuple:
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -62,7 +80,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_meteo = _add_year(df_x_meteo)
     df_x_meteo = df_x_meteo[ts_index_cols + METEO_INDICATORS]
-    df_x_meteo = rotate_data_by_crop_calendar(df_x_meteo, df_crop_cal)
+    df_x_meteo = _preprocess_time_series(df_x_meteo, ts_index_cols, df_crop_cal, lead_time)
     df_x_meteo = df_x_meteo.set_index(ts_index_cols)
 
     # fpar
@@ -72,7 +90,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_fpar = _add_year(df_x_fpar)
     df_x_fpar = df_x_fpar[ts_index_cols + [RS_FPAR]]
-    df_x_fpar = rotate_data_by_crop_calendar(df_x_fpar, df_crop_cal)
+    df_x_fpar = _preprocess_time_series(df_x_fpar, ts_index_cols, df_crop_cal, lead_time)
     df_x_fpar = df_x_fpar.set_index(ts_index_cols)
 
     # ndvi
@@ -82,7 +100,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_ndvi = _add_year(df_x_ndvi)
     df_x_ndvi = df_x_ndvi[ts_index_cols + [RS_NDVI]]
-    df_x_ndvi = rotate_data_by_crop_calendar(df_x_ndvi, df_crop_cal)
+    df_x_ndvi = _preprocess_time_series(df_x_ndvi, ts_index_cols, df_crop_cal, lead_time)
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
 
     # soil moisture
@@ -94,7 +112,8 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_soil_moisture = _add_year(df_x_soil_moisture)
     df_x_soil_moisture = df_x_soil_moisture[ts_index_cols + SOIL_MOISTURE_INDICATORS]
-    df_x_soil_moisture = rotate_data_by_crop_calendar(df_x_soil_moisture, df_crop_cal)
+    df_x_soil_moisture = _preprocess_time_series(df_x_soil_moisture, ts_index_cols, 
+                                                 df_crop_cal, lead_time)
     df_x_soil_moisture = df_x_soil_moisture.set_index(ts_index_cols)
 
     df_y = df_y.set_index([KEY_LOC, KEY_YEAR])
@@ -136,3 +155,5 @@ def load_dfs_maize() -> tuple:
 
 def load_dfs_wheat_nl() -> tuple:
     return load_dfs("wheat", "NL")
+
+load_dfs("maize", "NL", lead_time="mid-season")
