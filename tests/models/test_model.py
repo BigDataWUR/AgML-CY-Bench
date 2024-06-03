@@ -209,6 +209,7 @@ def test_sklearn_model():
 # TODO: Uncomment after TorchDataset and NN models handle
 # different number of time steps for time series data.
 # Number of time steps can vary between sources and within a source.
+# Same goes for tests.datasets.test_transforms test_transforms()
 
 # def test_nn_model():
 #     train_dataset = Dataset.load("maize_es")
