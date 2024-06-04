@@ -197,13 +197,15 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     indicator_source <- indicator_sources[[i]]
     is_ts <- is_time_series[[i]]
     is_cat <- is_categorical[[i]]
-    print(paste(indicator, indicator_source, filename_pattern, is_ts, is_cat))
+    # print(paste(indicator, indicator_source, filename_pattern, is_ts, is_cat))
 
     resampled_crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                                           paste("crop_mask", crop, indicator, "res.tif", sep="_"))
+
+    crop_mask_cropped <- FALSE
     resampled <- FALSE
     # NOTE: AgERA5 data is cropped to specific regions
-    if ((indictor_source != "AgERA5") &
+    if ((indicator_source != "AgERA5") &
         file.exists(resampled_crop_mask_file)) {
       crop_mask <- rast(resampled_crop_mask_file)
       resampled <- TRUE
@@ -337,19 +339,25 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             } else {
               crop_mask <- resample(crop_mask, rast_stack[[1]], method="bilinear")
             }
+            resampled <- TRUE
             if (indicator_source != "AgERA5") {
               writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
             }
           }
 
+          # NOTE: crop and filter once per time series indicator.
+          # Don't need to do this per year or per indicator stack.
+          if (!crop_mask_cropped) {
+            crop_mask = crop(crop_mask, sel_shapes)
+            # filter invalid values
+            # Setting NA values to 0 is fine for weights.
+            crop_mask[crop_mask > 100] <- 0
+            crop_mask[crop_mask < 0] <- 0
+            crop_mask_cropped <- TRUE
+          }
+
           # Crop rasters to shapes
           rast_stack = crop(rast_stack, sel_shapes)
-          crop_mask = crop(crop_mask, sel_shapes)
-
-          # filter invalid values
-          # Setting NA values to 0 is fine for weights.
-          crop_mask[crop_mask > 100] <- 0
-          crop_mask[crop_mask < 0] <- 0
 
           # TODO: filter invalid values
           # filter and transform indicators
