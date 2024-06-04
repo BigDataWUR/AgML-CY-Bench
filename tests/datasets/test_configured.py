@@ -1,4 +1,4 @@
-from datasets.configured import load_dfs_maize_nl
+from cybench.datasets.configured import load_dfs_maize_nl
 
 
 def test_load_dfs_maize():

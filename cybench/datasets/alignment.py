@@ -6,7 +6,7 @@ import numpy as np
 from datetime import timedelta
 from datetime import date
 
-from config import KEY_LOC, KEY_YEAR
+from cybench.config import KEY_LOC, KEY_YEAR
 
 
 def _add_cutoff_days(df, lead_time):

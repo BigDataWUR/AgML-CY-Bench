@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
 
 class Dataset:
@@ -60,7 +60,7 @@ class Dataset:
     @staticmethod
     def load(name: str) -> "Dataset":
         if name == "maize":
-            from datasets.configured import load_dfs_maize
+            from cybench.datasets.configured import load_dfs_maize
 
             df_y, dfs_x = load_dfs_maize()
             return Dataset(
@@ -69,7 +69,7 @@ class Dataset:
             )
 
         if name == "maize_ES":
-            from datasets.configured import load_dfs_maize_es
+            from cybench.datasets.configured import load_dfs_maize_es
 
             df_y, dfs_x = load_dfs_maize_es()
             return Dataset(
@@ -78,7 +78,7 @@ class Dataset:
             )
 
         if name == "maize_NL":
-            from datasets.configured import load_dfs_maize_nl
+            from cybench.datasets.configured import load_dfs_maize_nl
 
             df_y, dfs_x = load_dfs_maize_nl()
             return Dataset(
@@ -87,7 +87,7 @@ class Dataset:
             )
 
         if name == "wheat_NL":
-            from datasets.configured import load_dfs_wheat_nl
+            from cybench.datasets.configured import load_dfs_wheat_nl
 
             df_y, dfs_x = load_dfs_wheat_nl()
             return Dataset(

@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-from datasets.dataset import Dataset
-from config import (
+from cybench.datasets.dataset import Dataset
+from cybench.config import (
     PATH_DATA_DIR,
     KEY_LOC,
     KEY_YEAR,

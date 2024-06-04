@@ -4,14 +4,14 @@ import comet_ml.integration.pytorch
 import pandas as pd
 from comet_ml import Experiment
 
-from models.model import BaseModel
-from models.sklearn_model import SklearnModel
-from models.trend_model import TrendModel
-from models.naive_models import AverageYieldModel
-from models.nn_models import BaseNNModel
+from cybench.models.model import BaseModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.trend_model import TrendModel
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.nn_models import BaseNNModel
 from runs.run_benchmark import _compute_evaluation_results
 
-from config import PATH_RESULTS_DIR
+from cybench.config import PATH_RESULTS_DIR
 
 # get paths
 evaluation_path = os.path.dirname(os.path.realpath(__file__))

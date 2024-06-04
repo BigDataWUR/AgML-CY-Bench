@@ -4,17 +4,17 @@ from collections import defaultdict
 import pandas as pd
 import torch
 
-import config
-from config import PATH_RESULTS_DIR
-from models.model import BaseModel
+import cybench.config
+from cybench.config import PATH_RESULTS_DIR
+from cybench.models.model import BaseModel
 
-from datasets.dataset import Dataset
+from cybench.datasets.dataset import Dataset
 
-from evaluation.eval import evaluate_model, evaluate_predictions
+from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
-from models.naive_models import AverageYieldModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
@@ -34,27 +34,25 @@ _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    'batch_size': 16,
-    'num_epochs': 50,
-    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-    'optim_fn': torch.optim.Adam,
-    'optim_kwargs': {"lr": 0.0001, 'weight_decay': 0.00001},
-    'scheduler_fn': torch.optim.lr_scheduler.StepLR,
-    'scheduler_kwargs': {"step_size": 1, "gamma": 1},
-    'val_fraction': 0.1,
-    'val_split_by_year': True,
-    'do_early_stopping': True,
-
-
-    'optimize_hyperparameters': False,
-    'param_space': {
-        'optim_kwargs': {
+    "batch_size": 16,
+    "num_epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+    "optim_fn": torch.optim.Adam,
+    "optim_kwargs": {"lr": 0.0001, "weight_decay": 0.00001},
+    "scheduler_fn": torch.optim.lr_scheduler.StepLR,
+    "scheduler_kwargs": {"step_size": 1, "gamma": 1},
+    "val_fraction": 0.1,
+    "val_split_by_year": True,
+    "do_early_stopping": True,
+    "optimize_hyperparameters": False,
+    "param_space": {
+        "optim_kwargs": {
             "lr": [0.0001, 0.00001],
-            'weight_decay': [0.0001, 0.00001],
+            "weight_decay": [0.0001, 0.00001],
         },
     },
-    'do_kfold': False,
-    'kfolds': 5,
+    "do_kfold": False,
+    "kfolds": 5,
 }
 
 
@@ -123,8 +121,8 @@ def run_benchmark(
         labels = test_dataset.targets()
 
         model_output = {
-            config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
-            config.KEY_YEAR: [year for _, year in test_dataset.indices()],
+            cybench.config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+            cybench.config.KEY_YEAR: [year for _, year in test_dataset.indices()],
             "targets": labels,
         }
 
@@ -140,7 +138,7 @@ def run_benchmark(
             model_output[model_name] = predictions
 
         df = pd.DataFrame.from_dict(model_output)
-        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"year_{test_year}.csv"))
 
     df_metrics = _compute_evaluation_results(run_name)
@@ -168,9 +166,9 @@ def _compute_evaluation_results(
 
         df = pd.read_csv(path)
 
-        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
 
-        years = set(df.index.get_level_values(config.KEY_YEAR))
+        years = set(df.index.get_level_values(cybench.config.KEY_YEAR))
         assert len(years) == 1  # Every fold is assumed to contain only one year
         year = list(years)[0]
 

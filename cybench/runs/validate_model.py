@@ -4,17 +4,17 @@ from collections import defaultdict
 import pandas as pd
 import torch
 
-import config
-from config import PATH_RESULTS_DIR
-from models.model import BaseModel
+import cybench.config
+from cybench.config import PATH_RESULTS_DIR
+from cybench.models.model import BaseModel
 
-from datasets.dataset import Dataset
+from cybench.datasets.dataset import Dataset
 
-from evaluation.eval import evaluate_model, evaluate_predictions
+from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
-from models.naive_models import AverageYieldModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
@@ -26,6 +26,7 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 
+
 def validate_single_model(
     run_name: str,
     model_name: str,
@@ -36,7 +37,6 @@ def validate_single_model(
     dataset_name: str = "test_maize_us",
     test_years_to_leave_out: list = None,
 ) -> dict:
-    
     """
     Run a single model on a single outer fold and return validation results.
     Test is is left out completely and not used for training or validation.
@@ -90,13 +90,12 @@ def validate_single_model(
 
     all_years = dataset.years
 
-
     if test_years_to_leave_out is None:
         test_years = [list(all_years)[0]]
     else:
         assert all([y in all_years for y in test_years_to_leave_out])
         test_years = test_years_to_leave_out
-    
+
     train_years = [y for y in all_years if y not in test_years]
     assert len(set(train_years).intersection(set(test_years))) == 0
 
@@ -106,13 +105,12 @@ def validate_single_model(
     for model_name, model_constructor in model_constructors.items():
         model = model_constructor(**models_init_kwargs[model_name])
         _, train_dict = model.fit(train_dataset, **models_fit_kwargs[model_name])
-        
+
         # Add model initialization and fitting kwargs to the results
         train_dict["model_init_kwargs"] = models_init_kwargs[model_name]
         train_dict["model_fit_kwargs"] = models_fit_kwargs[model_name]
-        
+
         compiled_results[model_name] = train_dict
 
     df = pd.DataFrame.from_dict(compiled_results)
     return df
-
