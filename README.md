@@ -83,7 +83,7 @@ table describes the representative crop name as provided in the crop statistics
 #### Installation
 
 ```
-git clone https://github.com/BigDataWUR/AgML-crop-yield-forecasting
+git clone https://github.com/BigDataWUR/AgML-CY-Bench
 ```
 
 #### Requirements

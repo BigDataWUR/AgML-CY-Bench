@@ -1,13 +1,13 @@
 [tool.poetry]
 name = "cybench"
-version = "0.1.0"
+version = "0.0.0"
 description = "A dataset and benchmark for subnational crop yield forecasting, with coverage of major crop growing countries of the world for maize and wheat"
-authors = ["Your Name <you@example.com>"]
+authors = ["AgML <agmlcybench@gmail.com>"]
 license = "EUPL"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.10,<3.13"
+python = ">=3.9,<3.13"
 matplotlib = "^3.9.0"
 torch = "^2.3.0"
 scikit-learn = "^1.5.0"
@@ -18,9 +18,8 @@ tqdm = "^4.66.4"
 pandas = "^2.2.2"
 numpy = "^1.26.4"
 datetime = "^5.5"
-pytest = "^8.2.1"
+pytest = "^8.2.2"
 pyyaml = "^6.0.1"
-
 
 [build-system]
 requires = ["poetry-core"]
