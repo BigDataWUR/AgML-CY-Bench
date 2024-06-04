@@ -33,6 +33,9 @@ SOIL_INDICATORS = ["sm_fc", "sm_wp"]
 # Weather indicators
 WEATHER_INDICATORS = ["tmin", "tmax", "tavg", "prec"]
 
+# Base temperature for corn and wheat for growing degree days wheat:0 corn:10
+BASE_TEMP = {"wheat": 0, "corn": 10}
+
 # Remote sensing indicators.
 # Keep them separate because they have different temporal resolution
 RS_FAPAR = "fapar"

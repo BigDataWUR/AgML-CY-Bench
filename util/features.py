@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import KEY_LOC, KEY_YEAR, KEY_DATES
+from config import KEY_LOC, KEY_YEAR, KEY_DATES, BASE_TEMP
 
 def fortnight_from_date(date_str):
     """Get the fortnight number from date.
@@ -111,36 +111,35 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 # Feature 4: Growing degree days
 # TODO: What is the formula?
 
-def calc_gdd(tavg, tbase):
+def calc_gdd(tavg, crop):
    
-   # Base temp would be 0 for winter wheat and 10 for corn.
+   tbase = BASE_TEMP[crop]
+   gdd_daily = np.maximum(0, tavg - tbase)
    
-   gdd = np.maximum(0, tavg - tbase)
-   
-   return gdd.sum()
+   return gdd_daily()
 
 # Feature 5: Vernalization requirement
 # TODO: What is the formula
-
-def calc_vern(tavg):
+# Not using vernalization for the neurips submission
+# def calc_vrn(tavg):
    
-   def vrn_fac(temp):
-       if temp < 0:
-           return 0
-       elif 0 <= temp <= 4:
-           return temp / 4
-       elif 4 < temp <= 8:
-           return 1
-       elif 8 < temp <= 10:
-           return (10 - temp) / 2
-       else:
-           return 0
+#    def vrn_fac(temp):
+#        if temp < 0:
+#            return 0
+#        elif 0 <= temp <= 4:
+#            return temp / 4
+#        elif 4 < temp <= 8:
+#            return 1
+#        elif 8 < temp <= 10:
+#            return (10 - temp) / 2
+#        else:
+#            return 0
    
-   v_units = np.vectorize(vrn_fac)(tavg)
+#    v_units = np.vectorize(vrn_fac)(tavg)
    
-   total_v_units = v_units.sum()
+#    total_v_units = v_units.sum()
    
-   return total_v_units
+#    return total_v_units
 
 
 def count_threshold(
@@ -225,7 +224,7 @@ def unpack_time_series(df, indicators):
 
 
 def design_features(
-    weather_df, soil_df, fapar_df, ndvi_df=None, et0_df=None, soil_moisture_df=None
+    weather_df, soil_df, fapar_df, crop, ndvi_df=None, et0_df=None, soil_moisture_df=None
 ):
     """Design features based domain expertise.
 
@@ -249,8 +248,9 @@ def design_features(
     # TODO: 1. not needed for cybench data. Remove later.
     # TODO: 2. Add code to make drainage class a categorical feature.
 
-    if 'DRAIN' in soil_df.columns:
-        soil_df['DRAIN'] = soil_df['DRAIN'].astype('category')
+# Not using drainage class feature for the neurips submission
+    # if 'DRAIN' in soil_df.columns:
+    #     soil_df['DRAIN'] = soil_df['DRAIN'].astype('category')
 
     if "sm_whc" not in soil_df.columns:
         soil_df["sm_whc"] = soil_df["sm_fc"] - soil_df["sm_wp"]
@@ -259,33 +259,31 @@ def design_features(
         soil_features = soil_df[[KEY_LOC, "sm_whc"]]
 
     # Feature design for time series
-    # TODO: 1. add code for cumulative features
-    # TODO: 2. add code for ET0, ndvi, soil moisture
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["fapar"]  # ["ndvi", "fapar"]
-    avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
+    max_feature_cols = ["ndvi", "fapar", "cum_gdd", "cum_cwb", "cum_ndvi", "cum_prec"]
+    avg_feature_cols = ["tmin", "tmax", "tavg", "prec", "rad"]  # , "tmax", "tavg", "prec", "rad"]
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
         "tmax": [">", "35"],  # degrees
-        "prec_l": ["<", "50"],  # mm
-        "prec_h": [">", "100"],  # mm (per day)
     }
 
+# Cumulative NDVI
+    if ndvi_df is not None:
+        ndvi_df['cum_ndvi'] = ndvi_df.groupby(index_cols)['ndvi'].cumsum()
+
+# Daily GDD
+    weather_df['gdd'] = calc_gdd(weather_df['tavg'], crop)
+
+# Cumulative GDD
+    weather_df['cum_gdd'] = weather_df.groupby(index_cols)['gdd'].cumsum()
+    weather_df['cum_cwb'] = weather_df.groupby(index_cols)['cwb'].cumsum()
+    weather_df['cum_prec'] = weather_df.groupby(index_cols)['prec'].cumsum()
+
+# Aggregate by period
     fapar_df = add_period(fapar_df, period_length)
     weather_df = add_period(weather_df, period_length)
-
-    # Climatic water balance
-    if et0_df is not None:
-        weather_df = weather_df.merge(et0_df, on=index_cols)
-        weather_df['cwb'] = weather_df['prec'] - weather_df['ET0']
-
-    weather_df['cumul_cwb'] = weather_df.groupby(KEY_LOC)['cwb'].cumsum()
-
-    # Cumulative NDVI
-    if ndvi_df is not None:
-        ndvi_df = add_period(ndvi_df, period_length)
-        ndvi_df['cumul_ndvi'] = ndvi_df.groupby(KEY_LOC)['ndvi'].cumsum()
+    ndvi_df = add_period(ndvi_df, period_length)
 
     max_aggrs = {ind: "max" for ind in max_feature_cols}
     avg_aggrs = {ind: "mean" for ind in avg_feature_cols}
@@ -299,8 +297,11 @@ def design_features(
     max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
     avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
     rs_fts = aggregate_by_period(fapar_df, index_cols, "period", max_aggrs, max_ft_cols)
-    weather_fts = aggregate_by_period(
+    weather_avg_fts = aggregate_by_period(
         weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
+    )
+    weather_max_fts = aggregate_by_period(
+        weather_df, index_cols, "period", max_aggrs, max_ft_cols
     )
 
     # count time steps matching threshold conditions
@@ -321,6 +322,7 @@ def design_features(
             ft_name,
         )
 
+        weather_fts = weather_avg_fts.merge(weather_max_fts, on=index_cols)
         weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
         weather_fts = weather_fts.fillna(0.0)
 
