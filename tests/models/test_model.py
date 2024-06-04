@@ -34,7 +34,7 @@ def test_average_yield_model():
     # test prediction for an existing item
     sel_loc = "US-01-001"
     assert sel_loc in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     sel_year = 2018
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -58,7 +58,7 @@ def test_average_yield_model():
     # test prediction for a non-existent item
     sel_loc = "US-01-003"
     assert sel_loc not in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
@@ -92,7 +92,7 @@ def test_trend_model():
         train_yields = yield_df[yield_df[KEY_YEAR].isin(train_years)]
         train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
         test_yields = yield_df[yield_df[KEY_YEAR] == test_year]
-        train_dataset = Dataset(train_yields, [])
+        train_dataset = Dataset("maize", train_yields, [])
 
         # linear trend
         model = TrendModel(trend="linear")
@@ -161,14 +161,14 @@ def test_sklearn_model():
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    train_dataset = Dataset(train_yields, [train_features])
+    train_dataset = Dataset("maize", train_yields, [train_features])
 
     # Test dataset
     test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
     test_yields = test_df[[KEY_TARGET]].copy()
     test_features = test_df[feature_cols].copy()
-    test_dataset = Dataset(test_yields, [test_features])
+    test_dataset = Dataset("maize", test_yields, [test_features])
 
     # Model
     ridge = Ridge(alpha=0.5)

@@ -2,7 +2,13 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import KEY_LOC, KEY_YEAR, KEY_DATES
+from config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_DATES,
+    GDD_BASE_TEMP,
+    GDD_UPPER_LIMIT,
+)
 
 
 def fortnight_from_date(date_str):
@@ -48,7 +54,7 @@ def dekad_from_date(date_str):
     return dekad
 
 
-def add_period(df, period_length):
+def _add_period(df, period_length):
     """Add a period column.
 
     Args:
@@ -73,7 +79,7 @@ def add_period(df, period_length):
 
 # Period can be a month or fortnight (biweekly or two weeks)
 # Period sum of TAVG, TMIN, TMAX, PREC
-def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
+def _aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
     """Aggregate data into features by period.
 
     Args:
@@ -110,14 +116,30 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
     return ft_df
 
 
-# Feature 4: Growing degree days
-# TODO: What is the formula?
+# Vernalization requirement
+# NOTE: Not using vernalization for the neurips submission
+# def _calculate_vernalization(tavg):
 
-# Feature 5: Vernalization requirement
-# TODO: What is the formula
+#    def vrn_fac(temp):
+#        if temp < 0:
+#            return 0
+#        elif 0 <= temp <= 4:
+#            return temp / 4
+#        elif 4 < temp <= 8:
+#            return 1
+#        elif 8 < temp <= 10:
+#            return (10 - temp) / 2
+#        else:
+#            return 0
+
+#    v_units = np.vectorize(vrn_fac)(tavg)
+
+#    total_v_units = v_units.sum()
+
+#    return total_v_units
 
 
-def count_threshold(
+def _count_threshold(
     df,
     index_cols,
     period_col,
@@ -198,10 +220,20 @@ def unpack_time_series(df, indicators):
     return df
 
 
-def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df=None):
+# LOC, YEAR, DATE => cumsum by month
+def growing_degree_days(df, tbase):
+    # Base temp would be 0 for winter wheat and 10 for corn.
+    gdd = np.maximum(0, df["tavg"] - tbase)
+
+    return gdd.sum()
+
+
+def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df):
     """Design features based domain expertise.
 
     Args:
+      crop: crop name, e.g. maize
+
       weather_df : pd.DataFrame, weather variables
 
       soil_df: pd.DataFrame, soil properties
@@ -218,42 +250,70 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
       pd.DataFrame of features
     """
     if "drainage_class" in soil_df.columns:
-        soil_features = soil_df.astype({"drainage_class": "category"})
+        soil_df["drainage_class"] = soil_df["drainage_class"].astype(str)
+        # one hot encoding for categorical data
+        soil_one_hot = pd.get_dummies(soil_df, prefix="drainage")
+        soil_df = pd.concat([soil_df, soil_one_hot], axis=1).drop(
+            columns=["drainage_class"]
+        )
     else:
         soil_features = soil_df
 
     # Feature design for time series
-    # TODO: 1. add code for cumulative features
-    # TODO: 2. add code for ET0, ndvi, soil moisture
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["fpar"]  # ["ndvi", "fpar"]
-    avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
+    weather_df = _add_period(weather_df, period_length)
+    fpar_df = _add_period(fpar_df, period_length)
+    ndvi_df = _add_period(ndvi_df, period_length)
+    soil_moisture_df = _add_period(soil_moisture_df, period_length)
+
+    # cumlative sums
+    weather_df = weather_df.sort_values(by=index_cols + ["period"])
+
+    # Daily growing degree days
+    # gdd_daily = max(0, tavg - tbase)
+    # TODO: replace None in clip(0.0, None) with upper threshold.
+    weather_df["tavg"] = weather_df["tavg"].astype(float)
+    weather_df["gdd"] = (weather_df["tavg"] - GDD_BASE_TEMP[crop]).clip(
+        0.0, GDD_UPPER_LIMIT[crop]
+    )
+    weather_df["cum_gdd"] = weather_df.groupby(index_cols)["gdd"].cumsum()
+    weather_df["cwb"] = weather_df["cwb"].astype(float)
+    weather_df["prec"] = weather_df["prec"].astype(float)
+    weather_df["cum_cwb"] = weather_df.groupby(index_cols)["cwb"].cumsum()
+    weather_df["cum_prec"] = weather_df.groupby(index_cols)["prec"].cumsum()
+
+    fpar_df = fpar_df.sort_values(by=index_cols + ["period"])
+    fpar_df["fpar"] = fpar_df["fpar"].astype(float)
+    fpar_df["cum_fpar"] = fpar_df.groupby(index_cols)["fpar"].cumsum()
+
+    ndvi_df = ndvi_df.sort_values(by=index_cols + ["period"])
+    ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
+    ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
+
+    # Aggregate by period
+    avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
+    max_weather_cols = ["cum_gdd", "cum_prec"]
+    avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
+    max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
+    avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
+    max_ft_cols = {ind: "max_" + ind for ind in max_weather_cols}
+
+    # NOTE: combining max and avg aggregation
+    weather_aggrs = {
+        **avg_weather_aggrs,
+        **max_weather_aggrs,
+    }
+
+    weather_fts = _aggregate_by_period(
+        weather_df, index_cols, "period", weather_aggrs, {**avg_ft_cols, **max_ft_cols}
+    )
+
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
         "tmax": [">", "35"],  # degrees
-        "prec_l": ["<", "50"],  # mm
-        "prec_h": [">", "100"],  # mm (per day)
+        "prec": ["<", "0"],  # mm
     }
-
-    fpar_df = add_period(fpar_df, period_length)
-    weather_df = add_period(weather_df, period_length)
-
-    max_aggrs = {ind: "max" for ind in max_feature_cols}
-    avg_aggrs = {ind: "mean" for ind in avg_feature_cols}
-
-    # NOTE: If combining max and avg aggregation
-    # all_aggrs = {
-    #     **max_aggrs,
-    #     **avg_aggrs,
-    # }
-
-    max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
-    avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
-    rs_fts = aggregate_by_period(fpar_df, index_cols, "period", max_aggrs, max_ft_cols)
-    weather_fts = aggregate_by_period(
-        weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
-    )
 
     # count time steps matching threshold conditions
     for ind, thresh in count_thresh_cols.items():
@@ -263,7 +323,7 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
             ind = ind.split("_")[0]
 
         ft_name = ind + "".join(thresh)
-        ind_fts = count_threshold(
+        ind_fts = _count_threshold(
             weather_df,
             index_cols,
             "period",
@@ -276,6 +336,20 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
         weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
         weather_fts = weather_fts.fillna(0.0)
 
-    all_fts = soil_features.merge(rs_fts, on=[KEY_LOC])
-    all_fts = all_fts.merge(weather_fts, on=index_cols)
+    fpar_fts = _aggregate_by_period(
+        fpar_df, index_cols, "period", {"cum_fpar": "max"}, {"cum_fpar": "max_cum_fpar"}
+    )
+    ndvi_fts = _aggregate_by_period(
+        ndvi_df, index_cols, "period", {"cum_ndvi": "max"}, {"cum_ndvi": "max_cum_ndvi"}
+    )
+
+    soil_moisture_fts = _aggregate_by_period(
+        soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
+    )
+
+    all_fts = soil_features.merge(weather_fts, on=[KEY_LOC])
+    all_fts = all_fts.merge(fpar_fts, on=index_cols)
+    all_fts = all_fts.merge(ndvi_fts, on=index_cols)
+    all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
+
     return all_fts
