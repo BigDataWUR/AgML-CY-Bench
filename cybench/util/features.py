@@ -274,14 +274,15 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     weather_df["cum_gdd"] = weather_df.groupby(index_cols)["gdd"].cumsum()
     weather_df["cwb"] = weather_df["cwb"].astype(float)
     weather_df["prec"] = weather_df["prec"].astype(float)
+    weather_df = weather_df.sort_values(by=index_cols + ["date"])
     weather_df["cum_cwb"] = weather_df.groupby(index_cols)["cwb"].cumsum()
     weather_df["cum_prec"] = weather_df.groupby(index_cols)["prec"].cumsum()
 
-    fpar_df = fpar_df.sort_values(by=index_cols + ["period"])
+    fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
     fpar_df["fpar"] = fpar_df["fpar"].astype(float)
     fpar_df["cum_fpar"] = fpar_df.groupby(index_cols)["fpar"].cumsum()
 
-    ndvi_df = ndvi_df.sort_values(by=index_cols + ["period"])
+    ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
     ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
     ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
 
