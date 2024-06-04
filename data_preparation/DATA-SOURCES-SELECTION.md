@@ -62,10 +62,22 @@ Ritvik Sahajpal, Michele Meroni
 ### Contact
 Pratishtha Poudel, Michele Meroni
 
-### Crop yield
-We selected data from [crop_statistics_DE] for crop (Grain Maize and Wheat) yield. Another choice is [crop_statistics_EU]. crop_statistics_DE is a better choice because of the below mentioned reasons:
-- crop_statistics_DE data source for both crops have a longer and harmonized time series (spanning from 1979-2021) available as opposed to dataset from crop_statistics_EU (which is available from 1999-2020).
-- For Grain Maize, we have more number of administrative units (= 138), meaning more spatial coverage , compared to the one from crop_statistics_EU which is 12. Whereas,in case of Wheat, the max. admin units in is 376, comapred to 335 in crop_statistics_EU.
+## Crop yield DE
+We selected data from [Duden et al. (2023)](crop_statistics_DE/README.md) for crop (Grain Maize and Wheat) yield. Another choice is [EU-EUROSTAT](crop_statistics_EU). crop_statistics_DE is a better choice because of the below mentioned reasons:
+- Duden et al. (2023) data source for both crops have a longer and harmonized time series (spanning from 1979-2021) available as opposed to dataset from crop_statistics_EU (which is available from 1999-2020).
+- For Grain Maize, Duden et al. (2023) has data at NUTS level 3 (administrative units = 138), compared to the one from EU-EUROSTAT which is at NUTS level 1.
+- Data for DE from EU-EUROSTAT also does not meet some consistency checks done by Ronchetti et al. (2024), e.g. yield = production/area.
 
 ### Contact
 Rahel Laudien
+
+### References
+Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 to 2021 at a harmonized district-level. OpenAgrar https://doi.org/10.3220/DATA20231117103252-0 (2023).
+
+Ronchetti, G., Nisini Scacchiafichi, L., Seguini, L., Cerrani, I., and van der Velde, M.: Harmonized European Union subnational crop statistics can reveal climate impacts and crop cultivation shifts, Earth Syst. Sci. Data, 16, 1623–1649, https://doi.org/10.5194/essd-16-1623-2024, 2024.
+
+## Crop yield ML
+TODO: Justification for ML data from ICRISAT vs FEWSNET.
+
+### Contact
+Janet Mutuku, Celeste Tchampi, PCS Traore 

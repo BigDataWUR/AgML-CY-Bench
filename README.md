@@ -83,15 +83,20 @@ First write a model class `your_model` that extends the `BaseModel` class. The b
 
 ```
 from cybench.models.model import BaseModel
-from cybench.benchmark import run_cybench
+from cybench.runs.run_benchmark import run_benchmark
 
 class MyModel(BaseModel): 
     pass
 
 
-my_model = MyModel()
-dataset_name = "maize_us"
-run_cybench(my_model, dataset_name)
+run_name = <run_name>
+dataset_name = "maize_US"
+run_benchmark(run_name=run_name, 
+              model_name=my_model,
+              model_constructor=MyModel,
+              model_init_kwargs: <int args>,
+              model_fit_kwargs: <fit params>,
+              dataset_name=dataset_name)
 
 ```
 
@@ -106,7 +111,7 @@ dataset = Dataset.load("maize")
 will load data for countries covered by the maize dataset. Maize data for the US can be loaded as follows:
 
 ```
-dataset = Dataset.load("maize_us")
+dataset = Dataset.load("maize_US")
 ```
 
 #### Data sources
