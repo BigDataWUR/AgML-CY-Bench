@@ -6,21 +6,21 @@ from tqdm import tqdm
 import numpy as np
 import logging
 
-from datasets.dataset_torch import TorchDataset
-from datasets.dataset import Dataset
-from datasets.transforms import (
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.transforms import (
     transform_ts_inputs_to_dekadal,
     transform_stack_ts_static_inputs,
 )
 
-from models.model import BaseModel
-from util.data import (
+from cybench.models.model import BaseModel
+from cybench.util.data import (
     flatten_nested_dict,
     unflatten_nested_dict,
     generate_settings,
 )
 
-from config import (
+from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,
@@ -402,9 +402,9 @@ class BaseNNModel(BaseModel, nn.Module):
             "train_losses": all_train_losses,
             "val_losses": all_val_losses if val_loader is not None else None,
             "best_val_loss": best_val_loss,
-            "best_val_epoch": np.argmin(all_val_losses)
-            if val_loader is not None
-            else None,
+            "best_val_epoch": (
+                np.argmin(all_val_losses) if val_loader is not None else None
+            ),
             "best_model": best_model,
             "train_years": train_years if val_split_by_year else None,
             "val_years": val_years if val_split_by_year else None,

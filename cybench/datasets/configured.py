@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import date, timedelta
 
 
-from config import (
+from cybench.config import (
     PATH_DATA_DIR,
     DATASETS,
     KEY_LOC,
@@ -18,7 +18,7 @@ from config import (
     FORECAST_LEAD_TIME,
 )
 
-from datasets.alignment import align_data, trim_to_lead_time
+from cybench.datasets.alignment import align_data, trim_to_lead_time
 
 
 def _add_year(df: pd.DataFrame) -> pd.DataFrame:

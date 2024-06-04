@@ -5,12 +5,12 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.pipeline import Pipeline
 
-from models.model import BaseModel
-from datasets.dataset import Dataset
-from util.data import data_to_pandas
-from util.features import unpack_time_series, design_features
+from cybench.models.model import BaseModel
+from cybench.datasets.dataset import Dataset
+from cybench.util.data import data_to_pandas
+from cybench.util.features import unpack_time_series, design_features
 
-from config import (
+from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,

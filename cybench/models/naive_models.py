@@ -2,10 +2,10 @@ import pickle
 import numpy as np
 import logging
 
-from models.model import BaseModel
-from datasets.dataset import Dataset
-from util.data import data_to_pandas
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from cybench.models.model import BaseModel
+from cybench.datasets.dataset import Dataset
+from cybench.util.data import data_to_pandas
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 class AverageYieldModel(BaseModel):

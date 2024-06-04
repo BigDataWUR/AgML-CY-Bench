@@ -1,8 +1,8 @@
 import torch
-from datasets.dataset import Dataset
-from datasets.dataset_torch import TorchDataset
-from util.features import dekad_from_date
-from config import KEY_DATES
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.util.features import dekad_from_date
+from cybench.config import KEY_DATES
 
 
 def _transform_ts_input_to_dekadal(ts_key, value, dates, min_date, max_date):

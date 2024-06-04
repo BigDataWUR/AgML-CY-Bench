@@ -6,18 +6,18 @@ import torch
 from datetime import datetime
 from sklearn.linear_model import Ridge
 
-import config
-from config import DATASETS, PATH_DATA_DIR, PATH_RESULTS_DIR
-from models.model import BaseModel
+import cybench.config
+from cybench.config import DATASETS, PATH_DATA_DIR, PATH_RESULTS_DIR
+from cybench.models.model import BaseModel
 
-from datasets.dataset import Dataset
+from cybench.datasets.dataset import Dataset
 
-from evaluation.eval import evaluate_model, evaluate_predictions
+from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
-from models.naive_models import AverageYieldModel
-from models.trend_model import TrendModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
@@ -133,8 +133,8 @@ def run_benchmark(
         labels = test_dataset.targets()
 
         model_output = {
-            config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
-            config.KEY_YEAR: [year for _, year in test_dataset.indices()],
+            cybench.config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+            cybench.config.KEY_YEAR: [year for _, year in test_dataset.indices()],
             "targets": labels,
         }
 
@@ -150,7 +150,7 @@ def run_benchmark(
             model_output[model_name] = predictions
 
         df = pd.DataFrame.from_dict(model_output)
-        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"year_{test_year}.csv"))
 
     df_metrics = _compute_evaluation_results(run_name)
@@ -178,9 +178,9 @@ def _compute_evaluation_results(
 
         df = pd.read_csv(path)
 
-        df.set_index([config.KEY_LOC, config.KEY_YEAR], inplace=True)
+        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
 
-        years = set(df.index.get_level_values(config.KEY_YEAR))
+        years = set(df.index.get_level_values(cybench.config.KEY_YEAR))
         assert len(years) == 1  # Every fold is assumed to contain only one year
         year = list(years)[0]
 
