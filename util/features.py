@@ -2,7 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import KEY_LOC, KEY_YEAR, KEY_DATES, BASE_TEMP
+from config import KEY_LOC, KEY_YEAR, KEY_DATES, GDD_BASE_TEMP
 
 def fortnight_from_date(date_str):
     """Get the fortnight number from date.
@@ -113,7 +113,7 @@ def aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 
 def calc_gdd(tavg, crop):
    
-   tbase = BASE_TEMP[crop]
+   tbase = GDD_BASE_TEMP[crop]
    gdd_daily = np.maximum(0, tavg - tbase)
    
    return gdd_daily()
@@ -224,7 +224,7 @@ def unpack_time_series(df, indicators):
 
 
 def design_features(
-    weather_df, soil_df, fapar_df, crop, ndvi_df=None, et0_df=None, soil_moisture_df=None
+    crop, weather_df, soil_df, fapar_df, ndvi_df=None, et0_df=None, soil_moisture_df=None
 ):
     """Design features based domain expertise.
 
@@ -261,8 +261,12 @@ def design_features(
     # Feature design for time series
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["ndvi", "fapar", "cum_gdd", "cum_cwb", "cum_ndvi", "cum_prec"]
-    avg_feature_cols = ["tmin", "tmax", "tavg", "prec", "rad"]  # , "tmax", "tavg", "prec", "rad"]
+   # max_feature_cols = ["ndvi", "fapar", "cum_gdd", "cum_cwb", "cum_ndvi", "cum_prec"]
+    max_feature_wth = {"cum_cwb", "cum_prec"}
+    max_feature_ndvi = {"cum_ndvi"}
+    max_feature_fapar = {"fapar"}
+   # avg_feature_cols = ["tmin", "tmax", "tavg", "prec", "rad"]  # , "tmax", "tavg", "prec", "rad"]
+    avg_feature_wth = {"tmin", "tmax", "tavg", "prec", "rad"}
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
         "tmax": [">", "35"],  # degrees
@@ -294,17 +298,17 @@ def design_features(
     #     **avg_aggrs,
     # }
 
-    max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
-    avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
-    rs_fts = aggregate_by_period(fapar_df, index_cols, "period", max_aggrs, max_ft_cols)
-    weather_avg_fts = aggregate_by_period(
-        weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
-    )
-    weather_max_fts = aggregate_by_period(
-        weather_df, index_cols, "period", max_aggrs, max_ft_cols
-    )
+   # max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
+    max_ft_wth = {ind: "max" + ind for ind in max_feature_wth}
+    max_ft_ndvi = {ind: "max" + ind for ind in max_feature_ndvi}
+    max_ft_fapar = {ind: "max" + ind for ind in max_feature_fapar}
+   # avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
+    avg_ft_wth = {ind: "mean" + ind for ind in avg_feature_wth}
+    rs_fts = aggregate_by_period(fapar_df, index_cols, "period", max_aggrs, max_ft_fapar)
+    ndvi_fts = aggregate_by_period(ndvi_df, index_cols, "period", max_aggrs, max_ft_ndvi)
+    weather_avg_fts = aggregate_by_period(weather_df, index_cols, "period", avg_aggrs, avg_ft_wth)
+    weather_max_fts = aggregate_by_period(weather_df, index_cols, "period", max_aggrs, max_ft_wth)
     weather_fts = weather_avg_fts.merge(weather_max_fts, on=index_cols)
-    ndvi_fts = aggregate_by_period(ndvi_df, index_cols, "period", max_aggrs, max_ft_cols)
 
     # count time steps matching threshold conditions
     for ind, thresh in count_thresh_cols.items():
