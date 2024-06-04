@@ -34,6 +34,7 @@ def dekad_from_date(date_str):
                          "YYYY0111" to "YYYY0120" -> 2,
                          "YYYY0121" to "YYYY0131" -> 3
     """
+    date_str = date_str.replace("-", "").replace("/", "")
     month = int(date_str[4:6])
     day_of_month = int(date_str[6:])
     dekad = (month - 1) * 3
@@ -216,7 +217,10 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
     Returns:
       pd.DataFrame of features
     """
-    soil_features = soil_df.astype({"drainage_class": "category"})
+    if "drainage_class" in soil_df.columns:
+        soil_features = soil_df.astype({"drainage_class": "category"})
+    else:
+        soil_features = soil_df
 
     # Feature design for time series
     # TODO: 1. add code for cumulative features

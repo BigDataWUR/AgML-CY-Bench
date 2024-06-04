@@ -56,9 +56,23 @@ class Dataset:
         self._dfs_x = list(data_inputs)
 
         # Sort all data for faster lookups
+        # Also save min and max dates for time series
+        # NOTE: We need min and max dates to ensure
+        # the same number of time steps for some models, e.g. LSTM.
         self._df_y.sort_index(inplace=True)
+        self._min_date = None
+        self._max_date = None
         for df in self._dfs_x:
             df.sort_index(inplace=True)
+            if len(df.index.names) == 3:
+                df_min_date = min(df.index.get_level_values(2))
+                df_max_date = max(df.index.get_level_values(2))
+                if self._min_date is None:
+                    self._min_date = df_min_date
+                    self._max_date = df_max_date
+                else:
+                    self._min_date = min(self._min_date, df_min_date)
+                    self._max_date = max(self._max_date, df_max_date)
 
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
@@ -126,6 +140,14 @@ class Dataset:
 
     def indices(self) -> list:
         return self._df_y.index.values
+
+    @property
+    def min_date(self) -> str:
+        return self._min_date
+
+    @property
+    def max_date(self) -> str:
+        return self._max_date
 
     def __getitem__(self, index) -> dict:
         """

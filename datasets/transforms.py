@@ -1,72 +1,55 @@
 import torch
 from datasets.dataset import Dataset
 from datasets.dataset_torch import TorchDataset
+from util.features import dekad_from_date
+from config import KEY_DATES
 
 
-def date_to_dekad(date_str):
-    date_str = date_str.replace("-", "").replace("/", "")
-    month = int(date_str[4:6])
-    day_of_month = int(date_str[6:])
-    dekad = (month - 1) * 3
-    if day_of_month <= 10:
-        dekad += 1
-    elif day_of_month <= 20:
-        dekad += 2
-    else:
-        dekad += 3
-    return dekad
-
-
-def transform_single_ts_feature_to_dekadal(ts_key, value, dates):
+def _transform_ts_input_to_dekadal(ts_key, value, dates, min_date, max_date):
     # Transform dates to dekads
-    bs = value.shape[0]
+    min_dekad = dekad_from_date(min_date)
+    max_dekad = dekad_from_date(max_date)
+    dekads = list(range(0, max_dekad - min_dekad + 1))
+
     datestrings = [str(date) for date in dates]
-    dekads = torch.tensor(
-        [date_to_dekad(date) for date in datestrings], device=value.device
+    value_dekads = torch.tensor(
+        [dekad_from_date(date) for date in datestrings], device=value.device
     )
-    dekads -= 1
+    value_dekads -= 1
 
     # Aggregate timeseries to dekadal resolution
-    bs = value.shape[0]
-    num_groups = dekads.max().item() + 1
-    if ts_key in ["tmax"]:  # Max aggregation
-        new_value = torch.full((bs, num_groups), float("-inf"), dtype=value.dtype)
-        for i in range(
-            num_groups
-        ):  # Inefficient, but scatter_min or scatter_max are not supported by torch
-            mask = dekads == i
-            new_value[:, i] = value[:, mask].max(dim=1).values
-    elif ts_key in ["tmin"]:  # Min aggregation
-        new_value = torch.full((bs, num_groups), float("inf"), dtype=value.dtype)
-        for i in range(
-            num_groups
-        ):  # Inefficient, but scatter_min or scatter_max are not supported by torch
-            mask = dekads == i
-            new_value[:, i] = value[:, mask].min(dim=1).values
-    else:  # Mean aggregation: use scatter_add to sum and count, then calculate the average
-        dekads = dekads.unsqueeze(0).expand(value.shape)
-        dekad_sum = torch.zeros((bs, num_groups), dtype=value.dtype)
-        dekad_count = torch.zeros((bs, num_groups), dtype=torch.int32)
-        dekad_sum.scatter_add_(1, dekads, value)
-        dekad_count.scatter_add_(1, dekads, torch.ones_like(value, dtype=torch.int32))
-        new_value = dekad_sum / dekad_count
+    new_value = torch.full(
+        (value.shape[0], len(dekads)), float("inf"), dtype=value.dtype
+    )
+    for d in dekads:
+        # Inefficient, but scatter_min or scatter_max are not supported by torch
+        mask = value_dekads == d
+        if value[:, mask].shape[1] == 0:
+            new_value[:, d] = 0.0
+        else:
+            if ts_key in ["tmax"]:  # Max aggregation
+                new_value[:, d] = value[:, mask].max(dim=1).values
+            elif ts_key in ["tmin"]:  # Min aggregation
+                new_value[:, d] = value[:, mask].min(dim=1).values
+            else:  # for all other inputs
+                new_value[:, d] = torch.mean(value[:, mask], dim=1)
     return new_value
 
 
-def transform_ts_features_to_dekadal(batch_dict):
+def transform_ts_inputs_to_dekadal(batch_dict, min_date, max_date):
     out_dict = {}
-    dates = batch_dict["dates"]
+    dates = batch_dict[KEY_DATES]
     for key, value in batch_dict.items():
         if type(value) == torch.Tensor and len(value.shape) == 2:
-            out_dict[key] = transform_single_ts_feature_to_dekadal(
-                key, value, dates[key]
+            out_dict[key] = _transform_ts_input_to_dekadal(
+                key, value, dates[key], min_date, max_date
             )
         else:
             out_dict[key] = value
     return out_dict
 
 
-def transform_stack_ts_static_features(batch_dict):
+def transform_stack_ts_static_inputs(batch_dict, min_date, max_date):
     # Sort values
     ts = {}
     static = {}

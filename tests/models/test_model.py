@@ -211,60 +211,51 @@ def test_sklearn_model():
 # Number of time steps can vary between sources and within a source.
 # Same goes for tests.datasets.test_transforms test_transforms()
 
-# def test_nn_model():
-#     train_dataset = Dataset.load("maize_es")
-#     test_dataset = Dataset.load("maize_es")
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#     # Initialize model, assumes that all features are in np.ndarray format
-#     n_total_features = len(train_dataset[0].keys()) - 4
-#     ts_features = [
-#         key
-#         for key in train_dataset[0].keys()
-#         if type(train_dataset[0][key]) == np.ndarray
-#     ]
-#     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
+def test_nn_model():
+    train_dataset = Dataset.load("maize_ES")
+    test_dataset = Dataset.load("maize_ES")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#     model = ExampleLSTM(
-#         len(ts_features),
-#         n_total_features - len(ts_features),
-#         hidden_size=64,
-#         num_layers=2,
-#         output_size=1,
-#     )
-#     scheduler_fn = torch.optim.lr_scheduler.StepLR
-#     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
+    # Initialize model, assumes that all features are in np.ndarray format
+    model = ExampleLSTM(
+        hidden_size=64,
+        num_layers=2,
+        output_size=1,
+    )
+    scheduler_fn = torch.optim.lr_scheduler.StepLR
+    scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
-#     # Train model
-#     model.fit(
-#         train_dataset,
-#         batch_size=3200,
-#         num_epochs=2,
-#         device=device,
-#         optim_kwargs={"lr": 0.01},
-#         scheduler_fn=scheduler_fn,
-#         scheduler_kwargs=scheduler_kwargs,
-#     )
+    # Train model
+    model.fit(
+        train_dataset,
+        batch_size=3200,
+        num_epochs=2,
+        device=device,
+        optim_kwargs={"lr": 0.01},
+        scheduler_fn=scheduler_fn,
+        scheduler_kwargs=scheduler_kwargs,
+    )
 
-#     test_preds, _ = model.predict(test_dataset)
-#     assert test_preds.shape[0] == len(test_dataset)
+    test_preds, _ = model.predict(test_dataset)
+    assert test_preds.shape[0] == len(test_dataset)
 
-#     # Check if evaluation results are within expected range
-#     evaluation_result = evaluate_model(model, test_dataset)
-#     print(evaluation_result)
+    # Check if evaluation results are within expected range
+    evaluation_result = evaluate_model(model, test_dataset)
+    print(evaluation_result)
 
-#     min_expected_values = {
-#         "normalized_rmse": 0,
-#         "mape": 0.00,
-#     }
-#     for metric, expected_value in min_expected_values.items():
-#         assert (
-#             metric in evaluation_result
-#         ), f"Metric '{metric}' not found in evaluation result"
-#         assert (
-#             evaluation_result[metric] >= expected_value
-#         ), f"Value of metric '{metric}' does not match expected value"
-#         # Check metric is not NaN
-#         assert not np.isnan(
-#             evaluation_result[metric]
-#         ), f"Value of metric '{metric}' is NaN"
+    min_expected_values = {
+        "normalized_rmse": 0,
+        "mape": 0.00,
+    }
+    for metric, expected_value in min_expected_values.items():
+        assert (
+            metric in evaluation_result
+        ), f"Metric '{metric}' not found in evaluation result"
+        assert (
+            evaluation_result[metric] >= expected_value
+        ), f"Value of metric '{metric}' does not match expected value"
+        # Check metric is not NaN
+        assert not np.isnan(
+            evaluation_result[metric]
+        ), f"Value of metric '{metric}' is NaN"
