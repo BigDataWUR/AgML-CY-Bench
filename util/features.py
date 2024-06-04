@@ -303,6 +303,8 @@ def design_features(
     weather_max_fts = aggregate_by_period(
         weather_df, index_cols, "period", max_aggrs, max_ft_cols
     )
+    weather_fts = weather_avg_fts.merge(weather_max_fts, on=index_cols)
+    ndvi_fts = aggregate_by_period(ndvi_df, index_cols, "period", max_aggrs, max_ft_cols)
 
     # count time steps matching threshold conditions
     for ind, thresh in count_thresh_cols.items():
@@ -321,11 +323,10 @@ def design_features(
             threshold,
             ft_name,
         )
-
-        weather_fts = weather_avg_fts.merge(weather_max_fts, on=index_cols)
         weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
         weather_fts = weather_fts.fillna(0.0)
 
     all_fts = soil_features.merge(rs_fts, on=[KEY_LOC])
     all_fts = all_fts.merge(weather_fts, on=index_cols)
+    all_fts = all_fts.merge(ndvi_fts, on=index_cols)
     return all_fts
