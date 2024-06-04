@@ -25,7 +25,10 @@ KEY_TARGET = "yield"
 KEY_DATES = "dates"
 
 # Soil properties
-SOIL_PROPERTIES = ["awc", "drainage_class", "bulk_density"]
+SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
+
+# Static predictors. Add more when available
+STATIC_PREDICTORS = SOIL_PROPERTIES
 
 # Weather indicators
 METEO_INDICATORS = ["tmin", "tmax", "tavg", "prec", "cwb"]
@@ -36,7 +39,12 @@ RS_FPAR = "fpar"
 RS_NDVI = "ndvi"
 
 # Soil moisture indicators: surface moisture, root zone moisture
-SOIL_MOISTURE_INDICATORS = ["ssm", "rsm"]
+SOIL_MOISTURE_INDICATORS = ["ssm"]  # , "rsm"]
+
+# Time series predictors
+TIME_SERIES_PREDICTORS = (
+    METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
+)
 
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
