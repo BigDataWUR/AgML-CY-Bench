@@ -1,7 +1,19 @@
 # Data sources selection
 
 ## Weather variables and moisture indicators
-Choices, selection and justification
+
+| Source | Considered variables | Temporal frequency | Spatial resolution | Caveat| Operational | Open and Free? |
+|------|------|------|------|------|------|:---:|
+| [ERA5]( https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels) | 2m temperature, Precipitation flux, Solar radiation flux, 10m wind speed, 2m relative humidity | Hourly | 0.25° | Not bias-corrected | Y | Y |
+| [ERA5-land]( https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-land?tab=overview) | 2m temperature, Precipitation flux, Solar radiation flux, 10m wind speed, 2m relative humidity | Hourly | 0.1° | Not bias-corrected | Y | Y |
+| [W5E5](https://www.isimip.org/gettingstarted/input-data-bias-adjustment/details/114/)| 2m temperature, Precipitation flux, Solar radiation flux, 10m wind speed, 2m relative humidity | Daily | 0.5° | low spatial resolution, does not offer real-time temporal coverage | N | Y |
+| [AgERA5]( https://cds.climate.copernicus.eu/cdsapp#!/dataset/sis-agrometeorological-indicators?tab=overview) | 2m temperature, Precipitation flux, Solar radiation flux, 10m wind speed, 2m relative humidity | Daily | 0.1° | Not bias-corrected | Y | Y |
+| [FAO, AgERA5 based]( https://data.apps.fao.org/static/data/index.html?prefix=static%2Fdata%2Fc3s%2FAGERA5_ET0) | Reference evapotranspiration| Daily | 0.1° | Not bias-corrected | Y | Y |
+| [CPC](https://psl.noaa.gov/data/gridded/data.cpc.globaltemp.html)| Precipitation and temperature| Daily | 0.5° | limited available variables, low spatial resolution | Y | Y |
+| [GLEAM](https://www.gleam.eu/)| Evapotranspiration and soil moisture| Daily | 0.25° | does not offer real-time temporal coverage | N | Y |
+| [MSWEP](https://www.gloh2o.org/mswep/)| Precipitation| 3-hourly | 0.1° | Single variable product | Y | Y |
+| [GLADS](https://ldas.gsfc.nasa.gov/gldas/model-output) | Root zone soil moisture| Daily | 0.25° | does not offer real-time temporal coverage | N | Y |
+
 
 ### Contact
 Raed Hamed
