@@ -18,6 +18,8 @@ jobs:
           pip install flake8 pytest pytest-cov scikit-learn pandas numpy torch tqdm statsmodels
 
           git clone https://github.com/BigDataWUR/sample_data.git ${GITHUB_WORKSPACE}/cybench/data
+      - name: List contents
+        run: ls -la ${GITHUB_WORKSPACE}/cybench/data
       - name: Lint with flake8
         run: |
           # stop the build if there are Python syntax errors or undefined names
