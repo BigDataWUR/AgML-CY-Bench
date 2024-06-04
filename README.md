@@ -131,6 +131,7 @@ dataset = Dataset.load("maize_US")
 | [US](data_preparation/crop_statistics_US/README.md) | [US](data_preparation/shapefiles_US/README.md) |  |
 
 1: Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but at admin level 1 only.
+
 2: Germany data is also included in the EU dataset, but there most of the data fails coherence tests (e.g. yield = production / harvest_area)
 
 ### Leaderboard
