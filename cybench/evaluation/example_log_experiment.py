@@ -35,22 +35,12 @@ def example_for_logging_torch_model(comet_experiment=None):
     Example of logging metrics in Comet anonymously for torch models
     """
 
-    train_dataset = Dataset.load("test_maize_us")
-    test_dataset = Dataset.load("test_maize_us")
+    train_dataset = Dataset.load("maize_US")
+    test_dataset = Dataset.load("maize_US")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize model, assumes that all features are in np.ndarray format
-    n_total_features = len(train_dataset[0].keys()) - 4
-    ts_features = [
-        key
-        for key in train_dataset[0].keys()
-        if type(train_dataset[0][key]) == np.ndarray
-    ]
-    ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
-
     model = ExampleLSTM(
-        len(ts_features),
-        n_total_features - len(ts_features),
         hidden_size=64,
         num_layers=2,
         output_size=1,
@@ -89,7 +79,7 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
     """
     Example of logging metrics in Comet anonymously for sklearn models
     """
-    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
+    data_path = os.path.join(PATH_DATA_DIR, "features", "maize", "US")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
@@ -99,7 +89,7 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
     train_dataset = Dataset(train_yields, [train_features])
 
     # Test dataset
-    test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
+    test_csv = os.path.join(data_path, "grain_maize_US_test.csv")
     test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
     test_yields = test_df[[KEY_TARGET]].copy()
     test_features = test_df[feature_cols].copy()
@@ -137,8 +127,6 @@ def example_run_benchmark(comet_experiment=None):
     Example of logging metrics in Comet anonymously for a benchmark run with an LSTM model
     """
     model_init_kwargs = {
-        "n_ts_features": 9,
-        "n_static_features": 1,
         "hidden_size": 8,
         "num_layers": 1,
     }
