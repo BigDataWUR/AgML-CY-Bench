@@ -14,6 +14,7 @@ from cybench.config import (
 class Dataset:
     def __init__(
         self,
+        crop,
         data_target: pd.DataFrame = None,
         data_inputs: list = None,
     ):
@@ -22,6 +23,7 @@ class Dataset:
 
         Targets/inputs are provided using properly formatted pandas dataframes.
 
+        :param crop: crop name, e.g. maize or wheat
         :param data_target: pandas.DataFrame that contains yield statistics
                             Dataframe should meet the following requirements:
                                 - The column containing yield targets should be named properly
@@ -43,6 +45,9 @@ class Dataset:
                                     - `config.KEY_YEAR` for the year
                                     - the name of the extra optional temporal level is ignored and has no requirement
         """
+        assert crop in DATASETS
+        self._crop = crop
+
         # If no data is given, create an empty dataset
         if data_target is None:
             data_target = self._empty_df_target()
@@ -81,7 +86,6 @@ class Dataset:
     @staticmethod
     def load(name: str) -> "Dataset":
         crop_country = name.split("_")
-        print(crop_country)
         if len(crop_country) > 2:
             raise Exception(f'Unrecognized dataset name "{name}"')
 
@@ -96,6 +100,7 @@ class Dataset:
 
             df_y, dfs_x = load_dfs_crop(crop)
             return Dataset(
+                crop,
                 df_y,
                 list(dfs_x),
             )
@@ -107,9 +112,14 @@ class Dataset:
 
             df_y, dfs_x = load_dfs(crop, country_code)
             return Dataset(
+                crop,
                 df_y,
                 list(dfs_x),
             )
+
+    @property
+    def crop(self):
+        return self._crop
 
     @property
     def years(self) -> set:
@@ -371,10 +381,12 @@ class Dataset:
         df_y_1, df_y_2 = self._split_df_on_index(self._df_y, years_split, level=1)
         return (
             Dataset(
+                self._crop,
                 data_target=df_y_1,
                 data_inputs=data_dfs1,
             ),
             Dataset(
+                self._crop,
                 data_target=df_y_2,
                 data_inputs=data_dfs2,
             ),
