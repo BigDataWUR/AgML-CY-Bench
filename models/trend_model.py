@@ -96,7 +96,7 @@ class TrendModel(BaseModel):
 
             predictions[i] = trend_est.predict(trend_x)
 
-        return predictions, {}
+        return predictions.flatten(), {}
 
     def save(self, model_name):
         """Save model, e.g. using pickle.
