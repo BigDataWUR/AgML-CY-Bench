@@ -290,8 +290,8 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
 
     # Aggregate by period
-    avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad"]
-    max_weather_cols = ["cum_gdd", "cum_cwb"]
+    avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
+    max_weather_cols = ["cum_gdd"]
     avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
     max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
     avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
