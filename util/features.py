@@ -217,7 +217,10 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
     Returns:
       pd.DataFrame of features
     """
-    soil_features = soil_df.astype({"drainage_class": "category"})
+    if "drainage_class" in soil_df.columns:
+        soil_features = soil_df.astype({"drainage_class": "category"})
+    else:
+        soil_features = soil_df
 
     # Feature design for time series
     # TODO: 1. add code for cumulative features

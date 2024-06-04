@@ -78,7 +78,6 @@ def load_dfs(
         df_x_meteo, ts_index_cols, METEO_INDICATORS, df_crop_cal, lead_time
     )
     df_x_meteo = df_x_meteo.set_index(ts_index_cols)
-    print(df_x_meteo.head())
 
     # fpar
     df_x_fpar = pd.read_csv(
@@ -89,7 +88,6 @@ def load_dfs(
         df_x_fpar, ts_index_cols, [RS_FPAR], df_crop_cal, lead_time
     )
     df_x_fpar = df_x_fpar.set_index(ts_index_cols)
-    print(df_x_fpar.head())
 
     # ndvi
     df_x_ndvi = pd.read_csv(
@@ -100,7 +98,6 @@ def load_dfs(
         df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
     )
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
-    print(df_x_ndvi.head())
 
     # soil moisture
     df_x_soil_moisture = pd.read_csv(

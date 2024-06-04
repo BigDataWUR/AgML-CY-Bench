@@ -375,6 +375,7 @@ class BaseNNModel(BaseModel, nn.Module):
                                 inputs[key] = (
                                     inputs[key] - self.feature_means[key]
                                 ) / self.feature_sds[key]
+
                         predictions = self(inputs)
                         if predictions.dim() > 1:
                             predictions = predictions.squeeze(-1)
@@ -442,17 +443,16 @@ class BaseNNModel(BaseModel, nn.Module):
                 batch = TorchDataset.collate_fn(
                     [TorchDataset._cast_to_tensor(sample) for sample in batch]
                 )
-                batch = {
-                    key: batch[key].to(device)
-                    for key in batch.keys()
-                    if isinstance(batch[key], torch.Tensor)
-                }
+                for key in batch:
+                    if isinstance(batch[key], torch.Tensor):
+                        batch[key] = batch[key].to(device)
                 inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
                 for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         inputs[key] = (
                             inputs[key] - self.feature_means[key]
                         ) / self.feature_sds[key]
+
                 y_pred = model(inputs)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)
@@ -508,12 +508,12 @@ class ExampleLSTM(BaseNNModel):
         self._transforms = transforms
 
     def forward(self, x):
-        print(x.keys())
         for transform in self._transforms:
             x = transform(x, self._min_date, self._max_date)
+
         x_ts = x["ts"]
         x_static = x["static"]
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
-        x = self._fc(x)
-        return x
+        output = self._fc(x)
+        return output
