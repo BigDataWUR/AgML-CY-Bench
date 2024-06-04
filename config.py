@@ -2,7 +2,7 @@ import os
 import logging
 import logging.config
 from datetime import datetime
-import yaml
+
 
 # Project root dir
 CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
@@ -14,6 +14,85 @@ os.makedirs(PATH_DATA_DIR, exist_ok=True)
 # Path to folder where benchmark results
 PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
 os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
+
+
+DATASETS = {
+    "maize": [
+        "AO",
+        "AR",
+        "AT",
+        "BE",
+        "BF",
+        "BG",
+        "BR",
+        "CN",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "EL",
+        "ES",
+        "ET",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "IE",
+        "IN",
+        "IT",
+        "LS",
+        "LT",
+        "LV",
+        "MG",
+        "ML",
+        "MW",
+        "MX",
+        "MZ",
+        "NE",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SK",
+        "SN",
+        "TD",
+        "US",
+        "ZA",
+        "ZM",
+    ],
+    "wheat": [
+        "AR",
+        "AT",
+        "AU",
+        "BE",
+        "BG",
+        "BR",
+        "CN",
+        "CZ",
+        "DE",
+        "DK",
+        "EE",
+        "EL",
+        "ES",
+        "FI",
+        "FR",
+        "HR",
+        "HU",
+        "IE",
+        "IN",
+        "IT",
+        "LT",
+        "LV",
+        "NL",
+        "PL",
+        "PT",
+        "RO",
+        "SE",
+        "SK",
+        "US",
+    ],
+}
 
 # Key used for the location index
 KEY_LOC = "adm_id"

@@ -377,6 +377,7 @@ class BaseNNModel(BaseModel, nn.Module):
                                 ) / self.feature_sds[key]
 
                         predictions = self(inputs)
+
                         if predictions.dim() > 1:
                             predictions = predictions.squeeze(-1)
                         target = batch[KEY_TARGET]

@@ -5,6 +5,7 @@ from datetime import date, timedelta
 
 from config import (
     PATH_DATA_DIR,
+    DATASETS,
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,
@@ -124,33 +125,32 @@ def load_dfs(
     return df_y, dfs_x
 
 
-def load_dfs_maize_es() -> tuple:
-    return load_dfs("maize", "ES")
+def load_dfs_crop(crop) -> tuple:
+    assert crop in DATASETS
 
+    df_y = None
+    dfs_x = None
+    for cn in DATASETS[crop]:
+        if not os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
+            continue
 
-def load_dfs_maize_nl() -> tuple:
-    return load_dfs("maize", "NL")
+        df_y_cn, dfs_x_cn = load_dfs(crop, cn)
 
+        if df_y is None:
+            df_y = df_y_cn
+            dfs_x = dfs_x_cn
+        else:
+            df_y = pd.concat(
+                [
+                    df_y,
+                    df_y_cn,
+                ],
+                axis=0,
+            )
 
-def load_dfs_maize() -> tuple:
-    df_y_es, dfs_x_es = load_dfs("maize", "ES")
-    df_y_nl, dfs_x_nl = load_dfs("maize", "NL")
-
-    df_y = pd.concat(
-        [
-            df_y_es,
-            df_y_nl,
-        ],
-        axis=0,
-    )
-
-    dfs_x = tuple(
-        pd.concat([df_x_us, df_x_fr], axis=0)
-        for df_x_us, df_x_fr in zip(dfs_x_es, dfs_x_nl)
-    )
+            dfs_x = tuple(
+                pd.concat([df_x, df_x_cn], axis=0)
+                for df_x, df_x_cn in zip(dfs_x, dfs_x_cn)
+            )
 
     return df_y, dfs_x
-
-
-def load_dfs_wheat_nl() -> tuple:
-    return load_dfs("wheat", "NL")
