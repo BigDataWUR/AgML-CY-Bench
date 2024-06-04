@@ -350,7 +350,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 pbar.set_description(
                     f"Epoch {epoch+1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
                 )
-            all_train_losses.append(mean_train_loss)
+                all_train_losses.append(mean_train_loss)
 
             if val_loader is not None and (
                 epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1

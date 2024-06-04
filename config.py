@@ -110,7 +110,7 @@ SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
 STATIC_PREDICTORS = SOIL_PROPERTIES
 
 # Weather indicators
-METEO_INDICATORS = ["tmin", "tmax", "tavg", "prec", "cwb"]
+METEO_INDICATORS = ["tmin", "tmax", "tavg", "prec", "cwb", "rad"]
 
 # Remote sensing indicators.
 # Keep them separate because they have different temporal resolution
@@ -129,9 +129,16 @@ TIME_SERIES_PREDICTORS = (
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 
 # Feature design
-GDD_BASE_TEMPERATURES = {
-    "maize" : 8,
-    "wheat" : 0
+# Base temperature for corn and wheat for growing degree days wheat:0 maize:10.
+# From @poudelpratishtha.
+GDD_BASE_TEMP = {
+    "maize": 10,
+    "wheat": 0,
+}
+
+GDD_UPPER_LIMIT = {
+    "maize": 35,
+    "wheat": None,
 }
 
 

@@ -19,6 +19,7 @@ from config import (
     METEO_INDICATORS,
     RS_FPAR,
     RS_NDVI,
+    SOIL_MOISTURE_INDICATORS,
 )
 
 
@@ -52,7 +53,7 @@ class SklearnModel(BaseModel):
         ]:
             self._predesigned_features = True
         else:
-            train_features = self._design_features(train_data)
+            train_features = self._design_features(dataset.crop, train_data)
             self._feature_cols = [
                 ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
             ]
@@ -121,25 +122,38 @@ class SklearnModel(BaseModel):
 
         return grid_search.best_estimator_
 
-    def _design_features(self, data_df):
+    def _design_features(self, crop, data_df):
         """Design features using data samples.
 
         Args:
+          crop: crop name (e.g. maize)
           data_df: A pandas dataframe of data samples from Dataset
 
         Returns:
           A pandas dataframe with KEY_LOC, KEY_YEAR and features.
         """
         # static data is repeated for every year. Drop duplicates.
-        print([KEY_LOC] + SOIL_PROPERTIES)
         soil_df = data_df[[KEY_LOC] + SOIL_PROPERTIES].drop_duplicates()
-        fpar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FPAR]].copy()
-        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
         weather_df = data_df[
             [KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
         ].copy()
         weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
-        features = design_features(weather_df, soil_df, fpar_df)
+
+        fpar_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_FPAR]].copy()
+        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
+
+        ndvi_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]].copy()
+        ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
+
+        soil_moisture_df = data_df[
+            [KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
+        ].copy()
+        soil_moisture_df = unpack_time_series(
+            soil_moisture_df, SOIL_MOISTURE_INDICATORS
+        )
+        features = design_features(
+            crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df
+        )
 
         return features
 
@@ -154,7 +168,7 @@ class SklearnModel(BaseModel):
         """
         test_data = data_to_pandas(dataset)
         if not self._predesigned_features:
-            test_features = self._design_features(test_data)
+            test_features = self._design_features(dataset.crop, test_data)
             # Check features are the same for training and test data
             ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
             missing_features = [ft for ft in self._feature_cols if ft not in ft_cols]
