@@ -92,7 +92,7 @@ class MyModel(BaseModel):
 run_name = <run_name>
 dataset_name = "maize_US"
 run_benchmark(run_name=run_name, 
-              model_name=my_model,
+              model_name="my_model",
               model_constructor=MyModel,
               model_init_kwargs: <int args>,
               model_fit_kwargs: <fit params>,
