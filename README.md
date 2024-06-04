@@ -141,7 +141,7 @@ Please cite CY-bench as follows:
 TODO.
 
 ## How to contribute
-Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please check [contributing guidelines](https://github.com/BigDataWUR/AgML-crop-yield-forecasting/blob/main/CONTRIBUTING.md) for how to get involved and contribute.
+Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please check [contributing guidelines](CONTRIBUTING.md) for how to get involved and contribute.
 
 ## Additional information
 For more information please visit [the AgML website](https://www.agml.org/).
