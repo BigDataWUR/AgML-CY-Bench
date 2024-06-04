@@ -44,3 +44,11 @@ Ritvik Sahajpal, Michele Meroni
 
 ### Contact
 Pratishtha Poudel, Michele Meroni
+
+### Crop yield
+We selected data from [crop_statistics_DE] for crop (Grain Maize and Wheat) yield. Another choice is [crop_statistics_EU]. crop_statistics_DE is a better choice because of the below mentioned reasons:
+- crop_statistics_DE data source for both crops have a longer and harmonized time series (spanning from 1979-2021) available as opposed to dataset from crop_statistics_EU (which is available from 1999-2020).
+- For Grain Maize, we have more number of administrative units (= 138), meaning more spatial coverage , compared to the one from crop_statistics_EU which is 12. Whereas,in case of Wheat, the max. admin units in is 376, comapred to 335 in crop_statistics_EU.
+
+### Contact
+Rahel Laudien
