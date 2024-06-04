@@ -1,7 +1,7 @@
 # Compagnie Malienne pour le Developpement des Textiles (CMDT) Monitoring Operational Maize Yield data
 ## Short description
 
-The data derived comes from CMDT Monitoring Operational - a Malian Company for the Development of Textiles located in Southern Mali. It consists of 5 CMDT regions and 28 CMDT sectors. Prepared for AgML-CY-Bench,  we have key observations from the maize yield data for the different zones/regions and sectors from 1990 to 2017.
+The yield data comes from CMDT Monitoring Operational, a Malian Company for the Development of Textiles based in Southern Mali. This dataset encompasses 5 CMDT regions and 28 CMDT sectors, providing critical observations on maize yield across different zones, regions, and sectors from 1990 to 2017. Additionally, it includes data on production and planted area from 1990 to 2000. 
 
 ## Link
 Prepared for AgML-CY-Bench
@@ -9,9 +9,10 @@ Prepared for AgML-CY-Bench
 
 ## Publisher
 CMDT operational monitoring
+https://cmdt-mali.net/index.php
 
 ## Dataset owner
-ICRISAT
+ICRISAT: https://icrisat.org/
 
 ## Data card author
 Janet Mutuku, Celeste Tchampi, Pierre C. Sibiry Traore
@@ -26,7 +27,7 @@ Janet Mutuku, Celeste Tchampi, Pierre C. Sibiry Traore
 
 **Temporal resolution**: Yearly
 
-**Spatial resolution**: Arrondissement-level (sectors) (level 3 administrative boundaries)
+**Spatial resolution**: Arrondissement-level (sectors) with level 3 administrative boundaries
 
 **Date Published**: N/A
 
