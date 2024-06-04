@@ -128,6 +128,13 @@ TIME_SERIES_PREDICTORS = (
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 
+# Feature design
+GDD_BASE_TEMPERATURES = {
+    "maize" : 8,
+    "wheat" : 0
+}
+
+
 # Lead time for forecasting
 # NOTE: can be: "mid-season", "quarter-of-season",
 # "n-days" with n is an integer

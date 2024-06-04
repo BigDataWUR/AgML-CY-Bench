@@ -198,7 +198,15 @@ def unpack_time_series(df, indicators):
     return df
 
 
-def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df=None):
+# LOC, YEAR, DATE => cumsum by month
+def growing_degree_days(df, tbase):
+   # Base temp would be 0 for winter wheat and 10 for corn.
+   gdd = np.maximum(0, df["tavg"] - tbase)
+
+   return gdd.sum()
+
+def design_features(weather_df, soil_df, fpar_df,
+                    ndvi_df=None, soil_moisture_df=None):
     """Design features based domain expertise.
 
     Args:
@@ -227,13 +235,14 @@ def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df
     # TODO: 2. add code for ET0, ndvi, soil moisture
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["fpar"]  # ["ndvi", "fpar"]
-    avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
+    max_feature_cols = ["ndvi", "fpar"]
+    avg_feature_cols = ["tmin", "tmax", "tavg", "prec", "rad"]
+    cum_sum_max = ["prec", "cwb", "ndvi"]
+
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
         "tmax": [">", "35"],  # degrees
-        "prec_l": ["<", "50"],  # mm
-        "prec_h": [">", "100"],  # mm (per day)
+        "prec": ["<", "0"],  # mm
     }
 
     fpar_df = add_period(fpar_df, period_length)
