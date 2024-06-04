@@ -279,7 +279,9 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     )
     weather_df["cum_gdd"] = weather_df.groupby(index_cols)["gdd"].cumsum()
     weather_df["cwb"] = weather_df["cwb"].astype(float)
+    weather_df["prec"] = weather_df["prec"].astype(float)
     weather_df["cum_cwb"] = weather_df.groupby(index_cols)["cwb"].cumsum()
+    weather_df["cum_prec"] = weather_df.groupby(index_cols)["prec"].cumsum()
 
     fpar_df = fpar_df.sort_values(by=index_cols + ["period"])
     fpar_df["fpar"] = fpar_df["fpar"].astype(float)
@@ -291,7 +293,7 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
 
     # Aggregate by period
     avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
-    max_weather_cols = ["cum_gdd"]
+    max_weather_cols = ["cum_gdd", "cum_prec"]
     avg_weather_aggrs = {ind: "mean" for ind in avg_weather_cols}
     max_weather_aggrs = {ind: "max" for ind in max_weather_cols}
     avg_ft_cols = {ind: "mean_" + ind for ind in avg_weather_cols}
