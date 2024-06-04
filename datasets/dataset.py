@@ -68,16 +68,16 @@ class Dataset:
     def load(name: str) -> "Dataset":
         crop_country = name.split("_")
         print(crop_country)
-        if (len(crop_country) > 2):
+        if len(crop_country) > 2:
             raise Exception(f'Unrecognized dataset name "{name}"')
 
         crop = crop_country[0]
         country_code = None
-        if (len(crop_country) == 2):
+        if len(crop_country) == 2:
             country_code = crop_country[1]
 
         assert crop in DATASETS
-        if (country_code is None):
+        if country_code is None:
             from datasets.configured import load_dfs_crop
 
             df_y, dfs_x = load_dfs_crop(crop)
@@ -86,7 +86,7 @@ class Dataset:
                 list(dfs_x),
             )
         else:
-            if (country_code not in DATASETS[crop]):
+            if country_code not in DATASETS[crop]:
                 raise Exception(f'Unrecognized dataset name "{name}"')
 
             from datasets.configured import load_dfs

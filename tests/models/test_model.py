@@ -154,7 +154,7 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
     # Test 2: Test with predesigned features
-    data_path = os.path.join(PATH_DATA_DIR, "maize", "US")
+    data_path = os.path.join(PATH_DATA_DIR, "features", "maize", "US")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])

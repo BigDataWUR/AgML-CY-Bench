@@ -131,6 +131,7 @@ class SklearnModel(BaseModel):
           A pandas dataframe with KEY_LOC, KEY_YEAR and features.
         """
         # static data is repeated for every year. Drop duplicates.
+        print([KEY_LOC] + SOIL_PROPERTIES)
         soil_df = data_df[[KEY_LOC] + SOIL_PROPERTIES].drop_duplicates()
         fpar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FPAR]].copy()
         fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
@@ -155,7 +156,7 @@ class SklearnModel(BaseModel):
         if not self._predesigned_features:
             test_features = self._design_features(test_data)
             # Check features are the same for training and test data
-            ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]):]
+            ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
             missing_features = [ft for ft in self._feature_cols if ft not in ft_cols]
             for ft in missing_features:
                 test_features[ft] = 0.0

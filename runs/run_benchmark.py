@@ -7,7 +7,7 @@ from datetime import datetime
 from sklearn.linear_model import Ridge
 
 import config
-from config import PATH_RESULTS_DIR
+from config import DATASETS, PATH_DATA_DIR, PATH_RESULTS_DIR
 from models.model import BaseModel
 
 from datasets.dataset import Dataset
@@ -18,13 +18,12 @@ from models.naive_models import AverageYieldModel
 from models.trend_model import TrendModel
 from models.sklearn_model import SklearnModel
 from models.nn_models import ExampleLSTM
-from config import DATASETS
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
-    "LinearTrend" : TrendModel,
-    "SklearnRidge" : SklearnModel,
+    "LinearTrend": TrendModel,
+    "SklearnRidge": SklearnModel,
     # "SklearnRF" : SklearnModel,
     # "LSTM": ExampleLSTM,
 }
@@ -33,13 +32,9 @@ sklearn_ridge = Ridge(alpha=0.5)
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {
-    "trend" : "linear"
-}
+_BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
 
-_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {
-    "sklearn_est" : sklearn_ridge
-}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
 
 # _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 #     "n_ts_features": 9,
@@ -125,8 +120,7 @@ def run_benchmark(
     for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
         models_fit_kwargs[name] = kwargs
 
-
-    if (model_name is not None):
+    if model_name is not None:
         assert model_constructor is not None
         model_constructors[model_name] = model_constructor
         models_init_kwargs[model_name] = model_init_kwargs
@@ -218,15 +212,15 @@ def _compute_evaluation_results(
 
     return df_all
 
+
 def run_benchmark_on_all_data():
     for crop in DATASETS:
         for cn in DATASETS[crop]:
-            if (os.path.exists(os.path.join("data", crop, cn))):
+            if os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
                 run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
-                run_benchmark(run_name=run_name,
-                            dataset_name=crop + "_" + cn)
+                run_benchmark(run_name=run_name, dataset_name=crop + "_" + cn)
+
 
 # run_benchmark_on_all_data()
 run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
-run_benchmark(run_name=run_name,
-              dataset_name="maize")
+run_benchmark(run_name=run_name, dataset_name="maize")

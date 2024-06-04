@@ -131,28 +131,26 @@ def load_dfs_crop(crop) -> tuple:
     df_y = None
     dfs_x = None
     for cn in DATASETS[crop]:
-        for cn in DATASETS[crop]:
-            if (not os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn))):
-                continue
+        if not os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
+            continue
 
-            df_y_cn, dfs_x_cn = load_dfs(crop, cn)
+        df_y_cn, dfs_x_cn = load_dfs(crop, cn)
 
-            if (df_y is None):
-                df_y = df_y_cn
-                dfs_x = dfs_x_cn
-            else:
-                df_y = pd.concat(
-                    [
-                        df_y,
-                        df_y_cn,
-                    ],
-                    axis=0,
-                )
+        if df_y is None:
+            df_y = df_y_cn
+            dfs_x = dfs_x_cn
+        else:
+            df_y = pd.concat(
+                [
+                    df_y,
+                    df_y_cn,
+                ],
+                axis=0,
+            )
 
-                dfs_x = tuple(
-                    pd.concat([df_x, df_x_cn], axis=0)
-                    for df_x, df_x_cn in zip(dfs_x, dfs_x_cn)
-                )
+            dfs_x = tuple(
+                pd.concat([df_x, df_x_cn], axis=0)
+                for df_x, df_x_cn in zip(dfs_x, dfs_x_cn)
+            )
 
     return df_y, dfs_x
-
