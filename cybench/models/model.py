@@ -3,7 +3,7 @@
 
 from abc import ABC, abstractmethod
 
-from datasets.dataset import Dataset
+from cybench.datasets.dataset import Dataset
 
 
 class BaseModel(ABC):

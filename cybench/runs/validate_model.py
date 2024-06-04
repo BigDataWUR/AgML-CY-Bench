@@ -4,17 +4,17 @@ from collections import defaultdict
 import pandas as pd
 import torch
 
-import config
-from config import PATH_RESULTS_DIR
-from models.model import BaseModel
+import cybench.config
+from cybench.config import PATH_RESULTS_DIR
+from cybench.models.model import BaseModel
 
-from datasets.dataset import Dataset
+from cybench.datasets.dataset import Dataset
 
-from evaluation.eval import evaluate_model, evaluate_predictions
+from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
-from models.naive_models import AverageYieldModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {

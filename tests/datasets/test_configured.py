@@ -1,4 +1,4 @@
-from datasets.configured import load_dfs_crop
+from cybench.datasets.configured import load_dfs_crop
 
 
 def test_load_dfs_crop():

@@ -1,11 +1,11 @@
-from datasets.dataset import Dataset
-from datasets.dataset_torch import TorchDataset
-from datasets.transforms import (
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.transforms import (
     transform_ts_inputs_to_dekadal,
     transform_stack_ts_static_inputs,
 )
 
-from config import TIME_SERIES_PREDICTORS
+from cybench.config import TIME_SERIES_PREDICTORS
 
 
 def test_transforms():
