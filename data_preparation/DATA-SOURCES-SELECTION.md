@@ -7,10 +7,16 @@ Choices, selection and justification
 Raed Hamed
 
 ## Remote sensing indicators
-Choices, selection and justification
+In view of an operational deployment of the sub-national yield forecasting, we selected two operational products representing crop biomass and health: FPAR and NDVI.
+FPAR (Fraction of Adsorbed Photosynthetically Active Radiation) dekadal (10-day) and 500 m spatial resolution gap-filled and smoothed MODIS and VIIRS FPAR data is sourced from the European Commission's Joint Research Centre (JRC), https://agricultural-production-hotspots.ec.europa.eu/data/indicators_fpar/. 
+
+NDVI..
+
 
 ### Contact
-Ritvik Sahajpal, Michele Meroni
+FPAR: Michele Meroni
+NDVI: Ritvik Sahajpal
+
 
 ## Soil
 We selected data from the [WISE project][global_soil_WISE/README.md] for soil properties. Another choice is [SoilGrids](https://www.isric.org/explore/soilgrids).
@@ -24,10 +30,10 @@ WISE soil data is a better choice than SoilGrids for the following reasons:
 Allard de Wit
 
 ## Crop masks
-Choices, selection and justification
+We sourced crop-type specific (maize and winter-spring cereals) high spatial resolution (10 m) maps from ESA WorldCereal (https://esa-worldcereal.org/en). Area Fraction images fully spatially compatible with the JRC FPAR 500 m were derived from the rofinal WorldCereal maps.
 
 ### Contact
-Ritvik Sahajpal, Michele Meroni
+Francesco Collivignarelli, Michele Meroni, Ritvik Sahajpal,
 
 ## Crop calendars
 
