@@ -4,16 +4,16 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import Ridge
 
-from datasets.dataset import Dataset
-from datasets.dataset_torch import TorchDataset
-from models.naive_models import AverageYieldModel
-from models.trend_model import TrendModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
-from evaluation.eval import evaluate_model
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
+from cybench.evaluation.eval import evaluate_model
 
-from config import PATH_DATA_DIR
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from cybench.config import PATH_DATA_DIR
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 def test_average_yield_model():

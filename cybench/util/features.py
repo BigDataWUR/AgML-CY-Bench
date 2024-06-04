@@ -2,13 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 
-from config import (
-    KEY_LOC,
-    KEY_YEAR,
-    KEY_DATES,
-    GDD_BASE_TEMP,
-    GDD_UPPER_LIMIT,
-)
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_DATES, GDD_BASE_TEMP, GDD_UPPER_LIMIT
 
 
 def fortnight_from_date(date_str):

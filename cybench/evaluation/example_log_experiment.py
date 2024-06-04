@@ -9,25 +9,25 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.linear_model import Ridge
-from models.model import BaseModel
-from models.sklearn_model import SklearnModel
-from models.trend_model import TrendModel
-from models.naive_models import AverageYieldModel
-from models.nn_models import BaseNNModel
+from cybench.models.model import BaseModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.trend_model import TrendModel
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.nn_models import BaseNNModel
 
-from runs.run_benchmark import run_benchmark
-from datasets.dataset import Dataset
-from datasets.dataset_torch import TorchDataset
-from models.nn_models import ExampleLSTM
-from evaluation.eval import evaluate_model
-from evaluation.log_experiments import (
+from cybench.runs.run_benchmark import run_benchmark
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.models.nn_models import ExampleLSTM
+from cybench.evaluation.eval import evaluate_model
+from cybench.evaluation.log_experiments import (
     comet_wrapper,
     log_to_comet_post_hoc,
     log_benchmark_to_comet,
 )
 
-from config import PATH_DATA_DIR
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from cybench.config import PATH_DATA_DIR
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 def example_for_logging_torch_model(comet_experiment=None):

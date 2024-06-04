@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-from config import (
+from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,
@@ -96,7 +96,7 @@ class Dataset:
 
         assert crop in DATASETS
         if country_code is None:
-            from datasets.configured import load_dfs_crop
+            from cybench.datasets.configured import load_dfs_crop
 
             df_y, dfs_x = load_dfs_crop(crop)
             return Dataset(
@@ -108,7 +108,7 @@ class Dataset:
             if country_code not in DATASETS[crop]:
                 raise Exception(f'Unrecognized dataset name "{name}"')
 
-            from datasets.configured import load_dfs
+            from cybench.datasets.configured import load_dfs
 
             df_y, dfs_x = load_dfs(crop, country_code)
             return Dataset(

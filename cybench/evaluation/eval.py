@@ -1,9 +1,9 @@
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
 
-from config import KEY_TARGET
-from models.model import BaseModel
-from datasets.dataset import Dataset
+from cybench.config import KEY_TARGET
+from cybench.models.model import BaseModel
+from cybench.datasets.dataset import Dataset
 
 
 implemented_metrics = {}

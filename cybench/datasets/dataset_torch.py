@@ -1,10 +1,10 @@
 import torch
 import torch.utils.data
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
-from datasets.dataset import Dataset
-from util.torch import batch_tensors
+from cybench.datasets.dataset import Dataset
+from cybench.util.torch import batch_tensors
 
 
 class TorchDataset(torch.utils.data.Dataset):
