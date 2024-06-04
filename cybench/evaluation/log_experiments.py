@@ -9,7 +9,7 @@ from cybench.models.sklearn_model import SklearnModel
 from cybench.models.trend_model import TrendModel
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.nn_models import BaseNNModel
-from runs.run_benchmark import _compute_evaluation_results
+from cybench.runs.run_benchmark import _compute_evaluation_results
 
 from cybench.config import PATH_RESULTS_DIR
 

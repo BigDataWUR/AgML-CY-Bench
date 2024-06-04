@@ -9,9 +9,10 @@ import logging
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.transforms import (
-    transform_ts_features_to_dekadal,
-    transform_stack_ts_static_features,
+    transform_ts_inputs_to_dekadal,
+    transform_stack_ts_static_inputs,
 )
+
 from cybench.models.model import BaseModel
 from cybench.util.data import (
     flatten_nested_dict,
@@ -19,7 +20,14 @@ from cybench.util.data import (
     generate_settings,
 )
 
-from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_DATES,
+    STATIC_PREDICTORS,
+    TIME_SERIES_PREDICTORS,
+)
 
 
 class BaseNNModel(BaseModel, nn.Module):
@@ -40,7 +48,6 @@ class BaseNNModel(BaseModel, nn.Module):
         *args,
         **kwargs,
     ):
-
         # Set seed if seed is provided
         if "seed" in kwargs:
             seed = kwargs["seed"]
@@ -127,7 +134,6 @@ class BaseNNModel(BaseModel, nn.Module):
             self._logger.debug(f"Final best setting of outer fold: {best_setting}")
             return final_model, final_output
         else:
-
             model, output = self.train_model(dataset, *args, **kwargs)
 
             # If early stopping is used, use best val
@@ -199,6 +205,8 @@ class BaseNNModel(BaseModel, nn.Module):
 
         assert num_epochs > 0
 
+        self._min_date = train_dataset.min_date
+        self._max_date = train_dataset.max_date
         self.batch_size = batch_size
         self.to(device)
 
@@ -292,10 +300,10 @@ class BaseNNModel(BaseModel, nn.Module):
             all_train_samples = TorchDataset.collate_fn(
                 [train_dataset[i] for i in range(len(train_dataset))]
             )
-        for key, features in all_train_samples.items():
+        for key, inputs in all_train_samples.items():
             if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR, KEY_DATES]:
-                self.feature_means[key] = features.mean()
-                self.feature_sds[key] = features.std()
+                self.feature_means[key] = inputs.mean()
+                self.feature_sds[key] = inputs.std()
 
         all_train_losses = []
         all_val_losses = []
@@ -317,16 +325,16 @@ class BaseNNModel(BaseModel, nn.Module):
                         batch[key] = batch[key].to(device)
 
                 # Forward pass
-                features = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
 
-                # Normalize features
-                for key in features:
+                # Normalize inputs
+                for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                        features[key] = (
-                            features[key] - self.feature_means[key]
+                        inputs[key] = (
+                            inputs[key] - self.feature_means[key]
                         ) / self.feature_sds[key]
 
-                predictions = self(features)
+                predictions = self(inputs)
                 if predictions.dim() > 1:
                     predictions = predictions.squeeze(-1)
                 target = batch[KEY_TARGET]
@@ -360,14 +368,16 @@ class BaseNNModel(BaseModel, nn.Module):
                             if isinstance(batch[key], torch.Tensor):
                                 batch[key] = batch[key].to(device)
 
-                        features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                        # Normalize features
-                        for key in features:
+                        inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                        # Normalize inputs
+                        for key in inputs:
                             if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                                features[key] = (
-                                    features[key] - self.feature_means[key]
+                                inputs[key] = (
+                                    inputs[key] - self.feature_means[key]
                                 ) / self.feature_sds[key]
-                        predictions = self(features)
+
+                        predictions = self(inputs)
+
                         if predictions.dim() > 1:
                             predictions = predictions.squeeze(-1)
                         target = batch[KEY_TARGET]
@@ -434,18 +444,17 @@ class BaseNNModel(BaseModel, nn.Module):
                 batch = TorchDataset.collate_fn(
                     [TorchDataset._cast_to_tensor(sample) for sample in batch]
                 )
-                batch = {
-                    key: batch[key].to(device)
-                    for key in batch.keys()
-                    if isinstance(batch[key], torch.Tensor)
-                }
-                features = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                for key in features:
+                for key in batch:
+                    if isinstance(batch[key], torch.Tensor):
+                        batch[key] = batch[key].to(device)
+                inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
+                for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                        features[key] = (
-                            features[key] - self.feature_means[key]
+                        inputs[key] = (
+                            inputs[key] - self.feature_means[key]
                         ) / self.feature_sds[key]
-                y_pred = model(features)
+
+                y_pred = model(inputs)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)
                 y_pred = y_pred.cpu().numpy()
@@ -476,36 +485,36 @@ class BaseNNModel(BaseModel, nn.Module):
 class ExampleLSTM(BaseNNModel):
     def __init__(
         self,
-        n_ts_features,
-        n_static_features,
         hidden_size,
         num_layers,
         output_size=1,
         transforms=[
-            transform_ts_features_to_dekadal,
-            transform_stack_ts_static_features,
+            transform_ts_inputs_to_dekadal,
+            transform_stack_ts_static_inputs,
         ],
         **kwargs,
     ):
-
         # Add all arguments to init_args to enable model reconstruction in fit method
-        kwargs["n_ts_features"] = n_ts_features
-        kwargs["n_static_features"] = n_static_features
+        n_ts_inputs = len(TIME_SERIES_PREDICTORS)
+        n_static_inputs = len(STATIC_PREDICTORS)
+        kwargs["n_ts_inputs"] = n_ts_inputs
+        kwargs["n_static_inputs"] = n_static_inputs
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
 
         super().__init__(**kwargs)
-        self._lstm = nn.LSTM(n_ts_features, hidden_size, num_layers, batch_first=True)
-        self._fc = nn.Linear(hidden_size + n_static_features, output_size)
+        self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
+        self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
 
     def forward(self, x):
         for transform in self._transforms:
-            x = transform(x)
+            x = transform(x, self._min_date, self._max_date)
+
         x_ts = x["ts"]
         x_static = x["static"]
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
-        x = self._fc(x)
-        return x
+        output = self._fc(x)
+        return output

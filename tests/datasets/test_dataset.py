@@ -29,7 +29,7 @@ def test_dataset_item():
 
 
 def test_split():
-    data_path_county_features = os.path.join(PATH_DATA_DIR, "maize", "US")
+    data_path_county_features = os.path.join(PATH_DATA_DIR, "features", "maize", "US")
     train_csv = os.path.join(data_path_county_features, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
     train_yields = train_df[[KEY_TARGET]].copy()

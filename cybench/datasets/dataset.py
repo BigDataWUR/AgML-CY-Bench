@@ -1,7 +1,14 @@
 import pandas as pd
 import numpy as np
 
-from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_DATES,
+    DATASETS,
+    FORECAST_LEAD_TIME,
+)
 
 
 class Dataset:
@@ -49,9 +56,23 @@ class Dataset:
         self._dfs_x = list(data_inputs)
 
         # Sort all data for faster lookups
+        # Also save min and max dates for time series
+        # NOTE: We need min and max dates to ensure
+        # the same number of time steps for some models, e.g. LSTM.
         self._df_y.sort_index(inplace=True)
+        self._min_date = None
+        self._max_date = None
         for df in self._dfs_x:
             df.sort_index(inplace=True)
+            if len(df.index.names) == 3:
+                df_min_date = min(df.index.get_level_values(2))
+                df_max_date = max(df.index.get_level_values(2))
+                if self._min_date is None:
+                    self._min_date = df_min_date
+                    self._max_date = df_max_date
+                else:
+                    self._min_date = min(self._min_date, df_min_date)
+                    self._max_date = max(self._max_date, df_max_date)
 
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
@@ -59,43 +80,36 @@ class Dataset:
 
     @staticmethod
     def load(name: str) -> "Dataset":
-        if name == "maize":
-            from cybench.datasets.configured import load_dfs_maize
+        crop_country = name.split("_")
+        print(crop_country)
+        if len(crop_country) > 2:
+            raise Exception(f'Unrecognized dataset name "{name}"')
 
-            df_y, dfs_x = load_dfs_maize()
+        crop = crop_country[0]
+        country_code = None
+        if len(crop_country) == 2:
+            country_code = crop_country[1]
+
+        assert crop in DATASETS
+        if country_code is None:
+            from cybench.datasets.configured import load_dfs_crop
+
+            df_y, dfs_x = load_dfs_crop(crop)
             return Dataset(
                 df_y,
                 list(dfs_x),
             )
+        else:
+            if country_code not in DATASETS[crop]:
+                raise Exception(f'Unrecognized dataset name "{name}"')
 
-        if name == "maize_ES":
-            from cybench.datasets.configured import load_dfs_maize_es
+            from cybench.datasets.configured import load_dfs
 
-            df_y, dfs_x = load_dfs_maize_es()
+            df_y, dfs_x = load_dfs(crop, country_code)
             return Dataset(
                 df_y,
                 list(dfs_x),
             )
-
-        if name == "maize_NL":
-            from cybench.datasets.configured import load_dfs_maize_nl
-
-            df_y, dfs_x = load_dfs_maize_nl()
-            return Dataset(
-                df_y,
-                list(dfs_x),
-            )
-
-        if name == "wheat_NL":
-            from cybench.datasets.configured import load_dfs_wheat_nl
-
-            df_y, dfs_x = load_dfs_wheat_nl()
-            return Dataset(
-                df_y,
-                list(dfs_x),
-            )
-
-        raise Exception(f'Unrecognized dataset name "{name}"')
 
     @property
     def years(self) -> set:
@@ -126,6 +140,14 @@ class Dataset:
 
     def indices(self) -> list:
         return self._df_y.index.values
+
+    @property
+    def min_date(self) -> str:
+        return self._min_date
+
+    @property
+    def max_date(self) -> str:
+        return self._max_date
 
     def __getitem__(self, index) -> dict:
         """

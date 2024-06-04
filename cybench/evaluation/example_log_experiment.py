@@ -15,7 +15,7 @@ from cybench.models.trend_model import TrendModel
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.nn_models import BaseNNModel
 
-from runs.run_benchmark import run_benchmark
+from cybench.runs.run_benchmark import run_benchmark
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.nn_models import ExampleLSTM
