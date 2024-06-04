@@ -98,7 +98,7 @@ disk storage: 2TB
 GPU: NVIDIA RTX A6000
 ```
 
-**Software requirements**: Python 3.10, scikit-learn 1.3.2, PyTorch 2.1.1+cpu.
+**Software requirements**: Python 3.9.4, scikit-learn 1.4.2, PyTorch 2.3.0+cu118.
 
 #### Downloading dataset
 
@@ -161,7 +161,9 @@ dataset = Dataset.load("maize_us")
 | [US](data_preparation/crop_statistics_US/README.md)                       | [US](data_preparation/shapefiles_US/README.md)                       |                                                                                            |
 
 1: Mali data at admin level 3. Mali data is also included in the FEWSNET Africa dataset, but there it is at admin level
+
 1.
+
 2: Germany data is also included in the EU dataset, but there most of the data fails coherence tests (e.g. yield =
 production / harvest_area)
 
