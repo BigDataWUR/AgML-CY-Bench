@@ -3,6 +3,8 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
+from datetime import datetime
+from sklearn.linear_model import Ridge
 
 import config
 from config import PATH_RESULTS_DIR
@@ -13,59 +15,73 @@ from datasets.dataset import Dataset
 from evaluation.eval import evaluate_model, evaluate_predictions
 
 from models.naive_models import AverageYieldModel
+from models.trend_model import TrendModel
 from models.sklearn_model import SklearnModel
 from models.nn_models import ExampleLSTM
+from config import DATASETS
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
-    "LSTM": ExampleLSTM,
+    "LinearTrend" : TrendModel,
+    "SklearnRidge" : SklearnModel,
+    # "SklearnRF" : SklearnModel,
+    # "LSTM": ExampleLSTM,
 }
 
+sklearn_ridge = Ridge(alpha=0.5)
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
-    "n_ts_features": 9,
-    "n_static_features": 1,
-    "hidden_size": 64,
-    "num_layers": 1,
+_BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {
+    "trend" : "linear"
 }
+
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {
+    "sklearn_est" : sklearn_ridge
+}
+
+# _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
+#     "n_ts_features": 9,
+#     "n_static_features": 1,
+#     "hidden_size": 64,
+#     "num_layers": 1,
+# }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    'batch_size': 16,
-    'num_epochs': 50,
-    'device': 'cuda' if torch.cuda.is_available() else 'cpu',
-    'optim_fn': torch.optim.Adam,
-    'optim_kwargs': {"lr": 0.0001, 'weight_decay': 0.00001},
-    'scheduler_fn': torch.optim.lr_scheduler.StepLR,
-    'scheduler_kwargs': {"step_size": 1, "gamma": 1},
-    'val_fraction': 0.1,
-    'val_split_by_year': True,
-    'do_early_stopping': True,
+# _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
+#     'batch_size': 16,
+#     'num_epochs': 50,
+#     'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+#     'optim_fn': torch.optim.Adam,
+#     'optim_kwargs': {"lr": 0.0001, 'weight_decay': 0.00001},
+#     'scheduler_fn': torch.optim.lr_scheduler.StepLR,
+#     'scheduler_kwargs': {"step_size": 1, "gamma": 1},
+#     'val_fraction': 0.1,
+#     'val_split_by_year': True,
+#     'do_early_stopping': True,
 
 
-    'optimize_hyperparameters': False,
-    'param_space': {
-        'optim_kwargs': {
-            "lr": [0.0001, 0.00001],
-            'weight_decay': [0.0001, 0.00001],
-        },
-    },
-    'do_kfold': False,
-    'kfolds': 5,
-}
+#     'optimize_hyperparameters': False,
+#     'param_space': {
+#         'optim_kwargs': {
+#             "lr": [0.0001, 0.00001],
+#             'weight_decay': [0.0001, 0.00001],
+#         },
+#     },
+#     'do_kfold': False,
+#     'kfolds': 5,
+# }
 
 
 def run_benchmark(
     run_name: str,
-    model_name: str,
-    model_constructor: callable,
+    model_name: str = None,
+    model_constructor: callable = None,
     model_init_kwargs: dict = None,
     model_fit_kwargs: dict = None,
     baseline_models: list = None,
-    dataset_name: str = "test_maize_us",
+    dataset_name: str = "maize_NL",
 ) -> dict:
     """
     Run the AgML benchmark.
@@ -99,18 +115,22 @@ def run_benchmark(
 
     model_constructors = {
         **_BASELINE_MODEL_CONSTRUCTORS,
-        model_name: model_constructor,
     }
 
     models_init_kwargs = defaultdict(dict)
-    models_init_kwargs[model_name] = model_init_kwargs
     for name, kwargs in _BASELINE_MODEL_INIT_KWARGS.items():
         models_init_kwargs[name] = kwargs
 
     models_fit_kwargs = defaultdict(dict)
-    models_fit_kwargs[model_name] = model_fit_kwargs
     for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
         models_fit_kwargs[name] = kwargs
+
+
+    if (model_name is not None):
+        assert model_constructor is not None
+        model_constructors[model_name] = model_constructor
+        models_init_kwargs[model_name] = model_init_kwargs
+        models_fit_kwargs[model_name] = model_fit_kwargs
 
     dataset = Dataset.load(dataset_name)
 
@@ -197,3 +217,16 @@ def _compute_evaluation_results(
     df_all.set_index(["model", "year", "metric"], inplace=True)
 
     return df_all
+
+def run_benchmark_on_all_data():
+    for crop in DATASETS:
+        for cn in DATASETS[crop]:
+            if (os.path.exists(os.path.join("data", crop, cn))):
+                run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
+                run_benchmark(run_name=run_name,
+                            dataset_name=crop + "_" + cn)
+
+# run_benchmark_on_all_data()
+run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
+run_benchmark(run_name=run_name,
+              dataset_name="maize")

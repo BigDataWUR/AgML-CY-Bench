@@ -1,7 +1,14 @@
 import pandas as pd
 import numpy as np
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_DATES,
+    DATASETS,
+    FORECAST_LEAD_TIME,
+)
 
 
 class Dataset:
@@ -59,43 +66,36 @@ class Dataset:
 
     @staticmethod
     def load(name: str) -> "Dataset":
-        if name == "maize":
-            from datasets.configured import load_dfs_maize
+        crop_country = name.split("_")
+        print(crop_country)
+        if (len(crop_country) > 2):
+            raise Exception(f'Unrecognized dataset name "{name}"')
 
-            df_y, dfs_x = load_dfs_maize()
+        crop = crop_country[0]
+        country_code = None
+        if (len(crop_country) == 2):
+            country_code = crop_country[1]
+
+        assert crop in DATASETS
+        if (country_code is None):
+            from datasets.configured import load_dfs_crop
+
+            df_y, dfs_x = load_dfs_crop(crop)
             return Dataset(
                 df_y,
                 list(dfs_x),
             )
+        else:
+            if (country_code not in DATASETS[crop]):
+                raise Exception(f'Unrecognized dataset name "{name}"')
 
-        if name == "maize_ES":
-            from datasets.configured import load_dfs_maize_es
+            from datasets.configured import load_dfs
 
-            df_y, dfs_x = load_dfs_maize_es()
+            df_y, dfs_x = load_dfs(crop, country_code)
             return Dataset(
                 df_y,
                 list(dfs_x),
             )
-
-        if name == "maize_NL":
-            from datasets.configured import load_dfs_maize_nl
-
-            df_y, dfs_x = load_dfs_maize_nl()
-            return Dataset(
-                df_y,
-                list(dfs_x),
-            )
-
-        if name == "wheat_NL":
-            from datasets.configured import load_dfs_wheat_nl
-
-            df_y, dfs_x = load_dfs_wheat_nl()
-            return Dataset(
-                df_y,
-                list(dfs_x),
-            )
-
-        raise Exception(f'Unrecognized dataset name "{name}"')
 
     @property
     def years(self) -> set:
