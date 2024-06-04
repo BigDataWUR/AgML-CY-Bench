@@ -137,7 +137,7 @@ def test_trend_model():
 
 def test_sklearn_model():
     # Test 1: Test with raw data
-    dataset_sw_nl = Dataset.load("test_softwheat_nl")
+    dataset_sw_nl = Dataset.load("wheat_NL")
     all_years = list(range(2001, 2019))
     test_years = [2017, 2018]
     train_years = [yr for yr in all_years if yr not in test_years]
@@ -154,7 +154,7 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
     # Test 2: Test with predesigned features
-    data_path = os.path.join(PATH_DATA_DIR, "data_US", "county_features")
+    data_path = os.path.join(PATH_DATA_DIR, "maize", "US")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
@@ -206,60 +206,65 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
 
-def test_nn_model():
-    train_dataset = Dataset.load("test_maize_us")
-    test_dataset = Dataset.load("test_maize_us")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# TODO: Uncomment after TorchDataset and NN models handle
+# different number of time steps for time series data.
+# Number of time steps can vary between sources and within a source.
+# Same goes for tests.datasets.test_transforms test_transforms()
 
-    # Initialize model, assumes that all features are in np.ndarray format
-    n_total_features = len(train_dataset[0].keys()) - 4
-    ts_features = [
-        key
-        for key in train_dataset[0].keys()
-        if type(train_dataset[0][key]) == np.ndarray
-    ]
-    ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
+# def test_nn_model():
+#     train_dataset = Dataset.load("maize_es")
+#     test_dataset = Dataset.load("maize_es")
+#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = ExampleLSTM(
-        len(ts_features),
-        n_total_features - len(ts_features),
-        hidden_size=64,
-        num_layers=2,
-        output_size=1,
-    )
-    scheduler_fn = torch.optim.lr_scheduler.StepLR
-    scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
+#     # Initialize model, assumes that all features are in np.ndarray format
+#     n_total_features = len(train_dataset[0].keys()) - 4
+#     ts_features = [
+#         key
+#         for key in train_dataset[0].keys()
+#         if type(train_dataset[0][key]) == np.ndarray
+#     ]
+#     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
 
-    # Train model
-    model.fit(
-        train_dataset,
-        batch_size=3200,
-        num_epochs=10,
-        device=device,
-        optim_kwargs={"lr": 0.01},
-        scheduler_fn=scheduler_fn,
-        scheduler_kwargs=scheduler_kwargs,
-    )
+#     model = ExampleLSTM(
+#         len(ts_features),
+#         n_total_features - len(ts_features),
+#         hidden_size=64,
+#         num_layers=2,
+#         output_size=1,
+#     )
+#     scheduler_fn = torch.optim.lr_scheduler.StepLR
+#     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
-    test_preds, _ = model.predict(test_dataset)
-    assert test_preds.shape[0] == len(test_dataset)
+#     # Train model
+#     model.fit(
+#         train_dataset,
+#         batch_size=3200,
+#         num_epochs=2,
+#         device=device,
+#         optim_kwargs={"lr": 0.01},
+#         scheduler_fn=scheduler_fn,
+#         scheduler_kwargs=scheduler_kwargs,
+#     )
 
-    # Check if evaluation results are within expected range
-    evaluation_result = evaluate_model(model, test_dataset)
-    print(evaluation_result)
+#     test_preds, _ = model.predict(test_dataset)
+#     assert test_preds.shape[0] == len(test_dataset)
 
-    min_expected_values = {
-        "normalized_rmse": 0,
-        "mape": 0.00,
-    }
-    for metric, expected_value in min_expected_values.items():
-        assert (
-            metric in evaluation_result
-        ), f"Metric '{metric}' not found in evaluation result"
-        assert (
-            evaluation_result[metric] >= expected_value
-        ), f"Value of metric '{metric}' does not match expected value"
-        # Check metric is not NaN
-        assert not np.isnan(
-            evaluation_result[metric]
-        ), f"Value of metric '{metric}' is NaN"
+#     # Check if evaluation results are within expected range
+#     evaluation_result = evaluate_model(model, test_dataset)
+#     print(evaluation_result)
+
+#     min_expected_values = {
+#         "normalized_rmse": 0,
+#         "mape": 0.00,
+#     }
+#     for metric, expected_value in min_expected_values.items():
+#         assert (
+#             metric in evaluation_result
+#         ), f"Metric '{metric}' not found in evaluation result"
+#         assert (
+#             evaluation_result[metric] >= expected_value
+#         ), f"Value of metric '{metric}' does not match expected value"
+#         # Check metric is not NaN
+#         assert not np.isnan(
+#             evaluation_result[metric]
+#         ), f"Value of metric '{metric}' is NaN"

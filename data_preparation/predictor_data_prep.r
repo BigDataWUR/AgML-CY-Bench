@@ -1,8 +1,10 @@
 if(!"terra" %in% installed.packages()){install.packages("terra")}
 if(!"reshape2" %in% installed.packages()){install.packages("reshape2")}
+if(!"abjutils" %in% installed.packages()){install.packages("abjutils")}
 library(terra)
 library(reshape2)
 library(stringr)
+library(abjutils)
 
 
 crops <- c("maize", "wheat")
@@ -200,7 +202,9 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     resampled_crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                                           paste("crop_mask", crop, indicator, "res.tif", sep="_"))
     resampled <- FALSE
-    if (file.exists(resampled_crop_mask_file)) {
+    # NOTE: AgERA5 data is cropped to specific regions
+    if ((indictor_source != "AgERA5") &
+        file.exists(resampled_crop_mask_file)) {
       crop_mask <- rast(resampled_crop_mask_file)
       resampled <- TRUE
     } else {
@@ -291,8 +295,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       for (yr in start_year:end_year) {
         # NOTE: AgERA5 data is split by region
         if (indicator_source == "AgERA5") {
-          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator,
-                                     paste(region, indicator_source, sep="_"))
+          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source,
+                                     paste(region, indicator_source, sep="_"), indicator)
         } else {
           indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
         }
@@ -321,6 +325,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           is_netcdf_file <- endsWith(sel_files[[1]], ".nc")
           if (is_netcdf_file) {
             rast_stack <- rast(sel_files, 1)
+            names(rast_stack) <- file_sans_ext(basename(sources(rast_stack)))
           } else {
             rast_stack <- rast(sel_files)
           }
@@ -332,7 +337,9 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
             } else {
               crop_mask <- resample(crop_mask, rast_stack[[1]], method="bilinear")
             }
-            writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
+            if (indicator_source != "AgERA5") {
+              writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
+            }
           }
 
           # Crop rasters to shapes

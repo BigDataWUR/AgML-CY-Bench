@@ -18,4 +18,5 @@ api_keys
 *.txt
 *.xml
 *.zip
+*.pkl
 Scratch.R

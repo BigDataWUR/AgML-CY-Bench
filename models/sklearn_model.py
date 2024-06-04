@@ -10,8 +10,16 @@ from datasets.dataset import Dataset
 from util.data import data_to_pandas
 from util.features import unpack_time_series, design_features
 
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
-from config import SOIL_INDICATORS, WEATHER_INDICATORS, RS_FAPAR, RS_NDVI
+from config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_DATES,
+    SOIL_PROPERTIES,
+    METEO_INDICATORS,
+    RS_FPAR,
+    RS_NDVI,
+)
 
 
 class SklearnModel(BaseModel):
@@ -123,14 +131,14 @@ class SklearnModel(BaseModel):
           A pandas dataframe with KEY_LOC, KEY_YEAR and features.
         """
         # static data is repeated for every year. Drop duplicates.
-        soil_df = data_df[[KEY_LOC] + SOIL_INDICATORS].drop_duplicates()
-        fapar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FAPAR]].copy()
-        fapar_df = unpack_time_series(fapar_df, [RS_FAPAR])
+        soil_df = data_df[[KEY_LOC] + SOIL_PROPERTIES].drop_duplicates()
+        fpar_df = data_df[[KEY_LOC, KEY_YEAR] + [KEY_DATES, RS_FPAR]].copy()
+        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
         weather_df = data_df[
-            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + WEATHER_INDICATORS
+            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
         ].copy()
-        weather_df = unpack_time_series(weather_df, WEATHER_INDICATORS)
-        features = design_features(weather_df, soil_df, fapar_df)
+        weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
+        features = design_features(weather_df, soil_df, fpar_df)
 
         return features
 

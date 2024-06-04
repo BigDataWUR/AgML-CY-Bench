@@ -197,9 +197,7 @@ def unpack_time_series(df, indicators):
     return df
 
 
-def design_features(
-    weather_df, soil_df, fapar_df, ndvi_df=None, et0_df=None, soil_moisture_df=None
-):
+def design_features(weather_df, soil_df, fpar_df, ndvi_df=None, soil_moisture_df=None):
     """Design features based domain expertise.
 
     Args:
@@ -207,7 +205,7 @@ def design_features(
 
       soil_df: pd.DataFrame, soil properties
 
-      fapar_df : pd.DataFrame, fraction of absorbed photosynthetically active radiation
+      fpar_df : pd.DataFrame, fraction of absorbed photosynthetically active radiation
 
       ndvi_df: pd.DataFrame, normalized difference vegetation index
 
@@ -218,21 +216,14 @@ def design_features(
     Returns:
       pd.DataFrame of features
     """
-    # for soil, we need to comput water holding capacity
-    # TODO: 1. not needed for cybench data. Remove later.
-    # TODO: 2. Add code to make drainage class a categorical feature.
-    if "sm_whc" not in soil_df.columns:
-        soil_df["sm_whc"] = soil_df["sm_fc"] - soil_df["sm_wp"]
-        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
-    else:
-        soil_features = soil_df[[KEY_LOC, "sm_whc"]]
+    soil_features = soil_df.astype({"drainage_class": "category"})
 
     # Feature design for time series
     # TODO: 1. add code for cumulative features
     # TODO: 2. add code for ET0, ndvi, soil moisture
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
-    max_feature_cols = ["fapar"]  # ["ndvi", "fapar"]
+    max_feature_cols = ["fpar"]  # ["ndvi", "fpar"]
     avg_feature_cols = ["tmin", "tmax"]  # , "tmax", "tavg", "prec", "rad"]
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
@@ -241,7 +232,7 @@ def design_features(
         "prec_h": [">", "100"],  # mm (per day)
     }
 
-    fapar_df = add_period(fapar_df, period_length)
+    fpar_df = add_period(fpar_df, period_length)
     weather_df = add_period(weather_df, period_length)
 
     max_aggrs = {ind: "max" for ind in max_feature_cols}
@@ -255,7 +246,7 @@ def design_features(
 
     max_ft_cols = {ind: "max" + ind for ind in max_feature_cols}
     avg_ft_cols = {ind: "mean" + ind for ind in avg_feature_cols}
-    rs_fts = aggregate_by_period(fapar_df, index_cols, "period", max_aggrs, max_ft_cols)
+    rs_fts = aggregate_by_period(fpar_df, index_cols, "period", max_aggrs, max_ft_cols)
     weather_fts = aggregate_by_period(
         weather_df, index_cols, "period", avg_aggrs, avg_ft_cols
     )
