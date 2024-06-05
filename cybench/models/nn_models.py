@@ -77,7 +77,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     val_loss_fold = []
                     for j, val_fold in enumerate(cv_folds):
                         self._logger.debug(
-                            f"Running inner fold {j+1}/{kfolds} for hyperparameter setting {i+1}/{len(settings)}"
+                            f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
                         )
                         val_years = val_fold
                         train_years = [y for y in all_years if y not in val_years]
@@ -101,7 +101,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 else:
                     # Train new model with single randomly sampled validation set
-                    self._logger.debug(f"Running setting {i+1}/{len(settings)}")
+                    self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
                     new_model = self.__class__(**self._init_args)
                     _, output = new_model.fit(dataset=dataset, *args, **setting)
                     if "val_loss" not in output:
@@ -117,7 +117,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 assert val_loss is not None
 
                 self._logger.debug(
-                    f"For setting {i+1}/{len(settings)}, average validation loss: {val_loss}"
+                    f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
                 )
                 self._logger.debug(f"Settings: {setting}")
 
@@ -315,7 +315,7 @@ class BaseNNModel(BaseModel, nn.Module):
         for epoch in range(num_epochs):
             losses = []
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}")
             for batch in pbar:
                 # Set gradients to zero
                 optimizer.zero_grad()
@@ -348,7 +348,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 mean_train_loss = np.mean(losses)
 
                 pbar.set_description(
-                    f"Epoch {epoch+1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
+                    f"Epoch {epoch + 1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
                 )
                 all_train_losses.append(mean_train_loss)
 
@@ -361,7 +361,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 with torch.no_grad():
                     val_losses = []
                     tqdm_val = tqdm(
-                        val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}"
+                        val_loader, desc=f"Validation Epoch {epoch + 1}/{num_epochs}"
                     )
                     for batch in tqdm_val:
                         for key in batch:
@@ -387,7 +387,7 @@ class BaseNNModel(BaseModel, nn.Module):
                         mean_val_loss = np.mean(val_losses)
 
                         tqdm_val.set_description(
-                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
+                            f"Validation Epoch {epoch + 1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
                         )
                     all_val_losses.append(mean_val_loss)
                     if mean_val_loss < best_val_loss and do_early_stopping:
@@ -507,6 +507,7 @@ class ExampleLSTM(BaseNNModel):
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def forward(self, x):
         for transform in self._transforms:
@@ -514,7 +515,7 @@ class ExampleLSTM(BaseNNModel):
 
         x_ts = x["ts"]
         x_static = x["static"]
-        x_ts, _ = self._lstm(x_ts)
+        x_ts, _ = self._lstm(x_ts.to(device=self._device))
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)
         return output
