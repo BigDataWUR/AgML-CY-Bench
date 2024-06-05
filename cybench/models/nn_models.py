@@ -39,14 +39,14 @@ class BaseNNModel(BaseModel, nn.Module):
         self._logger = logging.getLogger(__name__)
 
     def fit(
-            self,
-            dataset: Dataset,
-            optimize_hyperparameters: bool = False,
-            param_space: dict = None,
-            do_kfold: bool = False,
-            kfolds: int = 5,
-            *args,
-            **kwargs,
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters: bool = False,
+        param_space: dict = None,
+        do_kfold: bool = False,
+        kfolds: int = 5,
+        *args,
+        **kwargs,
     ):
         # Set seed if seed is provided
         if "seed" in kwargs:
@@ -145,23 +145,23 @@ class BaseNNModel(BaseModel, nn.Module):
                 return model, output
 
     def train_model(
-            self,
-            train_dataset: Dataset,
-            val_dataset: Dataset = None,
-            val_fraction: float = 0.1,
-            val_split_by_year: bool = False,
-            val_every_n_epochs: int = 1,
-            do_early_stopping: bool = False,
-            num_epochs: int = 1,
-            batch_size: int = 10,
-            loss_fn: callable = None,
-            loss_kwargs: dict = None,
-            optim_fn: callable = None,
-            optim_kwargs: dict = None,
-            scheduler_fn: callable = None,
-            scheduler_kwargs: dict = None,
-            device: str = None,
-            **fit_params,
+        self,
+        train_dataset: Dataset,
+        val_dataset: Dataset = None,
+        val_fraction: float = 0.1,
+        val_split_by_year: bool = False,
+        val_every_n_epochs: int = 1,
+        do_early_stopping: bool = False,
+        num_epochs: int = 1,
+        batch_size: int = 10,
+        loss_fn: callable = None,
+        loss_kwargs: dict = None,
+        optim_fn: callable = None,
+        optim_kwargs: dict = None,
+        scheduler_fn: callable = None,
+        scheduler_kwargs: dict = None,
+        device: str = None,
+        **fit_params,
     ):
         """
         Fit or train the model.
@@ -331,8 +331,8 @@ class BaseNNModel(BaseModel, nn.Module):
                 for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         inputs[key] = (
-                                              inputs[key] - self.feature_means[key]
-                                      ) / self.feature_sds[key]
+                            inputs[key] - self.feature_means[key]
+                        ) / self.feature_sds[key]
 
                 predictions = self(inputs)
                 if predictions.dim() > 1:
@@ -353,7 +353,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 all_train_losses.append(mean_train_loss)
 
             if val_loader is not None and (
-                    epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1
+                epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1
             ):
                 self.eval()
 
@@ -373,8 +373,8 @@ class BaseNNModel(BaseModel, nn.Module):
                         for key in inputs:
                             if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                                 inputs[key] = (
-                                                      inputs[key] - self.feature_means[key]
-                                              ) / self.feature_sds[key]
+                                    inputs[key] - self.feature_means[key]
+                                ) / self.feature_sds[key]
 
                         predictions = self(inputs)
 
@@ -451,14 +451,14 @@ class BaseNNModel(BaseModel, nn.Module):
                 for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         inputs[key] = (
-                                              inputs[key] - self.feature_means[key]
-                                      ) / self.feature_sds[key]
+                            inputs[key] - self.feature_means[key]
+                        ) / self.feature_sds[key]
 
                 y_pred = model(inputs)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)
                 y_pred = y_pred.cpu().numpy()
-                predictions[i: i + len(y_pred)] = y_pred
+                predictions[i : i + len(y_pred)] = y_pred
             return predictions, {}
 
     def save(self, model_name):
@@ -484,15 +484,15 @@ class BaseNNModel(BaseModel, nn.Module):
 
 class ExampleLSTM(BaseNNModel):
     def __init__(
-            self,
-            hidden_size,
-            num_layers,
-            output_size=1,
-            transforms=[
-                transform_ts_inputs_to_dekadal,
-                transform_stack_ts_static_inputs,
-            ],
-            **kwargs,
+        self,
+        hidden_size,
+        num_layers,
+        output_size=1,
+        transforms=[
+            transform_ts_inputs_to_dekadal,
+            transform_stack_ts_static_inputs,
+        ],
+        **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
