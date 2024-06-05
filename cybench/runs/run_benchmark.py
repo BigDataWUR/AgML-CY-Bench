@@ -25,14 +25,12 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
-    "SklearnRF" : SklearnModel,
+    "SklearnRF": SklearnModel,
     "LSTM": ExampleLSTM,
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
-sklearn_rf = RandomForestRegressor(oob_score=True,
-                                   n_estimators=100,
-                                   min_samples_leaf=5)
+sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
