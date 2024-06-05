@@ -5,6 +5,7 @@ import pandas as pd
 import torch
 from datetime import datetime
 from sklearn.linear_model import Ridge
+from sklearn.ensemble import RandomForestRegressor
 
 import cybench.config
 from cybench.config import DATASETS, PATH_DATA_DIR, PATH_RESULTS_DIR
@@ -24,17 +25,21 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
-    # "SklearnRF" : SklearnModel,
+    "SklearnRF" : SklearnModel,
     "LSTM": ExampleLSTM,
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
+sklearn_rf = RandomForestRegressor(oob_score=True,
+                                   n_estimators=100,
+                                   min_samples_leaf=5)
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
 
 _BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
 
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
