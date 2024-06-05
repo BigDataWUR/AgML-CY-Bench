@@ -307,7 +307,7 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     count_thresh_cols = {
         "tmin": ["<", "0"],  # degrees
         "tmax": [">", "35"],  # degrees
-        "prec": ["<", "0"],  # mm
+        "prec": ["<", "1"],  # mm (0 does not make sense, prec is always positive)
     }
 
     # count time steps matching threshold conditions
