@@ -343,6 +343,8 @@ class BaseNNModel(BaseModel, nn.Module):
                 # Backward pass
                 loss.backward()
                 optimizer.step()
+                if scheduler_fn is not None:
+                    scheduler.step()
                 losses.append(loss.item())
 
                 mean_train_loss = np.mean(losses)
@@ -394,8 +396,6 @@ class BaseNNModel(BaseModel, nn.Module):
                         best_val_loss = mean_val_loss
                         best_model = copy.deepcopy(self)
 
-            if scheduler_fn is not None:
-                scheduler.step()
         return self, {
             "train_loss": np.mean(losses),
             "val_loss": np.mean(val_losses) if val_loader is not None else None,

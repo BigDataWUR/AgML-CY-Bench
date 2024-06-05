@@ -50,6 +50,8 @@ def load_dfs(
     )
     df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y = df_y[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+    df_y = df_y.dropna(axis=0)
+    df_y = df_y[df_y[KEY_TARGET] > 0.0]
 
     # soil
     df_x_soil = pd.read_csv(
