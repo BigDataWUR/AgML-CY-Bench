@@ -39,14 +39,14 @@ class BaseNNModel(BaseModel, nn.Module):
         self._logger = logging.getLogger(__name__)
 
     def fit(
-        self,
-        dataset: Dataset,
-        optimize_hyperparameters: bool = False,
-        param_space: dict = None,
-        do_kfold: bool = False,
-        kfolds: int = 5,
-        *args,
-        **kwargs,
+            self,
+            dataset: Dataset,
+            optimize_hyperparameters: bool = False,
+            param_space: dict = None,
+            do_kfold: bool = False,
+            kfolds: int = 5,
+            *args,
+            **kwargs,
     ):
         # Set seed if seed is provided
         if "seed" in kwargs:
@@ -77,7 +77,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     val_loss_fold = []
                     for j, val_fold in enumerate(cv_folds):
                         self._logger.debug(
-                            f"Running inner fold {j+1}/{kfolds} for hyperparameter setting {i+1}/{len(settings)}"
+                            f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
                         )
                         val_years = val_fold
                         train_years = [y for y in all_years if y not in val_years]
@@ -101,7 +101,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
                 else:
                     # Train new model with single randomly sampled validation set
-                    self._logger.debug(f"Running setting {i+1}/{len(settings)}")
+                    self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
                     new_model = self.__class__(**self._init_args)
                     _, output = new_model.fit(dataset=dataset, *args, **setting)
                     if "val_loss" not in output:
@@ -117,7 +117,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 assert val_loss is not None
 
                 self._logger.debug(
-                    f"For setting {i+1}/{len(settings)}, average validation loss: {val_loss}"
+                    f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
                 )
                 self._logger.debug(f"Settings: {setting}")
 
@@ -145,23 +145,23 @@ class BaseNNModel(BaseModel, nn.Module):
                 return model, output
 
     def train_model(
-        self,
-        train_dataset: Dataset,
-        val_dataset: Dataset = None,
-        val_fraction: float = 0.1,
-        val_split_by_year: bool = False,
-        val_every_n_epochs: int = 1,
-        do_early_stopping: bool = False,
-        num_epochs: int = 1,
-        batch_size: int = 10,
-        loss_fn: callable = None,
-        loss_kwargs: dict = None,
-        optim_fn: callable = None,
-        optim_kwargs: dict = None,
-        scheduler_fn: callable = None,
-        scheduler_kwargs: dict = None,
-        device: str = None,
-        **fit_params,
+            self,
+            train_dataset: Dataset,
+            val_dataset: Dataset = None,
+            val_fraction: float = 0.1,
+            val_split_by_year: bool = False,
+            val_every_n_epochs: int = 1,
+            do_early_stopping: bool = False,
+            num_epochs: int = 1,
+            batch_size: int = 10,
+            loss_fn: callable = None,
+            loss_kwargs: dict = None,
+            optim_fn: callable = None,
+            optim_kwargs: dict = None,
+            scheduler_fn: callable = None,
+            scheduler_kwargs: dict = None,
+            device: str = None,
+            **fit_params,
     ):
         """
         Fit or train the model.
@@ -315,7 +315,7 @@ class BaseNNModel(BaseModel, nn.Module):
         for epoch in range(num_epochs):
             losses = []
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}/{num_epochs}")
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}")
             for batch in pbar:
                 # Set gradients to zero
                 optimizer.zero_grad()
@@ -331,8 +331,8 @@ class BaseNNModel(BaseModel, nn.Module):
                 for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         inputs[key] = (
-                            inputs[key] - self.feature_means[key]
-                        ) / self.feature_sds[key]
+                                              inputs[key] - self.feature_means[key]
+                                      ) / self.feature_sds[key]
 
                 predictions = self(inputs)
                 if predictions.dim() > 1:
@@ -348,12 +348,12 @@ class BaseNNModel(BaseModel, nn.Module):
                 mean_train_loss = np.mean(losses)
 
                 pbar.set_description(
-                    f"Epoch {epoch+1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
+                    f"Epoch {epoch + 1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
                 )
                 all_train_losses.append(mean_train_loss)
 
             if val_loader is not None and (
-                epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1
+                    epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1
             ):
                 self.eval()
 
@@ -361,7 +361,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 with torch.no_grad():
                     val_losses = []
                     tqdm_val = tqdm(
-                        val_loader, desc=f"Validation Epoch {epoch+1}/{num_epochs}"
+                        val_loader, desc=f"Validation Epoch {epoch + 1}/{num_epochs}"
                     )
                     for batch in tqdm_val:
                         for key in batch:
@@ -373,8 +373,8 @@ class BaseNNModel(BaseModel, nn.Module):
                         for key in inputs:
                             if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                                 inputs[key] = (
-                                    inputs[key] - self.feature_means[key]
-                                ) / self.feature_sds[key]
+                                                      inputs[key] - self.feature_means[key]
+                                              ) / self.feature_sds[key]
 
                         predictions = self(inputs)
 
@@ -387,7 +387,7 @@ class BaseNNModel(BaseModel, nn.Module):
                         mean_val_loss = np.mean(val_losses)
 
                         tqdm_val.set_description(
-                            f"Validation Epoch {epoch+1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
+                            f"Validation Epoch {epoch + 1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
                         )
                     all_val_losses.append(mean_val_loss)
                     if mean_val_loss < best_val_loss and do_early_stopping:
@@ -451,14 +451,14 @@ class BaseNNModel(BaseModel, nn.Module):
                 for key in inputs:
                     if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
                         inputs[key] = (
-                            inputs[key] - self.feature_means[key]
-                        ) / self.feature_sds[key]
+                                              inputs[key] - self.feature_means[key]
+                                      ) / self.feature_sds[key]
 
                 y_pred = model(inputs)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)
                 y_pred = y_pred.cpu().numpy()
-                predictions[i : i + len(y_pred)] = y_pred
+                predictions[i: i + len(y_pred)] = y_pred
             return predictions, {}
 
     def save(self, model_name):
@@ -484,15 +484,15 @@ class BaseNNModel(BaseModel, nn.Module):
 
 class ExampleLSTM(BaseNNModel):
     def __init__(
-        self,
-        hidden_size,
-        num_layers,
-        output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-            transform_stack_ts_static_inputs,
-        ],
-        **kwargs,
+            self,
+            hidden_size,
+            num_layers,
+            output_size=1,
+            transforms=[
+                transform_ts_inputs_to_dekadal,
+                transform_stack_ts_static_inputs,
+            ],
+            **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
@@ -507,6 +507,7 @@ class ExampleLSTM(BaseNNModel):
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
+        self._device = "cuda" if torch.cuda.is_available() else "cpu"
 
     def forward(self, x):
         for transform in self._transforms:
@@ -514,7 +515,7 @@ class ExampleLSTM(BaseNNModel):
 
         x_ts = x["ts"]
         x_static = x["static"]
-        x_ts, _ = self._lstm(x_ts)
+        x_ts, _ = self._lstm(x_ts.to(device=self._device))
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)
         return output
