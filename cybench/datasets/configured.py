@@ -101,7 +101,7 @@ def load_dfs(
         df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
     )
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
-    
+
     # soil moisture
     df_x_soil_moisture = pd.read_csv(
         os.path.join(

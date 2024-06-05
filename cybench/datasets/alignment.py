@@ -31,10 +31,12 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=60):
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
-    df["sos_date"] = np.where(df["eos"] > df["sos"],
-                              pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j"),
-                              # NOTE: if eos < sos, use previous year
-                              pd.to_datetime((df[KEY_YEAR] - 1) * 1000 + df["sos"], format="%Y%j"))
+    df["sos_date"] = np.where(
+        df["eos"] > df["sos"],
+        pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j"),
+        # NOTE: if eos < sos, use previous year
+        pd.to_datetime((df[KEY_YEAR] - 1) * 1000 + df["sos"], format="%Y%j"),
+    )
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
     # The next new year starts right after this year's harvest.
