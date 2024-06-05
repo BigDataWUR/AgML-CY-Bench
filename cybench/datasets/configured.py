@@ -50,6 +50,8 @@ def load_dfs(
     )
     df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y = df_y[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
+    df_y = df_y.dropna(axis=0)
+    df_y = df_y[df_y[KEY_TARGET] > 0.0]
 
     # soil
     df_x_soil = pd.read_csv(
@@ -99,7 +101,7 @@ def load_dfs(
         df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
     )
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
-
+    
     # soil moisture
     df_x_soil_moisture = pd.read_csv(
         os.path.join(
