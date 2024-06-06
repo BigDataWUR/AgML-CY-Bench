@@ -102,12 +102,7 @@ GPU: NVIDIA RTX A6000
 
 #### Downloading dataset
 
-Get the dataset from Zenodo.
-
-```
-pip install zenodo_get
-zenodo_get -r <record_number>
-```
+Get the dataset from [Google Drive](https://drive.google.com/drive/folders/1lHfCZKiicIDLmYAsmB8Row-zeC-c4yeJ?usp=sharing).
 
 #### Running the benchmark
 
