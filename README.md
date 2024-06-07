@@ -102,8 +102,8 @@ GPU: NVIDIA RTX A6000
 
 During the benchmark run with the baseline models, several countries were run in parallel, each in a GPU in a
 distributed cluster.
-The larger countries took ~18 hours to complete.
-If run sequentially in a single capable GPU, the whole benchmark should take 50~60 hours to complete.
+The larger countries took approximately 18 hours to complete.
+If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
 
 **Software requirements**: Python 3.9.4, scikit-learn 1.4.2, PyTorch 2.3.0+cu118.
 
