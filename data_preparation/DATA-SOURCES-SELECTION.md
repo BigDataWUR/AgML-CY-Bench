@@ -1,4 +1,4 @@
-# Data sources selection
+https://github.com/BigDataWUR/AgML-CY-Bench/edit/main/data_preparation/DATA-SOURCES-SELECTION.md# Data sources selection
 
 ## Weather variables and moisture indicators
 | Source | Considered variables | Temporal frequency | Spatial resolution | Caveat| Operational | Open and Free? |
@@ -30,7 +30,7 @@ Choices, selection and justification
 Ritvik Sahajpal, Michele Meroni
 
 ## Soil
-We selected data from the [WISE project][global_soil_WISE/README.md] for soil properties. Another choice is [SoilGrids](https://www.isric.org/explore/soilgrids).
+We selected data from the [WISE project](global_soil_WISE/README.md) for soil properties. Another choice is [SoilGrids](https://www.isric.org/explore/soilgrids).
 
 WISE soil data is a better choice than SoilGrids for the following reasons:
 * agronomic interpretation is easier for WISE compared to SoilGrids.
