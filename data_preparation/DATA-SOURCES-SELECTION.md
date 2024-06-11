@@ -1,4 +1,4 @@
-https://github.com/BigDataWUR/AgML-CY-Bench/edit/main/data_preparation/DATA-SOURCES-SELECTION.md# Data sources selection
+# Data sources selection
 
 ## Weather variables and moisture indicators
 | Source | Considered variables | Temporal frequency | Spatial resolution | Caveat| Operational | Open and Free? |
