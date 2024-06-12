@@ -84,7 +84,6 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=90):
     df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("min")
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_length"]]
-    df = df.sort_values(by=index_cols)
 
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
@@ -93,6 +92,8 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=90):
 
     # Keep the same number of time steps for all locations and years
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+    # sort by date to make sure tail works correctly
+    df = df.sort_values(by=index_cols)
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
 
     # NOTE: pandas adds "-" to date
