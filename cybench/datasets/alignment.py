@@ -24,7 +24,7 @@ def _add_cutoff_days(df, lead_time):
     return df
 
 
-def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=90):
+def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     select_cols = list(df.columns)
 
     # Merge with crop calendar
@@ -93,7 +93,7 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=90):
     # Keep the same number of time steps for all locations and years
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
     # sort by date to make sure tail works correctly
-    df = df.sort_values(by=index_cols)
+    df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
 
     # NOTE: pandas adds "-" to date
