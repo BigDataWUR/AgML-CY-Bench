@@ -44,7 +44,7 @@ def trim_to_lead_time(df, index_cols, crop_cal_df, lead_time, spinup_days=90):
         pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     )
     df["eos_date"] = np.where(
-        df["date"] > df["eos_date"],
+        (df["date"] > df["eos_date"]) & (df["sos"] > df["eos"]),
         # select eos_date for the next year
         df["new_year"].astype(str) + df["eos_date"].dt.strftime("-%m-%d"),
         df["eos_date"].astype(str)
