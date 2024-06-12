@@ -24,10 +24,18 @@ The only relevant weather variable not covered by AgERA5 is soil moisture. For t
 Raed Hamed
 
 ## Remote sensing indicators
-Choices, selection and justification
+Various remote sensing indicators of biomass status and health exists at the global scale. These include various vegetation indexes (VIs; e.g. NDVI, EVI, etc.) and various biophysical indicators (e.g. FPAR, LAI). One of the mandatory requirement for sub-national yield forecasting is the availability of a long term time series of such indicators (i.e. > 20 years) and a short revisit time of the satellite to guarantee the existence of cloud free imagery. These requirements pragmatically restrict the possible choices to the MODIS coarse spatial resolution mission (and VIIRS for the continuity).
+Although MODIS data can be directly downloaded from NASA LPDACC, the direct use of row VIs and biophysical variables is hampered by the presence of low quality of observations (mainly due to cloud presence) that need to be screened out, gap filled and corrected. This further processing involving the use of quality flags provided with the data and of a temporal smoothing procedure is typically time consuming and not trivial when applied to near real-time data, this latter of utmost importance for operational yield forecasting.
+In view of an operational deployment of the sub-national yield forecasting, we selected two analysis ready operational products representing crop biomass and health: FPAR and NDVI. FPAR (Fraction of Adsorbed Photosynthetically Active Radiation) dekadal (10-day) and 500 m spatial resolution gap-filled and smoothed MODIS and VIIRS FPAR data is sourced from the European Commission's Joint Research Centre (JRC), https://agricultural-production-hotspots.ec.europa.eu/data/indicators_fpar/. The quality of the near real-time products of such processing line we assessed in Meroni et al. (2019, https://doi.org/10.1016/j.rse.2018.11.041) for the results on NDVI and in Seguini et al. (under preparation) for FPAR.
+
+
+NDVI..
+
 
 ### Contact
-Ritvik Sahajpal, Michele Meroni
+FPAR: Michele Meroni
+NDVI: Ritvik Sahajpal
+
 
 ## Soil
 We selected data from the [WISE project](global_soil_WISE/README.md) for soil properties. Another choice is [SoilGrids](https://www.isric.org/explore/soilgrids).
@@ -41,10 +49,10 @@ WISE soil data is a better choice than SoilGrids for the following reasons:
 Allard de Wit
 
 ## Crop masks
-Choices, selection and justification
+With the aim of making available global maize and winter-spring cereals map we sourced the only crop-type specific maps currently available: maize and winter-spring cereals high spatial resolution (10 m) maps from ESA WorldCereal (https://esa-worldcereal.org/en). Area Fraction Images fully spatially compatible with the JRC FPAR 500 m were derived from the WorldCereal maps.
 
 ### Contact
-Ritvik Sahajpal, Michele Meroni
+Francesco Collivignarelli, Michele Meroni, Ritvik Sahajpal
 
 ## Crop calendars
 
