@@ -154,7 +154,7 @@ def run_benchmark(
 
         df = pd.DataFrame.from_dict(model_output)
         df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
-        df.to_csv(os.path.join(path_results, f"year_{test_year}.csv"))
+        df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
     df_metrics = _compute_evaluation_results(run_name)
 
