@@ -45,6 +45,12 @@ _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
+    "optimize_hyperparameters": True,
+    "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+}
+
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "batch_size": 16,
     "num_epochs": 50,
