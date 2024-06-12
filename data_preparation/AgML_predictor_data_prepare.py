@@ -473,7 +473,7 @@ def geom_extract(geometry, indicator, stats_out=('mean', 'std', 'min', 'max', 's
 
     # fetch indicator array
     indicator_arr = read_masked(ds=indicator_ds, mask=[geometry], window=indicator_ds.window(*read_bounds), 
-                                       indexes=None, use_pixels='ALL', out_shape=read_shape)
+                                       indexes=None, use_pixels='CENTER', out_shape=read_shape)
     geom_mask = indicator_arr.mask
     # skip extraction if no pixels caught by geom
     if np.all(geom_mask):
@@ -493,7 +493,7 @@ def geom_extract(geometry, indicator, stats_out=('mean', 'std', 'min', 'max', 's
     # fetch mask array
     if afi:
         afi_arr = read_masked(ds=afi_ds, mask=[geometry], indexes=None, 
-                                     window=afi_ds.window(*read_bounds), use_pixels='ALL', out_shape=read_shape)
+                                     window=afi_ds.window(*read_bounds), use_pixels='CENTER', out_shape=read_shape)
         
         if afi_thresh is not None:
             if thresh_type == 'Fixed':
@@ -807,9 +807,12 @@ def prepare_predictors(prep_root, crop, country, admin_level,
     crop_mask_path = os.path.join(prep_root, "crop_masks", crop_mask_file)
     data_dir = os.path.join(prep_root, "Predictors")
     out_dir = os.path.join(prep_root, "output")
+                           
+    
     geo_df = get_shapes(shapefile_path,
                         country=country,
                         admin_level=admin_level)
+                           
 
     geo_df = get_admin_id(geo_df, country)
     geo_df = geo_df[["adm_id", "geometry"]]
