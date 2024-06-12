@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 
-from datasets.dataset import Dataset
-from config import (
+from cybench.datasets.dataset import Dataset
+from cybench.config import (
     PATH_DATA_DIR,
     KEY_LOC,
     KEY_YEAR,
@@ -29,13 +29,13 @@ def test_dataset_item():
 
 
 def test_split():
-    data_path_county_features = os.path.join(PATH_DATA_DIR, "maize", "US")
+    data_path_county_features = os.path.join(PATH_DATA_DIR, "features", "maize", "US")
     train_csv = os.path.join(data_path_county_features, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    dataset_cv = Dataset(train_yields, [train_features])
+    dataset_cv = Dataset("maize", train_yields, [train_features])
 
     even_years = {x for x in dataset_cv.years if x % 2 == 0}
     odd_years = dataset_cv.years - even_years

@@ -1,8 +1,8 @@
-from datasets.configured import load_dfs_maize_nl
+from cybench.datasets.configured import load_dfs_crop
 
 
-def test_load_dfs_maize():
-    df_y, dfs_x = load_dfs_maize_nl()
+def test_load_dfs_crop():
+    df_y, dfs_x = load_dfs_crop("maize")
 
     # Sort indices for fast lookup
     df_y.sort_index(inplace=True)
@@ -15,3 +15,6 @@ def test_load_dfs_maize():
                 assert i[0] in df_x.index
             else:
                 assert i in df_x.index
+
+
+test_load_dfs_crop()

@@ -4,16 +4,16 @@ import pandas as pd
 import numpy as np
 from sklearn.linear_model import Ridge
 
-from datasets.dataset import Dataset
-from datasets.dataset_torch import TorchDataset
-from models.naive_models import AverageYieldModel
-from models.trend_model import TrendModel
-from models.sklearn_model import SklearnModel
-from models.nn_models import ExampleLSTM
-from evaluation.eval import evaluate_model
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.dataset_torch import TorchDataset
+from cybench.models.naive_models import AverageYieldModel
+from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_model import SklearnModel
+from cybench.models.nn_models import ExampleLSTM
+from cybench.evaluation.eval import evaluate_model
 
-from config import PATH_DATA_DIR
-from config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from cybench.config import PATH_DATA_DIR
+from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
 
 
 def test_average_yield_model():
@@ -34,7 +34,7 @@ def test_average_yield_model():
     # test prediction for an existing item
     sel_loc = "US-01-001"
     assert sel_loc in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     sel_year = 2018
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -58,7 +58,7 @@ def test_average_yield_model():
     # test prediction for a non-existent item
     sel_loc = "US-01-003"
     assert sel_loc not in yield_df.index.get_level_values(0)
-    dataset = Dataset(data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
@@ -92,7 +92,7 @@ def test_trend_model():
         train_yields = yield_df[yield_df[KEY_YEAR].isin(train_years)]
         train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
         test_yields = yield_df[yield_df[KEY_YEAR] == test_year]
-        train_dataset = Dataset(train_yields, [])
+        train_dataset = Dataset("maize", train_yields, [])
 
         # linear trend
         model = TrendModel(trend="linear")
@@ -154,21 +154,21 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
     # Test 2: Test with predesigned features
-    data_path = os.path.join(PATH_DATA_DIR, "maize", "US")
+    data_path = os.path.join(PATH_DATA_DIR, "features", "maize", "US")
     # Training dataset
     train_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     train_df = pd.read_csv(train_csv, index_col=[KEY_LOC, KEY_YEAR])
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    train_dataset = Dataset(train_yields, [train_features])
+    train_dataset = Dataset("maize", train_yields, [train_features])
 
     # Test dataset
     test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
     test_yields = test_df[[KEY_TARGET]].copy()
     test_features = test_df[feature_cols].copy()
-    test_dataset = Dataset(test_yields, [test_features])
+    test_dataset = Dataset("maize", test_yields, [test_features])
 
     # Model
     ridge = Ridge(alpha=0.5)
@@ -211,60 +211,51 @@ def test_sklearn_model():
 # Number of time steps can vary between sources and within a source.
 # Same goes for tests.datasets.test_transforms test_transforms()
 
-# def test_nn_model():
-#     train_dataset = Dataset.load("maize_es")
-#     test_dataset = Dataset.load("maize_es")
-#     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#     # Initialize model, assumes that all features are in np.ndarray format
-#     n_total_features = len(train_dataset[0].keys()) - 4
-#     ts_features = [
-#         key
-#         for key in train_dataset[0].keys()
-#         if type(train_dataset[0][key]) == np.ndarray
-#     ]
-#     ts_features = [key for key in ts_features if len(train_dataset[0][key].shape) == 1]
+def test_nn_model():
+    train_dataset = Dataset.load("maize_ES")
+    test_dataset = Dataset.load("maize_ES")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-#     model = ExampleLSTM(
-#         len(ts_features),
-#         n_total_features - len(ts_features),
-#         hidden_size=64,
-#         num_layers=2,
-#         output_size=1,
-#     )
-#     scheduler_fn = torch.optim.lr_scheduler.StepLR
-#     scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
+    # Initialize model, assumes that all features are in np.ndarray format
+    model = ExampleLSTM(
+        hidden_size=64,
+        num_layers=2,
+        output_size=1,
+    )
+    scheduler_fn = torch.optim.lr_scheduler.StepLR
+    scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
-#     # Train model
-#     model.fit(
-#         train_dataset,
-#         batch_size=3200,
-#         num_epochs=2,
-#         device=device,
-#         optim_kwargs={"lr": 0.01},
-#         scheduler_fn=scheduler_fn,
-#         scheduler_kwargs=scheduler_kwargs,
-#     )
+    # Train model
+    model.fit(
+        train_dataset,
+        batch_size=3200,
+        num_epochs=2,
+        device=device,
+        optim_kwargs={"lr": 0.01},
+        scheduler_fn=scheduler_fn,
+        scheduler_kwargs=scheduler_kwargs,
+    )
 
-#     test_preds, _ = model.predict(test_dataset)
-#     assert test_preds.shape[0] == len(test_dataset)
+    test_preds, _ = model.predict(test_dataset)
+    assert test_preds.shape[0] == len(test_dataset)
 
-#     # Check if evaluation results are within expected range
-#     evaluation_result = evaluate_model(model, test_dataset)
-#     print(evaluation_result)
+    # Check if evaluation results are within expected range
+    evaluation_result = evaluate_model(model, test_dataset)
+    print(evaluation_result)
 
-#     min_expected_values = {
-#         "normalized_rmse": 0,
-#         "mape": 0.00,
-#     }
-#     for metric, expected_value in min_expected_values.items():
-#         assert (
-#             metric in evaluation_result
-#         ), f"Metric '{metric}' not found in evaluation result"
-#         assert (
-#             evaluation_result[metric] >= expected_value
-#         ), f"Value of metric '{metric}' does not match expected value"
-#         # Check metric is not NaN
-#         assert not np.isnan(
-#             evaluation_result[metric]
-#         ), f"Value of metric '{metric}' is NaN"
+    min_expected_values = {
+        "normalized_rmse": 0,
+        "mape": 0.00,
+    }
+    for metric, expected_value in min_expected_values.items():
+        assert (
+            metric in evaluation_result
+        ), f"Metric '{metric}' not found in evaluation result"
+        assert (
+            evaluation_result[metric] >= expected_value
+        ), f"Value of metric '{metric}' does not match expected value"
+        # Check metric is not NaN
+        assert not np.isnan(
+            evaluation_result[metric]
+        ), f"Value of metric '{metric}' is NaN"
