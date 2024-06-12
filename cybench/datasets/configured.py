@@ -33,7 +33,7 @@ def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal, lead_
     df = _add_year(df)
     df = df[index_cols + select_cols]
     df = df.dropna(axis=0)
-    df = trim_to_lead_time(df, index_cols, df_crop_cal, lead_time)
+    df = trim_to_lead_time(df, df_crop_cal, lead_time)
 
     return df
 

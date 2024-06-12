@@ -45,6 +45,12 @@ _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
+    "optimize_hyperparameters": True,
+    "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+}
+
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "batch_size": 16,
     "num_epochs": 50,
@@ -218,8 +224,3 @@ def run_benchmark_on_all_data():
             if os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
                 run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
                 run_benchmark(run_name=run_name, dataset_name=crop + "_" + cn)
-
-
-# run_benchmark_on_all_data()
-run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
-run_benchmark(run_name=run_name, dataset_name="maize")
