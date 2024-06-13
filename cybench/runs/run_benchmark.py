@@ -180,6 +180,10 @@ def _compute_evaluation_results(
         if os.path.isfile(os.path.join(path_results, f))
     ]
 
+    # No files, return an empty data frame
+    if (not files):
+        return pd.DataFrame(columns=["model", "year", "metric", "value"])
+
     rows = []
 
     for file in files:
@@ -213,7 +217,6 @@ def _compute_evaluation_results(
                 )
 
     df_all = pd.DataFrame(rows)
-    df_all.set_index(["model", "year", "metric"], inplace=True)
 
     return df_all
 
