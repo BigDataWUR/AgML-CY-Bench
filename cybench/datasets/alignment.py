@@ -31,6 +31,7 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
+    df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
     # The next new year starts right after this year's harvest.
@@ -40,16 +41,15 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     df["sos_date"] = np.where(
         (df["date"] < df["eos_date"]) & (df["sos"] > df["eos"]),
         # select sos_date for the previous year
-        pd.to_datetime((df[KEY_YEAR] - 1) * 1000 + df["sos"], format="%Y%j"),
-        pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j"),
+        df["sos_date"] + pd.offsets.DateOffset(years=-1),
+        df["sos_date"]
     )
     df["eos_date"] = np.where(
         (df["date"] > df["eos_date"]) & (df["sos"] > df["eos"]),
         # select eos_date for the next year
-        df["new_year"].astype(str) + df["eos_date"].dt.strftime("-%m-%d"),
-        df["eos_date"].astype(str),
+        df["eos_date"] + pd.offsets.DateOffset(years=1),
+        df["eos_date"]
     )
-    df["eos_date"] = pd.to_datetime(df["eos_date"], format="%Y-%m-%d")
 
     # Compute difference with eos
     df["eos_diff"] = (df["date"] - df["eos_date"]).dt.days
