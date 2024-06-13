@@ -225,5 +225,6 @@ def run_benchmark_on_all_data():
     for crop in DATASETS:
         for cn in DATASETS[crop]:
             if os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
-                run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
-                run_benchmark(run_name=run_name, dataset_name=crop + "_" + cn)
+                dataset_name = crop + "_" + cn
+                run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
+                run_benchmark(run_name=run_name, dataset_name=dataset_name)
