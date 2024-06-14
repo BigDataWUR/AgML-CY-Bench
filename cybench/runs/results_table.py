@@ -1,3 +1,6 @@
+# @author: Michiel
+#
+
 import pandas as pd
 
 # Read the CSV files
