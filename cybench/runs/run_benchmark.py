@@ -173,7 +173,8 @@ def run_benchmark(
     }
 
 
-def load_results(run_name: str,
+def load_results(
+    run_name: str,
 ) -> pd.DataFrame:
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
 
@@ -184,7 +185,7 @@ def load_results(run_name: str,
     ]
 
     # No files, return an empty data frame
-    if (not files):
+    if not files:
         return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
 
     df_all = pd.DataFrame()
@@ -196,10 +197,9 @@ def load_results(run_name: str,
     return df_all
 
 
-def get_prediction_residuals(run_name: str,
-                             model_names: dict) -> pd.DataFrame:
+def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
     df_all = load_results(run_name)
-    if (df_all.empty):
+    if df_all.empty:
         return df_all
 
     for model_name, model_short_name in model_names.items():
@@ -209,12 +209,13 @@ def get_prediction_residuals(run_name: str,
 
     return df_all
 
+
 def compute_metrics(
     run_name: str,
     model_names: list,
 ) -> pd.DataFrame:
     df_all = load_results(run_name)
-    if (df_all.empty):
+    if df_all.empty:
         return pd.DataFrame(columns=["model", "year"])
 
     rows = []
