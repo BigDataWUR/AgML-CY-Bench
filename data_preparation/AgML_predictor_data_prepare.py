@@ -64,14 +64,14 @@ FEWSNET_ADMIN_ID_KEY = "adm_id"
 
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 
 class UnableToExtractStats(Exception):
     pass
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def read_masked(ds, mask, indexes=None, window=None,
                 use_pixels='CENTER', out_mask_path=None,
@@ -155,7 +155,7 @@ def read_masked(ds, mask, indexes=None, window=None,
     return source
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def round_window(window):
     """
@@ -172,7 +172,7 @@ def round_window(window):
     return rasterio.windows.Window(_col_off, _row_off, _width, _height)
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def get_common_bounds_and_shape(geom, ds_list):
     """
@@ -225,7 +225,7 @@ def get_common_bounds_and_shape(geom, ds_list):
     return out_bounds, out_shape
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def arr_stats(arr, weights=None,
               output=('min', 'max', 'sum', 'mean', 'count', 'mode')):
@@ -245,6 +245,7 @@ def arr_stats(arr, weights=None,
             - median - median values, WARNING doesn't use weights
             - count - number of pixels used in a group, can be different to total number if a mask is applied
             - weight_sum - sum of weights
+            - mode - majority value, used for category variable.
     :return: dict with calculated stats values
     """
     # prepare output and make sure it is a list
@@ -273,7 +274,7 @@ def arr_stats(arr, weights=None,
         if weights is not None:
             # combine mask from the arr and create a compressed arr
             weights_compressed = np.ma.array(weights, mask=_arr.mask).compressed()
-            ind = np.isnan(arr_compressed) | np.isnan(weights_compressed) | (_arr <= -9999)
+            ind = np.isnan(arr_compressed) | np.isnan(weights_compressed) | (arr_compressed <= -9999)
 
             if arr_size == 1 or np.sum(weights_compressed[~ind] > 0) == 1:
                 out_vals['std'] = np.int8(0)
@@ -314,7 +315,7 @@ def arr_stats(arr, weights=None,
         out_vals['count'] = int((~_arr.mask).sum())
 
     if 'weight_sum' in _output and weights is not None:
-        ind = np.isnan(weights_compressed) | (arr_compressed <= -9999)
+        ind = np.isnan(weights) | (_arr <= -9999)
         weights_compressed = np.ma.array(weights[~ind], mask=_arr.mask[~ind]).compressed()
         out_vals['weight_sum'] = weights_compressed.sum()
 
@@ -325,7 +326,7 @@ def arr_stats(arr, weights=None,
 
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def arr_classes_count(arr, cls_def, weights=None, border_include='min'):
     """
@@ -358,7 +359,7 @@ def arr_classes_count(arr, cls_def, weights=None, border_include='min'):
 
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def arr_unpack(arr, scale=1, offset=0, nodata=None):
     """
@@ -383,7 +384,7 @@ def arr_unpack(arr, scale=1, offset=0, nodata=None):
 
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def apply_nodata(arr, nodata):
     """
@@ -404,7 +405,7 @@ def apply_nodata(arr, nodata):
 
 
 """
-@author: Joint Research Center
+@author: Joint Research Centre - D5 Food Security - ASAP
 """
 def geom_extract(geometry, indicator, stats_out=('mean', 'std', 'min', 'max', 'sum', 'counts', 'mode'), afi=None,
                  classification=None, afi_thresh = None, thresh_type = None):
