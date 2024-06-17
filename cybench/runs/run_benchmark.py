@@ -7,9 +7,13 @@ from datetime import datetime
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor
 
-import cybench.config
-from cybench.config import DATASETS, PATH_DATA_DIR, PATH_RESULTS_DIR
-from cybench.models.model import BaseModel
+from cybench.config import (
+    DATASETS,
+    PATH_DATA_DIR,
+    PATH_RESULTS_DIR,
+    KEY_LOC,
+    KEY_YEAR,
+)
 
 from cybench.datasets.dataset import Dataset
 
@@ -142,8 +146,8 @@ def run_benchmark(
         labels = test_dataset.targets()
 
         model_output = {
-            cybench.config.KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
-            cybench.config.KEY_YEAR: [year for _, year in test_dataset.indices()],
+            KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+            KEY_YEAR: [year for _, year in test_dataset.indices()],
             "targets": labels,
         }
 
@@ -159,17 +163,17 @@ def run_benchmark(
             model_output[model_name] = predictions
 
         df = pd.DataFrame.from_dict(model_output)
-        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
+        df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
-    df_metrics = _compute_evaluation_results(run_name)
+    df_metrics = compute_metrics(run_name)
 
     return {
         "df_metrics": df_metrics,
     }
 
 
-def _compute_evaluation_results(
+def load_results(
     run_name: str,
 ) -> pd.DataFrame:
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
@@ -181,42 +185,57 @@ def _compute_evaluation_results(
     ]
 
     # No files, return an empty data frame
-    if (not files):
-        return pd.DataFrame(columns=["model", "year", "metric", "value"])
+    if not files:
+        return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
 
-    rows = []
-
+    df_all = pd.DataFrame()
     for file in files:
         path = os.path.join(path_results, file)
-
         df = pd.read_csv(path)
+        df_all = pd.concat([df_all, df], axis=0)
 
-        df.set_index([cybench.config.KEY_LOC, cybench.config.KEY_YEAR], inplace=True)
+    return df_all
 
-        years = set(df.index.get_level_values(cybench.config.KEY_YEAR))
-        assert len(years) == 1  # Every fold is assumed to contain only one year
-        year = list(years)[0]
 
-        columns = df.columns
+def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
+    df_all = load_results(run_name)
+    if df_all.empty:
+        return df_all
 
-        y_true = df[[columns[0]]].values
+    for model_name, model_short_name in model_names.items():
+        df_all[model_short_name + "_res"] = df_all[model_name] - df_all["targets"]
 
-        for model_name in columns[1:]:
-            y_pred = df[[model_name]].values
+    df_all.set_index([KEY_LOC, KEY_YEAR], inplace=True)
 
-            metrics = evaluate_predictions(y_true, y_pred)
+    return df_all
+
+
+def compute_metrics(
+    run_name: str,
+    model_names: list,
+) -> pd.DataFrame:
+    df_all = load_results(run_name)
+    if df_all.empty:
+        return pd.DataFrame(columns=["model", "year"])
+
+    rows = []
+    all_years = sorted(df_all[KEY_YEAR].unique())
+    for yr in all_years:
+        y_true = df_all["targets"].values
+        for model_name in model_names:
+            metrics = evaluate_predictions(y_true, df_all[[model_name]].values)
+            metrics_row = {
+                "model": model_name,
+                "year": yr,
+            }
 
             for metric_name, value in metrics.items():
-                rows.append(
-                    {
-                        "model": model_name,
-                        "year": year,
-                        "metric": metric_name,
-                        "value": value,
-                    }
-                )
+                metrics_row[metric_name] = value
+
+            rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
+    df_all.set_index(["model", KEY_YEAR], inplace=True)
 
     return df_all
 
@@ -225,5 +244,6 @@ def run_benchmark_on_all_data():
     for crop in DATASETS:
         for cn in DATASETS[crop]:
             if os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
-                run_name = datetime.now().strftime("cybench_%H_%M_%d_%m_%Y.run")
-                run_benchmark(run_name=run_name, dataset_name=crop + "_" + cn)
+                dataset_name = crop + "_" + cn
+                run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
+                run_benchmark(run_name=run_name, dataset_name=dataset_name)

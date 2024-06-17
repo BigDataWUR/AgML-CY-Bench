@@ -42,13 +42,13 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
         (df["date"] < df["eos_date"]) & (df["sos"] > df["eos"]),
         # select sos_date for the previous year
         df["sos_date"] + pd.offsets.DateOffset(years=-1),
-        df["sos_date"]
+        df["sos_date"],
     )
     df["eos_date"] = np.where(
         (df["date"] > df["eos_date"]) & (df["sos"] > df["eos"]),
         # select eos_date for the next year
         df["eos_date"] + pd.offsets.DateOffset(years=1),
-        df["eos_date"]
+        df["eos_date"],
     )
 
     # Compute difference with eos
