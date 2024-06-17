@@ -63,8 +63,10 @@ class SklearnModel(BaseModel):
 
         X = train_data[self._feature_cols].values
         y = train_data[KEY_TARGET].values
-        if (len(train_years) > 1) and ("optimize_hyperparameters" in fit_params) and (
-            fit_params["optimize_hyperparameters"]
+        if (
+            (len(train_years) > 1)
+            and ("optimize_hyperparameters" in fit_params)
+            and (fit_params["optimize_hyperparameters"])
         ):
             assert "param_space" in fit_params
             param_space = fit_params["param_space"]
