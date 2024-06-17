@@ -79,7 +79,7 @@ class SklearnModel(BaseModel):
                 y,
                 param_space,
                 groups=cv_groups,
-                kfolds=5,
+                kfolds=min(5, len(train_years)),
             )
 
         else:
