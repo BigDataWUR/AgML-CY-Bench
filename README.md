@@ -22,6 +22,8 @@ benchmark is called CY-Bench (crop yield benchmark).
 * [Getting started](#getting-started)
 * [Dataset](#dataset)
 * [Leaderboard](#leaderboard)
+* [How to cite](#how-to-cite)
+* [How to contribute](#how-to-contribute)
 
 ### Overview
 
@@ -110,7 +112,7 @@ If run sequentially in a single capable GPU, the whole benchmark should take 50-
 #### Downloading dataset
 
 Get the dataset
-from [Google Drive](https://drive.google.com/drive/folders/1lHfCZKiicIDLmYAsmB8Row-zeC-c4yeJ?usp=sharing).
+from [Google Drive](https://drive.google.com/drive/folders/1lHfCZKiicIDLmYAsmB8Row-zeC-c4yeJ?usp=sharing) or [Zenodo](https://doi.org/10.5281/zenodo.11502143).
 
 #### Running the benchmark
 
@@ -185,9 +187,50 @@ production / harvest_area)
 ### How to cite
 
 Please cite CY-bench as follows:
-TODO.
+@dataset{paudel_2024_11502143,
+  author       = {Paudel, Dilli and
+                  Baja, Hilmy and
+                  van Bree, Ron and
+                  Kallenberg, Michiel and
+                  Ofori-Ampofo, Stella and
+                  Potze, Aike and
+                  Poudel, Pratishtha and
+                  Saleh, Abdelrahman and
+                  Anderson, Weston and
+                  von Bloh, Malte and
+                  Castellano, Andres and
+                  Ennaji, Oumnia and
+                  Hamed, Raed and
+                  Laudien, Rahel and
+                  Lee, Donghoon and
+                  Luna, Inti and
+                  Masiliūnas, Dainius and
+                  Meroni, Michele and
+                  Mutuku, Janet Mumo and
+                  Mkuhlani, Siyabusa and
+                  Richetti, Jonathan and
+                  Ruane, Alex C. and
+                  Sahajpal, Ritvik and
+                  Shuai, Guanyuan and
+                  Sitokonstantinou, Vasileios and
+                  de Souza Noia Junior, Rogerio and
+                  Srivastava, Amit Kumar and
+                  Strong, Robert and
+                  Sweet, Lily-belle and
+                  Vojnović, Petar and
+                  de Wit, Allard and
+                  Zachow, Maximilian and
+                  Athanasiadis, Ioannis N.},
+  title        = {{CY-Bench: A comprehensive benchmark dataset for 
+                   subnational crop yield forecasting}},
+  year         = 2024,
+  publisher    = {AgML (https://www.agml.org/)},
+  version      = {1.0},
+  doi          = {10.5281/zenodo.11502143},
+  url          = {https://doi.org/10.5281/zenodo.11502143}
+}
 
-## How to contribute
+### How to contribute
 
 Thank you for your interest in contributing to AgML Crop Yield Forecasting. Please
 check [contributing guidelines](CONTRIBUTING.md) for how to get involved and contribute.
