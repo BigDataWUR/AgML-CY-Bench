@@ -251,9 +251,7 @@ def box_plots_residuals(
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    plt.savefig(
-        os.path.join(PATH_GRAPHS_DIR, f"boxplots_residuals_{crop}.jpg")
-    )
+    plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_residuals_{crop}.jpg"))
     plt.close(fig)
 
 
@@ -297,11 +295,7 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    plt.savefig(
-        os.path.join(
-            PATH_GRAPHS_DIR, f"boxplots_{metric}_{crop}.jpg"
-        )
-    )
+    plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_{metric}_{crop}.jpg"))
     plt.close(fig)
 
 
@@ -353,7 +347,7 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
     data_filtered = data[(data["country"] == country) & (data["crop"] == crop)]
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_years = len(all_years)
-    num_cols = int(num_years/2) + 1
+    num_cols = int(num_years / 2) + 1
     fig, axes = plt.subplots(2, num_cols, figsize=(5 * num_cols, 12), sharey="none")
     axes = axes.flatten()
     font = {
@@ -403,17 +397,15 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    plt.savefig(
-        os.path.join(PATH_GRAPHS_DIR, f"yearly_residuals_{crop}_{country}.jpg")
-    )
+    plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_residuals_{crop}_{country}.jpg"))
     plt.close(fig)
 
 
 def write_to_markdown(df, metrics, metrics_labels):
     aggrs = {}
     for met in metrics:
-        aggrs[met] = ['mean', 'median', 'std']
-    
+        aggrs[met] = ["mean", "median", "std"]
+
     df_summary = df.groupby(["crop", "country"]).agg(aggrs)
     df_summary = df_summary.rename(columns=metrics_labels)
     # NOTE: This requires tabulate package.
@@ -519,7 +511,9 @@ if __name__ == "__main__":
             for cn in sel_crop_countries[cr]:
                 plot_yearly_metrics(df_metrics, cr, cn, met, metric_labels[met])
 
-                plot_yearly_residuals(df_residuals, cr, cn, residual_cols, residual_labels)
+                plot_yearly_residuals(
+                    df_residuals, cr, cn, residual_cols, residual_labels
+                )
 
     for metric in ["bars"]:
         plot_metrics(df_metrics, metric)
