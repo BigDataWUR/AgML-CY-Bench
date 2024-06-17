@@ -55,9 +55,10 @@ class BaseNNModel(BaseModel, nn.Module):
             np.random.seed(seed)
             random.seed(seed)
 
+        train_years = dataset.years
         self.best_model = None
 
-        if optimize_hyperparameters:
+        if (len(train_years) > 1) and optimize_hyperparameters:
             assert param_space is not None
 
             best_loss = float("inf")
