@@ -166,7 +166,7 @@ def run_benchmark(
         df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
-    df_metrics = compute_metrics(run_name)
+    df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
 
     return {
         "df_metrics": df_metrics,
