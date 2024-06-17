@@ -55,9 +55,10 @@ class BaseNNModel(BaseModel, nn.Module):
             np.random.seed(seed)
             random.seed(seed)
 
+        train_years = dataset.years
         self.best_model = None
 
-        if optimize_hyperparameters:
+        if (len(train_years) > 1) and optimize_hyperparameters:
             assert param_space is not None
 
             best_loss = float("inf")
@@ -205,6 +206,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
         assert num_epochs > 0
 
+        train_years = train_dataset.years
         self._min_date = train_dataset.min_date
         self._max_date = train_dataset.max_date
         self.batch_size = batch_size
@@ -248,7 +250,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     sampler=torch.utils.data.SubsetRandomSampler(val_ids),
                     collate_fn=train_dataset.collate_fn,
                 )
-        elif val_fraction > 0 and val_split_by_year:
+        elif val_fraction > 0 and val_split_by_year and (len(train_years) > 1):
             all_years = train_dataset.years
             list_all_years = list(all_years)
             random.shuffle(list_all_years)
@@ -406,8 +408,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 np.argmin(all_val_losses) if val_loader is not None else None
             ),
             "best_model": best_model,
-            "train_years": train_years if val_split_by_year else None,
-            "val_years": val_years if val_split_by_year else None,
         }
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):

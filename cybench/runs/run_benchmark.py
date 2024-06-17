@@ -137,7 +137,7 @@ def run_benchmark(
 
     dataset = Dataset.load(dataset_name)
 
-    all_years = dataset.years
+    all_years = sorted(dataset.years)
     for test_year in all_years:
         train_years = [y for y in all_years if y != test_year]
         test_years = [test_year]
@@ -166,7 +166,7 @@ def run_benchmark(
         df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
-    df_metrics = compute_metrics(run_name)
+    df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
 
     return {
         "df_metrics": df_metrics,
@@ -245,5 +245,9 @@ def run_benchmark_on_all_data():
         for cn in DATASETS[crop]:
             if os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
                 dataset_name = crop + "_" + cn
-                run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
+                # NOTE: using dataset name for now.
+                # Load results expects dataset name and run name to be the same.
+                # TODO: Update this to handle multiple runs per dataset.
+                # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
+                run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)

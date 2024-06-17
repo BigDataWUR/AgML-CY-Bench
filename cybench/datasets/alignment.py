@@ -10,7 +10,7 @@ from cybench.config import KEY_LOC, KEY_YEAR
 
 
 def _add_cutoff_days(df, lead_time):
-    if "days" in lead_time:
+    if "day" in lead_time:
         df["cutoff_days"] = int(lead_time.split("-")[0])
     else:
         assert "season" in lead_time
