@@ -409,7 +409,7 @@ def write_to_markdown(df, metrics, metrics_labels):
     df_summary = df.groupby(["crop", "country"]).agg(aggrs)
     df_summary = df_summary.rename(columns=metrics_labels)
     # NOTE: This requires tabulate package.
-    with open(os.path.join(PATH_RESULTS_DIR, "results_table.md"), "w") as file:
+    with open(os.path.join(PATH_GRAPHS_DIR, "results_table.md"), "w") as file:
         file.write(df_summary.to_markdown())
 
 
