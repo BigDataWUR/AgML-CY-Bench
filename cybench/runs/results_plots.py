@@ -26,7 +26,7 @@ from cybench.runs.run_benchmark import (
 PATH_GRAPHS_DIR = os.path.join(CONFIG_DIR, "output", "graphs")
 os.makedirs(PATH_GRAPHS_DIR, exist_ok=True)
 
-# the ones commented out have zero targets
+
 datasets = {
     "maize": [
         "AO",
@@ -251,14 +251,13 @@ def box_plots_residuals(
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    countries_str = "_".join(countries)
     plt.savefig(
-        os.path.join(PATH_GRAPHS_DIR, f"box_residuals_{crop}_{countries_str}.jpg")
+        os.path.join(PATH_GRAPHS_DIR, f"boxplots_residuals_{crop}.jpg")
     )
     plt.close(fig)
 
 
-def box_plots_metric(data, crop, countries, metric, metric_label, subplots_per_row=4):
+def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_row=4):
     # Filter data based on selected countries and crop
     data_filtered = data[(data["country"].isin(countries)) & (data["crop"] == crop)]
 
@@ -298,16 +297,15 @@ def box_plots_metric(data, crop, countries, metric, metric_label, subplots_per_r
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    countries_str = "_".join(countries)
     plt.savefig(
         os.path.join(
-            PATH_GRAPHS_DIR, f"box_metrics_{metric}_{crop}_{countries_str}.jpg"
+            PATH_GRAPHS_DIR, f"boxplots_{metric}_{crop}.jpg"
         )
     )
     plt.close(fig)
 
 
-def plot_year_results(data, crop, country, metric, metric_label):
+def plot_yearly_metrics(data, crop, country, metric, metric_label):
     data_filtered = data[(data["crop"] == crop) & (data["country"] == country)]
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_rows = 2
@@ -346,8 +344,81 @@ def plot_year_results(data, crop, country, metric, metric_label):
         fig.delaxes(axes[j])
 
     plt.tight_layout()
-    plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"{metric}_{crop}_{country}.jpg"))
+    plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_{metric}_{crop}_{country}.jpg"))
     plt.close(fig)
+
+
+def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
+    # Filter data based on selected countries and crop
+    data_filtered = data[(data["country"] == country) & (data["crop"] == crop)]
+    all_years = sorted(data_filtered[KEY_YEAR].unique())
+    num_years = len(all_years)
+    num_cols = int(num_years/2) + 1
+    fig, axes = plt.subplots(2, num_cols, figsize=(5 * num_cols, 12), sharey="none")
+    axes = axes.flatten()
+    font = {
+        "color": "black",
+        "size": 18,
+    }
+
+    ymin = None
+    ymax = None
+    for c in residual_cols:
+        if ymin is None:
+            ymin = data_filtered[c].min()
+        else:
+            ymin = min(ymin, data_filtered[c].min())
+
+        if ymax is None:
+            ymax = data_filtered[c].max()
+        else:
+            ymax = max(ymax, data_filtered[c].max())
+
+    for i, yr in enumerate(all_years):
+        data_cn = data_filtered[data_filtered[KEY_YEAR] == yr]
+        boxplot_df = data_cn[residual_cols]
+        boxplot_df = boxplot_df.rename(columns=residual_labels)
+        sel_ax = axes if (num_years == 1) else axes[i]
+        sel_ax.set_title(yr, fontdict=font)
+        sel_ax.set_facecolor("w")
+        sel_ax.set_ylim([ymin, ymax])
+        sel_ax.tick_params(axis="both", which="major", labelsize=28)
+        b = sns.boxplot(
+            x="variable",
+            y="value",
+            data=pd.melt(boxplot_df),
+            hue="variable",
+            ax=sel_ax,
+            whis=1.5,
+            palette="tab10",
+        )
+        b.set_xlabel(" ")
+        b.set_ylabel("Prediction Residuals", fontdict=font)
+        if i > 0:
+            b.set(yticklabels=[])
+            b.set_ylabel(None)
+
+    # Remove any empty subplots
+    for j in range(i + 1, len(axes)):
+        fig.delaxes(axes[j])
+
+    plt.tight_layout()
+    plt.savefig(
+        os.path.join(PATH_GRAPHS_DIR, f"yearly_residuals_{crop}_{country}.jpg")
+    )
+    plt.close(fig)
+
+
+def write_to_markdown(df, metrics, metrics_labels):
+    aggrs = {}
+    for met in metrics:
+        aggrs[met] = ['mean', 'median', 'std']
+    
+    df_summary = df.groupby(["crop", "country"]).agg(aggrs)
+    df_summary = df_summary.rename(columns=metrics_labels)
+    # NOTE: This requires tabulate package.
+    with open(os.path.join(PATH_RESULTS_DIR, "results_table.md"), "w") as file:
+        file.write(df_summary.to_markdown())
 
 
 if __name__ == "__main__":
@@ -403,10 +474,13 @@ if __name__ == "__main__":
         "mape": "Mean Absolute Percentage Error",
         "normalized_rmse": "Normalized RMSE",
     }
+
+    # write summary table to a markdown file
+    write_to_markdown(df_metrics, metrics, metric_labels)
+
     for cr, cns in sel_crop_countries.items():
         for met in metrics:
-            print(cr, cns, met)
-            box_plots_metric(
+            box_plots_metrics(
                 df_metrics, cr, cns, met, metric_labels[met], subplots_per_row=len(cns)
             )
 
@@ -443,9 +517,9 @@ if __name__ == "__main__":
     for met in metrics:
         for cr in sel_crop_countries:
             for cn in sel_crop_countries[cr]:
-                plot_year_results(df_metrics, cr, cn, met, metric_labels[met])
+                plot_yearly_metrics(df_metrics, cr, cn, met, metric_labels[met])
 
-    for metric in ["mape_country", "nrmse_country", "bars"]:
+                plot_yearly_residuals(df_residuals, cr, cn, residual_cols, residual_labels)
+
+    for metric in ["bars"]:
         plot_metrics(df_metrics, metric)
-
-    df_metrics.to_csv(os.path.join(PATH_RESULTS_DIR, "cd_diagram.csv"))
