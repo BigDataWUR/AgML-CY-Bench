@@ -20,6 +20,7 @@ numpy = "^1.26.4"
 datetime = "^5.5"
 pytest = "^8.2.2"
 pyyaml = "^6.0.1"
+comet-ml = "^3.43.1"
 
 [build-system]
 requires = ["poetry-core"]
