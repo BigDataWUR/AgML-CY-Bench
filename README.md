@@ -223,7 +223,8 @@ Please cite CY-bench as follows:
                   de Wit, Allard and
                   Zachow, Maximilian and
                   Athanasiadis, Ioannis N.},
-  title        = {{CY-Bench: A comprehensive benchmark dataset for subnational crop yield forecasting}},
+  title        = {{CY-Bench: A comprehensive benchmark dataset
+                   for subnational crop yield forecasting}},
   year         = 2024,
   publisher    = {AgML (https://www.agml.org/)},
   version      = {1.0},
