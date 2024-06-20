@@ -257,11 +257,13 @@ def arr_stats(arr, weights=None,
     out_vals = dict()
     # make sure array is a masked array
     _arr = np.ma.array(arr)
-    _weights = np.ma.masked_array(weights, mask = np.ma.getmask(arr))
+    if weights is not None:
+        _weights = np.ma.masked_array(weights, mask = np.ma.getmask(arr))
 
     if any(elem in _output for elem in ('std', 'min', 'max', 'sum', 'median', 'mode')):
         arr_compressed = _arr.compressed()
-        weights_compressed = _weights.compressed()
+        if weights is not None:
+            weights_compressed = _weights.compressed()
 
     if 'mean' in _output:
         if weights is not None:
@@ -310,16 +312,19 @@ def arr_stats(arr, weights=None,
         out_vals['median'] = np.ma.median(arr_compressed[~ind])
 
     if 'mode' in _output:
-        ind = np.isnan(arr_compressed) | (arr_compressed <= -9999)
-        weight_sums = {}
-        for category, weight in zip(arr_compressed, weights_compressed):
-            if category in weight_sums:
-                weight_sums[category] += weight
-            else:
-                weight_sums[category] = weight
-        
-        max_category = max(weight_sums, key=weight_sums.get)
-        out_vals['mode'] = max_category
+        if weights is not None:
+            weight_sums = {}
+            for category, weight in zip(arr_compressed, weights_compressed):
+                if category in weight_sums:
+                    weight_sums[category] += weight
+                else:
+                    weight_sums[category] = weight
+            
+            max_category = max(weight_sums, key=weight_sums.get)
+            out_vals['mode'] = max_category
+        else:
+            ind = np.isnan(arr_compressed) | (arr_compressed <= -9999)
+            out_vals['mode'] = np.argmax(np.bincount(arr_compressed[~ind]))
 
     if 'count' in _output:
         out_vals['count'] = int((~_arr.mask).sum())
