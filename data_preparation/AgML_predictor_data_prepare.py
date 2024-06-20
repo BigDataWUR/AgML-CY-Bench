@@ -312,18 +312,10 @@ def arr_stats(arr, weights=None,
         out_vals['median'] = np.ma.median(arr_compressed[~ind])
 
     if 'mode' in _output:
+        ind = np.isnan(arr_compressed) | (arr_compressed <= -9999)
         if weights is not None:
-            weight_sums = {}
-            for category, weight in zip(arr_compressed, weights_compressed):
-                if category in weight_sums:
-                    weight_sums[category] += weight
-                else:
-                    weight_sums[category] = weight
-            
-            max_category = max(weight_sums, key=weight_sums.get)
-            out_vals['mode'] = max_category
+            out_vals['mode'] = np.argmax(np.bincount(arr_compressed[~ind], weights=weights_compressed[~ind]))
         else:
-            ind = np.isnan(arr_compressed) | (arr_compressed <= -9999)
             out_vals['mode'] = np.argmax(np.bincount(arr_compressed[~ind]))
 
     if 'count' in _output:
