@@ -1,5 +1,13 @@
 # Models
 
-1. Naive Models
-2. Baseline Models
-3. ML, DL models
+1. Model API: The `BaseModel` class implements the API. All models are required to implement `fit` and `predict_batch` methods. For models that work with a Dataset object, they can override the `predict` method.
+2. Existing models
+    a. Naive models: A naive model that predicts the training set average is included.
+
+    b. Trend models: A trend model that supports linear and quadratic trend has been implemented. Trend estimation part is kept separate to add a different trend function without having to create a new model class.
+
+    c. Ridge model: Ridge model from scikit-learn acts as a linear baseline with expert-designed features.
+
+    d. Random Forest model. Ramdom Forest from scikit-learn acts as a non-linear baseline with expert-designed features. Both `Ridge` and `RandomForestRegressor` can be passed to `SklearnModel` as the sklearn estimator without having to change other code. Hyperparameter optimization is possible by passing the search space to `fit` method and setting the `optimize_hyperparameters` flag to True.
+
+    e. LSTM. An example LSTM model is included as a deep learning or representation learning baseline.
