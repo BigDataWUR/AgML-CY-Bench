@@ -31,12 +31,11 @@ names(EU_countries) <- c("AT", "BE", "BG", "CZ", "DE", "DK",
                          "PL", "PT", "RO", "SE", "SK")
 FEWSNET_countries <- c("AO", "BF", "ET", "LS", "MG", "MW", "MZ",
                        "NE", "SN", "TD", "ZA", "ZM")
-other_countries <- c("AR", "AU", "BR", "CN", "IN", "ML", "MX", "US")
 
 # TODO: add indicator or predictor to list, also add source below
 indicators <- c("fpar",
                 "ndvi",
-                "ET0",
+                "et0",
                 "surface_moisture",
                 "rootzone_moisture",
                 "Precipitation_Flux",
@@ -44,13 +43,15 @@ indicators <- c("fpar",
                 "Minimum_Temperature",
                 "Mean_Temperature",
                 "Solar_Radiation_Flux",
-                "AWC",
+                "awc",
                 "bulk_density",
-                "drainage_class")
+                "drainage_class",
+                "sos",
+                "eos")
 # indicator source, also directory name
 indicator_sources <- c("JRC_FPAR500m", # "fpar"
                        "MOD09CMG", # "ndvi"
-                       "FAO_AQUASTAT", # "ET0"
+                       "FAO_AQUASTAT", # "et0"
                        "GLDAS", # "surface_moisture"
                        "GLDAS", # "rootzone_moisture"
                        "AgERA5", # "Precipitation_Flux"
@@ -58,15 +59,17 @@ indicator_sources <- c("JRC_FPAR500m", # "fpar"
                        "AgERA5", # "Minimum_Temperature"
                        "AgERA5", # "Mean_Temperature"
                        "AgERA5", # "Solar_Radiation_Flux"
-                       "WISE_Soil", # "AWC"
+                       "WISE_Soil", # "awc"
                        "WISE_Soil", # "bulk_density"
-                       "WISE_Soil") # "drainage_class"
+                       "WISE_Soil", # "drainage_class"
+                       "ESA_WC_Crop_Calendars", # "sos"
+                       "ESA_WC_Crop_Calendars") # "eos"
 
 # NOTE: This is the part before the date for time series raster files.
 # For static data, this is the name of the file without extension.
 filename_prefixes <- c("fpar_", # "fpar"
                        "MOD09CMG_ndvi_", # "ndvi"
-                       "AGERA5_ET0_", # "ET0"
+                       "AGERA5_ET0_", # "et0"
                        "GLDAS_surface_moisture_A", # "surface_moisture"
                        "GLDAS_rootzone_moisture_A", # "rootzone_moisture"
                        "AgERA5_Precipitation_Flux_", # "Precipitation_Flux"
@@ -74,13 +77,15 @@ filename_prefixes <- c("fpar_", # "fpar"
                        "AgERA5_Minimum_Temperature_", # "Minimum_Temperature"
                        "AgERA5_Mean_Temperature_", # "Mean_Temperature"
                        "AgERA5_Solar_Radiation_Flux_", # "Solar_Radiation_Flux"
-                       "available_water_capacity", # "AWC"
+                       "available_water_capacity", # "awc"
                        "bulk_density", # "bulk_density"
-                       "drainage_class") # "drainage_class"
+                       "drainage_class", # "drainage_class"
+                       "sos", # "sos"
+                       "eos") # "eos"
 
 is_time_series <- c(TRUE, # "fpar"
                     TRUE, # "ndvi"
-                    TRUE, # "ET0"
+                    TRUE, # "et0"
                     TRUE, # "surface_moisture"
                     TRUE, # "rootzone_moisture"
                     TRUE, # "Precipitation_Flux"
@@ -88,13 +93,15 @@ is_time_series <- c(TRUE, # "fpar"
                     TRUE, # "Minimum_Temperature"
                     TRUE, # "Mean_Temperature"
                     TRUE, # "Solar_Radiation_Flux"
-                    FALSE, # "AWC"
+                    FALSE, # "awc"
                     FALSE, # "bulk_density"
-                    FALSE) # "drainage_class"
+                    FALSE, # "drainage_class"
+                    FALSE, # "sos"
+                    FALSE) # "eos"
 
 is_categorical <- c(FALSE, # "fpar"
                     FALSE, # "ndvi"
-                    FALSE, # "ET0"
+                    FALSE, # "et0"
                     FALSE, # "surface_moisture"
                     FALSE, # "rootzone_moisture"
                     FALSE, # "Precipitation_Flux"
@@ -102,9 +109,11 @@ is_categorical <- c(FALSE, # "fpar"
                     FALSE, # "Minimum_Temperature"
                     FALSE, # "Mean_Temperature"
                     FALSE, # "Solar_Radiation_Flux"
-                    FALSE, # "AWC"
+                    FALSE, # "awc"
                     FALSE, # "bulk_density"
-                    TRUE) # "drainage_class"
+                    TRUE,  # "drainage_class"
+                    FALSE, # "sos"
+                    FALSE) # "eos"
 
 process_indicators <- function(crop, region, start_year, end_year, crop_mask_file) {
   # print(region)
@@ -219,9 +228,16 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     # static data #
     ###############
     if (!is_ts) {
-      ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
-                                 indicator_source, indicator,
-                                 filename_pattern + ".tif"))
+      if (indicator_source == "ESA_WC_Crop_Calendars") {
+        ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
+                                   indicator_source,
+                                   paste0(crop, "_", filename_pattern, ".tif")))
+      } else {
+        ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
+                                   indicator_source,
+                                   filename_pattern + ".tif"))
+      }
+      
       # resample crop mask to indicator extent and resolution
       if (!resampled) {
         crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
@@ -436,9 +452,11 @@ for (crop in crops) {
   if (crop == "maize") {
     crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                                 "crop_mask_maize_WC.tif")
+    other_countries <- c("AR", "BR", "CN", "IN", "ML", "MX", "US") 
   } else if (crop == "wheat") {
     crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                                 "crop_mask_winter_spring_cereals_WC.tif")
+    other_countries <- c("AR", "AU", "BR", "CN", "IN", "US")
   }
 
   process_indicators(crop, "EU", start_year, end_year, crop_mask_file)
