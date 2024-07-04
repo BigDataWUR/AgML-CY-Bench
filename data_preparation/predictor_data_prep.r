@@ -25,81 +25,82 @@ EU_countries <- list("AT" = 2, "BE" = 2, "BG" = 2, "CZ" = 3,
 FEWSNET_countries <- c("AO", "BF", "ET", "LS", "MG", "MW", "MZ",
                        "NE", "SN", "TD", "ZA", "ZM")
 
-indicators <- list("fpar" = list("source" = "JRC_FPAR500m",
-                                 "filename_pattern" = "fpar_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "ndvi" = list("source" = "MOD09CMG",
-                                 "filename_pattern" = "MOD09CMG_ndvi_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "et0" = list("source" = "FAO_AQUASTAT",
-                                "filename_pattern" = "AGERA5_ET0_",
-                                "is_time_series" = TRUE,
-                                "is_categorical" = FALSE),
-                   "ssm" = list("source" = "GLDAS",
-                                "filename_pattern" = "GLDAS_surface_moisture_A",
-                                "is_time_series" = TRUE,
-                                "is_categorical" = FALSE),
-                   "rsm" = list("source" = "GLDAS",
-                                "filename_pattern" = "GLDAS_rootzone_moisture_A",
-                                "is_time_series" = TRUE,
-                                "is_categorical" = FALSE),
-                   "prec" = list("source" = "AgERA5",
-                                 "filename_pattern" = "AgERA5_Precipitation_Flux_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "tmax" = list("source" = "AgERA5",
-                                 "filename_pattern" = "AgERA5_Maximum_Temperature_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "tmin" = list("source" = "AgERA5",
-                                 "filename_pattern" = "AgERA5_Minimum_Temperature_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "tavg" = list("source" = "AgERA5",
-                                 "filename_pattern" = "AgERA5_Mean_Temperature_",
-                                 "is_time_series" = TRUE,
-                                 "is_categorical" = FALSE),
-                   "rad" = list("source" = "AgERA5",
-                                "filename_pattern" = "AgERA5_Solar_Radiation_Flux_",
-                                "is_time_series" = TRUE,
-                                "is_categorical" = FALSE),
-                   "awc" = list("source" = "WISE_Soil",
-                                "filename_pattern" = "awc",
-                                "is_time_series" = FALSE,
-                                "is_categorical" = FALSE),
-                   "bulk_density" = list("source" = "WISE_Soil",
-                                         "filename_pattern" = "bulk_density",
-                                         "is_time_series" = FALSE,
-                                         "is_categorical" = FALSE),,
-                   "drainage_class" = list("source" = "WISE_Soil",
-                                           "filename_pattern" = "drainage_class",
-                                           "is_time_series" = FALSE,
-                                           "is_categorical" = TRUE),
-                   "st_clay" = list("source" = "WISE_Soil",
-                                    "filename_pattern" = "st_clay",
-                                    "is_time_series" = FALSE,
-                                    "is_categorical" = FALSE),
-                   "st_sand" = list("source" = "WISE_Soil",
-                                    "filename_pattern" = "st_sand",
-                                    "is_time_series" = FALSE,
-                                    "is_categorical" = FALSE),
-                   "st_silt" = list("source" = "WISE_Soil",
-                                    "filename_pattern" = "st_silt",
-                                    "is_time_series" = FALSE,
-                                    "is_categorical" = FALSE),
-                   # NOTE: "sos" and "eos" are crop specific.
-                   # Therefore, filename_pattern will need crop name as well.
-                   # Check code where these are processed.             
-                   "sos" = list("source" = "ESA_WC_Crop_Calendars",
-                                "filename_pattern" = "sos",
-                                "is_time_series" = FALSE,
-                                "is_categorical" = FALSE),
-                   "eos" = list("source" = "ESA_WC_Crop_Calendars",
-                                "filename_pattern" = "eos",
-                                "is_time_series" = FALSE,
-                                "is_categorical" = FALSE))
+indicators <- list(
+  "fpar" = list("source" = "JRC_FPAR500m",
+                "filename_pattern" = "fpar_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "ndvi" = list("source" = "MOD09CMG",
+                "filename_pattern" = "MOD09CMG_ndvi_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "et0" = list("source" = "FAO_AQUASTAT",
+                "filename_pattern" = "AGERA5_ET0_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "ssm" = list("source" = "GLDAS",
+                "filename_pattern" = "GLDAS_surface_moisture_A",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "rsm" = list("source" = "GLDAS",
+                "filename_pattern" = "GLDAS_rootzone_moisture_A",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "prec" = list("source" = "AgERA5",
+                "filename_pattern" = "AgERA5_Precipitation_Flux_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "tmax" = list("source" = "AgERA5",
+                "filename_pattern" = "AgERA5_Maximum_Temperature_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "tmin" = list("source" = "AgERA5",
+                "filename_pattern" = "AgERA5_Minimum_Temperature_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "tavg" = list("source" = "AgERA5",
+                "filename_pattern" = "AgERA5_Mean_Temperature_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "rad" = list("source" = "AgERA5",
+                "filename_pattern" = "AgERA5_Solar_Radiation_Flux_",
+                "is_time_series" = TRUE,
+                "is_categorical" = FALSE),
+  "awc" = list("source" = "WISE_Soil",
+                "filename_pattern" = "awc",
+                "is_time_series" = FALSE,
+                "is_categorical" = FALSE),
+  "bulk_density" = list("source" = "WISE_Soil",
+                        "filename_pattern" = "bulk_density",
+                        "is_time_series" = FALSE,
+                        "is_categorical" = FALSE),
+  "drainage_class" = list("source" = "WISE_Soil",
+                          "filename_pattern" = "drainage_class",
+                          "is_time_series" = FALSE,
+                          "is_categorical" = TRUE),
+  "st_clay" = list("source" = "WISE_Soil",
+                    "filename_pattern" = "st_clay",
+                    "is_time_series" = FALSE,
+                    "is_categorical" = FALSE),
+  "st_sand" = list("source" = "WISE_Soil",
+                    "filename_pattern" = "st_sand",
+                    "is_time_series" = FALSE,
+                    "is_categorical" = FALSE),
+  "st_silt" = list("source" = "WISE_Soil",
+                    "filename_pattern" = "st_silt",
+                    "is_time_series" = FALSE,
+                    "is_categorical" = FALSE),
+  # NOTE: "sos" and "eos" are crop specific.
+  # Therefore, filename_pattern will need crop name as well.
+  # Check code where these are processed.             
+  "sos" = list("source" = "ESA_WC_Crop_Calendars",
+                "filename_pattern" = "sos",
+                "is_time_series" = FALSE,
+                "is_categorical" = FALSE),
+  "eos" = list("source" = "ESA_WC_Crop_Calendars",
+                "filename_pattern" = "eos",
+                "is_time_series" = FALSE,
+                "is_categorical" = FALSE))
 
 
 process_indicators <- function(crop, region, start_year, end_year, crop_mask_file) {
@@ -192,7 +193,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     indicator_source <- indicators[[indicator]][["source"]]
     is_time_series <- indicators[[indicator]][["is_time_series"]]
     is_categorical <- indicators[[indicator]][["is_categorical"]]
-    # print(paste(indicator, indicator_source, filename_pattern, is_ts, is_cat))
+    # print(paste(indicator, indicator_source, filename_pattern
+    #             is_time_series, is_categorical))
 
     resampled_crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                                           paste("crop_mask", crop, indicator, "res.tif", sep="_"))
@@ -211,10 +213,11 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     # print(resampled_crop_mask_file)
     # print(resampled)
 
+    result <- NULL
     ###############
     # static data #
     ###############
-    if (!is_ts) {
+    if (!is_time_series) {
       # NOTE for crop calendars, sos and eos are crop specific.
       if (indicator_source == "ESA_WC_Crop_Calendars") {
         ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
@@ -255,7 +258,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       colnames(result) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
 
       # for now, "drainage_class" is the only categorical data
-      if (is_cat){
+      if (is_categorical){
         # aggregate area fraction by category
         result <- aggregate(list(sum_weight=result$crop_area_fraction),
                             by=list(adm_id=result$adm_id,
@@ -284,7 +287,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       ####################
       # Time series data #
       ####################
-      region_results <- NULL
       for (yr in start_year:end_year) {
         # NOTE: AgERA5 data is split by region.
         # So include region-specific directory in path.
@@ -388,7 +390,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
           sum_wts = extract(crop_masks, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
           sum_wts$adm_id = sel_shapes$adm_id
 
-          # Divide the result by weights. Added a tiny number to avoid division by Zero.
+          # Divide the aggregates by weights.
+          # NOTE: Added a tiny number to avoid division by Zero.
           aggregates[-ncol(aggregates)] = aggregates[-ncol(aggregates)]/(sum_wts[-ncol(sum_wts)] + 1e-6)
           aggregates <- melt(aggregates)
           
@@ -407,13 +410,14 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
         # print(head(result))
       }
     }
-    if (!dir.exists(file.path(OUTPUT_PATH, crop, region, indicator))) {
-        dir.create(file.path(OUTPUT_PATH, crop, region, indicator),
+
+    if (!dir.exists(file.path(OUTPUT_PATH, crop, region))) {
+        dir.create(file.path(OUTPUT_PATH, crop, region),
                    recursive=TRUE)
     }
     # print(head(result))
     write.csv(result,
-              file.path(OUTPUT_PATH, crop, region, indicator,
+              file.path(OUTPUT_PATH, crop, region,
                         paste0(indicator, "_", region, ".csv")),
               row.names=FALSE)
   }
