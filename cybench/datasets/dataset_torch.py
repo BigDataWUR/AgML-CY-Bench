@@ -15,6 +15,9 @@ class TorchDataset(torch.utils.data.Dataset):
         """
         self._dataset = dataset
 
+    def get_normalization_params(self, normalization="standard"):
+        return self._dataset.get_normalization_params(normalization=normalization)
+
     def __getitem__(self, index) -> dict:
         """
         Get a sample from the dataset

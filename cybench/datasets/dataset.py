@@ -280,6 +280,19 @@ class Dataset:
 
         return data
 
+    def get_normalization_params(self, normalization="standard"):
+        norm_params = {}
+        for df in self._dfs_x:
+            for c in df.columns:
+                if normalization == "standard":
+                    norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
+                elif normalization == "min-max":
+                    norm_params[c] = {"min": df[c].min(), "max": df[c].max()}
+                else:
+                    raise Exception(f"Unsupported normalization {normalization}")
+
+        return norm_params
+
     @staticmethod
     def _empty_df_target() -> pd.DataFrame:
         """
