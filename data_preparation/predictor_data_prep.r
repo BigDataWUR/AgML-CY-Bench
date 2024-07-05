@@ -411,6 +411,10 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       }
     }
 
+    if (is.null(result)) {
+      next
+    }
+
     if (!dir.exists(file.path(OUTPUT_PATH, crop, region))) {
         dir.create(file.path(OUTPUT_PATH, crop, region),
                    recursive=TRUE)
