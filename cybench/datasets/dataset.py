@@ -282,7 +282,7 @@ class Dataset:
 
     def get_normalization_params(self, normalization="standard"):
         """
-        Compute normalization paramters for input data.
+        Compute normalization parameters for input data.
         :param normalization: normalization method, default standard or z-score
         :return: a dict containing normalization parameters (e.g. mean and std)
         """
