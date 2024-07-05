@@ -291,7 +291,9 @@ class BaseNNModel(BaseModel, nn.Module):
             scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
 
         # Store training set feature means and sds for normalization
-        self.norm_params = train_dataset.get_normalization_params(normalization="standard")
+        self.norm_params = train_dataset.get_normalization_params(
+            normalization="standard"
+        )
         all_train_losses = []
         all_val_losses = []
 
@@ -401,11 +403,10 @@ class BaseNNModel(BaseModel, nn.Module):
         for key in inputs:
             if key not in self._exclude_norm_keys:
                 inputs[key] = (
-                            inputs[key] - self.norm_params[key]["mean"]
-                        ) / self.norm_params[key]["std"]
+                    inputs[key] - self.norm_params[key]["mean"]
+                ) / self.norm_params[key]["std"]
 
         return inputs
-
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
         """Run fitted model on batched data items.
