@@ -281,6 +281,11 @@ class Dataset:
         return data
 
     def get_normalization_params(self, normalization="standard"):
+        """
+        Compute normalization paramters for input data.
+        :param normalization: normalization method, default standard or z-score
+        :return: a dict containing normalization parameters (e.g. mean and std)
+        """
         norm_params = {}
         for df in self._dfs_x:
             for c in df.columns:
