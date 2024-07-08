@@ -67,7 +67,7 @@ class TrendModel(BaseModel):
             trend_y = loc_df[KEY_TARGET].values
 
             result = trend_mk.original_test(trend_y)
-            # NOTE the change to this condition may require an update to
+            # NOTE Changing this condition may require an update to
             # test_trend_model in tests/models/test_model.py.
             if (trend_x.shape[0] < 4) or not result.h:
                 self._trend_estimators[loc] = {
