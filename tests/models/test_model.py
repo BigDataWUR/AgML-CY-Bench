@@ -72,67 +72,83 @@ def test_trend_model():
     for the dummy data.
     """
     dummy_data = [
-        ["US-01-001", 2000, 5.0],
-        ["US-01-001", 2001, 6.0],
-        ["US-01-001", 2002, 7.0],
-        ["US-01-001", 2003, 8.0],
-        ["US-01-002", 2000, 5.5],
-        ["US-01-002", 2001, 6.5],
-        ["US-01-002", 2002, 7.5],
-        ["US-01-002", 2003, 8.5],
+        ["US-01-001", 2000, 4.1],
+        ["US-01-001", 2001, 4.2],
+        ["US-01-001", 2002, 4.3],
+        ["US-01-001", 2003, 4.4],
+        ["US-01-001", 2004, 4.5],
+        ["US-01-001", 2005, 4.6],
+        ["US-01-001", 2006, 4.7],
+        ["US-01-001", 2007, 4.8],
+        ["US-01-001", 2008, 4.9],
+        ["US-01-001", 2009, 5.0],
+        ["US-01-002", 2000, 5.1],
+        ["US-01-002", 2001, 5.2],
+        ["US-01-002", 2002, 5.3],
+        ["US-01-002", 2003, 5.4],
+        ["US-01-002", 2004, 5.5],
+        ["US-01-002", 2005, 5.6],
+        ["US-01-002", 2006, 5.7],
+        ["US-01-002", 2007, 5.8],
+        ["US-01-002", 2008, 5.9],
+        ["US-01-002", 2009, 6.0],
+        ["US-01-003", 2000, 7.0],
+        ["US-01-003", 2001, 8.0],
+        ["US-01-003", 2003, 9.0],
+        ["US-01-004", 2000, 8.0],
+        ["US-01-004", 2001, 7.0],
+        ["US-01-004", 2003, 9.0],
     ]
     yield_df = pd.DataFrame(dummy_data, columns=[KEY_LOC, KEY_YEAR, KEY_TARGET])
-    all_years = sorted(yield_df[KEY_YEAR].unique())
 
-    test_indexes = [0, 2, 3]
-    for idx in test_indexes:
-        test_year = all_years[idx]
-        train_years = [y for y in all_years if y != test_year]
-        sel_loc = "US-01-001"
-        train_yields = yield_df[yield_df[KEY_YEAR].isin(train_years)]
-        train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
-        test_yields = yield_df[yield_df[KEY_YEAR] == test_year]
-        train_dataset = Dataset("maize", train_yields, [])
+    for sel_loc in yield_df[KEY_LOC].unique():
+        yield_loc_df = yield_df[yield_df[KEY_LOC] == sel_loc]
+        all_years = sorted(yield_loc_df[KEY_YEAR].unique())
+    
+        if (sel_loc in ["US-01-001", "US-01-002"]):
+            test_indexes = [0, 2, len(all_years) - 1]
+            for idx in test_indexes:
+                test_year = all_years[idx]
+                train_years = [y for y in all_years if y != test_year]
+                train_yields = yield_loc_df[yield_loc_df[KEY_YEAR].isin(train_years)]
+                train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
+                test_yields = yield_loc_df[yield_loc_df[KEY_YEAR] == test_year]
+                train_dataset = Dataset("maize", train_yields, [])
 
-        # linear trend
-        model = TrendModel(trend="linear")
-        model.fit(train_dataset)
-        test_data = {
-            KEY_LOC: sel_loc,
-            KEY_YEAR: test_year,
-        }
-        test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
-            0
-        ]
-        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+                # linear trend
+                model = TrendModel(trend="linear")
+                model.fit(train_dataset)
+                test_data = {
+                    KEY_LOC: sel_loc,
+                    KEY_YEAR: test_year,
+                }
+                test_preds, _ = model.predict_item(test_data)
+                expected_pred = test_yields[KEY_TARGET].values[0]
+                assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
-        sel_loc = "US-01-002"
-        test_data[KEY_LOC] = sel_loc
-        test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
-            0
-        ]
-        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+                # quadratic trend ( trend = c + a x + b x^2)
+                model = TrendModel(trend="quadratic")
+                model.fit(train_dataset)
+                test_preds, _ = model.predict_item(test_data)
+                expected_pred = test_yields[KEY_TARGET].values[0]
+                assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+        else:
+            test_year = all_years[-1]
+            train_years = [y for y in all_years if y != test_year]
+            train_yields = yield_loc_df[yield_loc_df[KEY_YEAR].isin(train_years)]
+            train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
+            train_dataset = Dataset("maize", train_yields, [])
 
-        # quadratic trend ( trend = c + a x + b x^2)
-        model = TrendModel(trend="quadratic")
-        model.fit(train_dataset)
-        sel_loc = "US-01-001"
-        test_data[KEY_LOC] = sel_loc
-        test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
-            0
-        ]
-        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
-
-        sel_loc = "US-01-002"
-        test_data[KEY_LOC] = sel_loc
-        test_preds, _ = model.predict_item(test_data)
-        expected_pred = test_yields[test_yields[KEY_LOC] == sel_loc][KEY_TARGET].values[
-            0
-        ]
-        assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
+            # Expect the average due to insufficient data or no trend
+            model = TrendModel(trend="linear")
+            model.fit(train_dataset)
+            test_data = {
+                KEY_LOC: sel_loc,
+                KEY_YEAR: test_year,
+            }
+            test_preds, _ = model.predict_item(test_data)
+            expected_pred = train_yields[KEY_TARGET].mean()
+            assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 
 def test_sklearn_model():

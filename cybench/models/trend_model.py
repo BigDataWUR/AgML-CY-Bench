@@ -66,12 +66,10 @@ class TrendModel(BaseModel):
             trend_x = loc_df[KEY_YEAR].values
             trend_y = loc_df[KEY_TARGET].values
 
-            # NOTE: trend_mk (Mann-Kendall test) returns
-            #       trend: increasing, decreasing or no trend
-            #       h: True (if trend is present), False (if no trend)
-            #       p: p-value
-            _, h, _ = trend_mk.original_test(trend_y)
-            if (trend_x.shape[0] <= 4) or not h:
+            result = trend_mk.original_test(trend_y)
+            # NOTE the change to this condition may require an update to
+            # test_trend_model in tests/models/test_model.py.
+            if (trend_x.shape[0] < 4) or not result.h:
                 self._trend_estimators[loc] = {
                     "estimator" : None,
                     "mean" : np.mean(trend_y)
