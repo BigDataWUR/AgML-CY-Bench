@@ -27,7 +27,7 @@ from cybench.models.nn_models import ExampleLSTM
 
 _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
-    # "LinearTrend": TrendModel, # TODO: Uncomment after fixing errors.
+    "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
     "SklearnRF": SklearnModel,
     "LSTM": ExampleLSTM,

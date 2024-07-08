@@ -1,8 +1,8 @@
 import pickle
 import numpy as np
-import pandas as pd
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
+import pymannkendall as trend_mk
 
 from cybench.models.model import BaseModel
 from cybench.datasets.dataset import Dataset
@@ -58,19 +58,35 @@ class TrendModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        train_df = data_to_pandas(dataset)
+        sel_cols = [KEY_LOC, KEY_YEAR, KEY_TARGET]
+        train_df = data_to_pandas(dataset, data_cols=sel_cols)
         loc_ids = train_df[KEY_LOC].unique()
         for loc in loc_ids:
             loc_df = train_df[train_df[KEY_LOC] == loc]
             trend_x = loc_df[KEY_YEAR].values
             trend_y = loc_df[KEY_TARGET].values
-            # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
-            if self._trend == "quadratic":
-                trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
-            else:
-                trend_est = self._linear_trend_estimator(trend_x, trend_y)
 
-            self._trend_estimators[loc] = trend_est
+            # NOTE: trend_mk (Mann-Kendall test) returns
+            #       trend: increasing, decreasing or no trend
+            #       h: True (if trend is present), False (if no trend)
+            #       p: p-value
+            _, h, _ = trend_mk.original_test(trend_y)
+            if (trend_x.shape[0] <= 4) or not h:
+                self._trend_estimators[loc] = {
+                    "estimator" : None,
+                    "mean" : np.mean(trend_y)
+                }
+            else:
+              # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
+              if self._trend == "quadratic":
+                  trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
+              else:
+                  trend_est = self._linear_trend_estimator(trend_x, trend_y)
+
+              self._trend_estimators[loc] = {
+                  "estimator" : trend_est,
+                  "mean" : None,
+              }
 
         return self, {}
 
@@ -85,16 +101,19 @@ class TrendModel(BaseModel):
         for i, item in enumerate(X):
             loc_id = item[KEY_LOC]
             year = item[KEY_YEAR]
-            trend_est = self._trend_estimators[loc_id]
-            trend_x = np.array([year]).reshape((1, 1))
-            if self._trend == "quadratic":
-                trend_x = add_constant(
-                    np.column_stack((trend_x, trend_x**2)), has_constant="add"
-                )
+            trend_est = self._trend_estimators[loc_id]["estimator"]
+            if (trend_est is None):
+                predictions[i] = self._trend_estimators[loc_id]["mean"]
             else:
-                trend_x = add_constant(trend_x, has_constant="add")
+                trend_x = np.array([year]).reshape((1, 1))
+                if self._trend == "quadratic":
+                    trend_x = add_constant(
+                        np.column_stack((trend_x, trend_x**2)), has_constant="add"
+                    )
+                else:
+                    trend_x = add_constant(trend_x, has_constant="add")
 
-            predictions[i] = trend_est.predict(trend_x)
+                predictions[i] = trend_est.predict(trend_x)
 
         return predictions.flatten(), {}
 
