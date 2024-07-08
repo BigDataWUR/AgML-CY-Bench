@@ -288,7 +288,7 @@ class BaseNNModel(BaseModel, nn.Module):
             scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
 
         # Store training set feature means and sds for normalization
-        self.norm_params = train_dataset.get_normalization_params(
+        self._norm_params = train_dataset.get_normalization_params(
             normalization="standard"
         )
         all_train_losses = []
