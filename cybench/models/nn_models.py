@@ -21,12 +21,10 @@ from cybench.util.data import (
 )
 
 from cybench.config import (
-    KEY_LOC,
-    KEY_YEAR,
     KEY_TARGET,
-    KEY_DATES,
     STATIC_PREDICTORS,
     TIME_SERIES_PREDICTORS,
+    ALL_PREDICTORS,
 )
 
 
@@ -36,7 +34,6 @@ class BaseNNModel(BaseModel, nn.Module):
         super(nn.Module, self).__init__()
 
         self._norm_params = None
-        self._exclude_norm_keys = [KEY_LOC, KEY_YEAR, KEY_DATES, KEY_TARGET]
         self._init_args = kwargs
         self._logger = logging.getLogger(__name__)
 
@@ -395,16 +392,16 @@ class BaseNNModel(BaseModel, nn.Module):
 
         Args:
           inputs: a dict of inputs
-          exclude_keys: keys in inputs that should not be normalized
 
         Returns:
           The same dict after normalizing the entries
         """
-        for key in inputs:
-            if key not in self._exclude_norm_keys:
-                inputs[key] = (
-                    inputs[key] - self.norm_params[key]["mean"]
-                ) / self.norm_params[key]["std"]
+        for pred in ALL_PREDICTORS:
+            assert pred in inputs
+            assert pred in self._norm_params
+            inputs[pred] = (
+                inputs[pred] - self._norm_params[pred]["mean"]
+            ) / self._norm_params[pred]["std"]
 
         return inputs
 

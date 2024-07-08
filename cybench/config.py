@@ -125,6 +125,9 @@ TIME_SERIES_PREDICTORS = (
     METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
 )
 
+# All predictors. Add more when available
+ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
+
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 
