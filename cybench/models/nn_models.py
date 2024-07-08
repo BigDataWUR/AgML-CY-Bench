@@ -21,12 +21,10 @@ from cybench.util.data import (
 )
 
 from cybench.config import (
-    KEY_LOC,
-    KEY_YEAR,
     KEY_TARGET,
-    KEY_DATES,
     STATIC_PREDICTORS,
     TIME_SERIES_PREDICTORS,
+    ALL_PREDICTORS,
 )
 
 
@@ -35,6 +33,7 @@ class BaseNNModel(BaseModel, nn.Module):
         super(BaseModel, self).__init__()
         super(nn.Module, self).__init__()
 
+        self._norm_params = None
         self._init_args = kwargs
         self._logger = logging.getLogger(__name__)
 
@@ -291,22 +290,9 @@ class BaseNNModel(BaseModel, nn.Module):
             scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
 
         # Store training set feature means and sds for normalization
-        self.feature_means = {}
-        self.feature_sds = {}
-        if val_dataset is not None:
-            all_train_samples = TorchDataset.collate_fn(
-                [train_dataset[i] for i in range(len(train_dataset))]
-                + [val_dataset[i] for i in range(len(val_dataset))]
-            )
-        else:
-            all_train_samples = TorchDataset.collate_fn(
-                [train_dataset[i] for i in range(len(train_dataset))]
-            )
-        for key, inputs in all_train_samples.items():
-            if key not in [KEY_TARGET, KEY_LOC, KEY_YEAR, KEY_DATES]:
-                self.feature_means[key] = inputs.mean()
-                self.feature_sds[key] = inputs.std()
-
+        self._norm_params = train_dataset.get_normalization_params(
+            normalization="standard"
+        )
         all_train_losses = []
         all_val_losses = []
 
@@ -330,12 +316,7 @@ class BaseNNModel(BaseModel, nn.Module):
                 inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
 
                 # Normalize inputs
-                for key in inputs:
-                    if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                        inputs[key] = (
-                            inputs[key] - self.feature_means[key]
-                        ) / self.feature_sds[key]
-
+                inputs = self._normalize_inputs(inputs)
                 predictions = self(inputs)
                 if predictions.dim() > 1:
                     predictions = predictions.squeeze(-1)
@@ -373,13 +354,9 @@ class BaseNNModel(BaseModel, nn.Module):
                                 batch[key] = batch[key].to(device)
 
                         inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                        # Normalize inputs
-                        for key in inputs:
-                            if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                                inputs[key] = (
-                                    inputs[key] - self.feature_means[key]
-                                ) / self.feature_sds[key]
 
+                        # Normalize inputs
+                        inputs = self._normalize_inputs(inputs)
                         predictions = self(inputs)
 
                         if predictions.dim() > 1:
@@ -409,6 +386,24 @@ class BaseNNModel(BaseModel, nn.Module):
             ),
             "best_model": best_model,
         }
+
+    def _normalize_inputs(self, inputs):
+        """Normalize inputs using saved normalization parameters.
+
+        Args:
+          inputs: a dict of inputs
+
+        Returns:
+          The same dict after normalizing the entries
+        """
+        for pred in ALL_PREDICTORS:
+            assert pred in inputs
+            assert pred in self._norm_params
+            inputs[pred] = (
+                inputs[pred] - self._norm_params[pred]["mean"]
+            ) / self._norm_params[pred]["std"]
+
+        return inputs
 
     def predict_batch(self, X: list, device: str = None, batch_size: int = None):
         """Run fitted model on batched data items.
@@ -448,12 +443,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     if isinstance(batch[key], torch.Tensor):
                         batch[key] = batch[key].to(device)
                 inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                for key in inputs:
-                    if key not in [KEY_LOC, KEY_YEAR, KEY_DATES]:
-                        inputs[key] = (
-                            inputs[key] - self.feature_means[key]
-                        ) / self.feature_sds[key]
-
+                inputs = self._normalize_inputs(inputs)
                 y_pred = model(inputs)
                 if y_pred.dim() > 1:
                     y_pred = y_pred.squeeze(-1)

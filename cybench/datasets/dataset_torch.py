@@ -15,6 +15,14 @@ class TorchDataset(torch.utils.data.Dataset):
         """
         self._dataset = dataset
 
+    def get_normalization_params(self, normalization="standard"):
+        """
+        Compute normalization parameters for input data.
+        :param normalization: normalization method, default standard or z-score
+        :return: a dict containing normalization parameters (e.g. mean and std)
+        """
+        return self._dataset.get_normalization_params(normalization=normalization)
+
     def __getitem__(self, index) -> dict:
         """
         Get a sample from the dataset
