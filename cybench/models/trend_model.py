@@ -69,7 +69,8 @@ class TrendModel(BaseModel):
             result = trend_mk.original_test(trend_y)
             # NOTE Changing this condition may require an update to
             # test_trend_model in tests/models/test_model.py.
-            if (trend_x.shape[0] < 4) or not result.h:
+            # TODO: Find an appropriate place to define the threshold.
+            if (trend_x.shape[0] < 6) or not result.h:
                 self._trend_estimators[loc] = {
                     "estimator" : None,
                     "mean" : np.mean(trend_y)
