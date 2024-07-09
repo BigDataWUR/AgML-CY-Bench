@@ -3,8 +3,9 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
-from datetime import datetime
 from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
+from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 
 from cybench.config import (
@@ -29,19 +30,32 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
+    "SklearnRidgeSel": SklearnModel,
     "SklearnRF": SklearnModel,
-    "LSTM": ExampleLSTM,
+    "SklearnRFSel": SklearnModel,
+    # "LSTM": ExampleLSTM,
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
+lasso_selector = SelectFromModel(Lasso(), threshold="median")
+rf_selector = SelectFromModel(RandomForestRegressor(n_estimators=100), threshold="median")
 sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
+
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
-
 _BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidgeSel"] = {
+    "sklearn_est": sklearn_ridge,
+    "ft_selector": lasso_selector,
+}
+
 _BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRFSel"] = {
+    "sklearn_est": sklearn_rf,
+    "ft_selector": rf_selector,
+}
 
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
@@ -53,6 +67,35 @@ _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
     "optimize_hyperparameters": True,
     "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+}
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRidgeSel"] = {
+    "optimize_hyperparameters": True,
+    "select_features": True,
+    "param_space": {
+        "estimator__alpha": [0.01, 0.1, 1.0, 5.0, 10.0],
+        "selector__estimator__alpha": [0.1, 1.0, 5.0],
+        "selector__max_features": [25],
+    },
+}
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
+    "optimize_hyperparameters": True,
+    "param_space": {
+        "estimator__n_estimators": [50, 100, 500],
+        "estimator__min_samples_leaf": [5],
+    },
+}
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRFSel"] = {
+    "optimize_hyperparameters": True,
+    "select_features": True,
+    "param_space": {
+        "estimator__n_estimators": [50, 100, 500],
+        "selector__estimator__n_estimators": [50, 100],
+        "selector__estimator__min_samples_leaf": [5],
+        "selector__max_features": [25],
+    },
 }
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
@@ -184,7 +227,6 @@ def load_results(
         if os.path.isfile(os.path.join(path_results, f))
     ]
 
-    print(files)
     # No files, return an empty data frame
     if not files:
         return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
@@ -237,6 +279,7 @@ def compute_metrics(
             rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
+    print(df_all.groupby("model").agg({metric: "mean" for metric in metrics}).head())
     df_all.set_index(["model", KEY_YEAR], inplace=True)
 
     return df_all
@@ -253,3 +296,6 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
+
+run_benchmark("maize_ES", dataset_name="maize_ES")

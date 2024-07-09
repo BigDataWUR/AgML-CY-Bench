@@ -24,14 +24,26 @@ from cybench.config import (
 
 
 class SklearnModel(BaseModel):
-    def __init__(self, sklearn_est, feature_cols=None, scaler=None):
+    def __init__(self, sklearn_est, feature_cols=None, scaler=None, ft_selector=None):
         self._feature_cols = feature_cols
         self._predesigned_features = False
+        self._select_features = False
 
         if scaler is None:
             scaler = StandardScaler()
 
-        self._est = Pipeline([("scaler", scaler), ("estimator", sklearn_est)])
+        if ft_selector is not None:
+            self._select_features = True
+            self._est = Pipeline(
+                [
+                    ("scaler", scaler),
+                    ("selector", ft_selector),
+                    ("estimator", sklearn_est),
+                ]
+            )
+        else:
+            self._est = Pipeline([("scaler", scaler), ("estimator", sklearn_est)])
+
         self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
@@ -65,11 +77,24 @@ class SklearnModel(BaseModel):
         y = train_data[KEY_TARGET].values
         if (
             (len(train_years) > 1)
-            and ("optimize_hyperparameters" in fit_params)
-            and (fit_params["optimize_hyperparameters"])
+            and (
+                ("optimize_hyperparameters" in fit_params)
+                and (fit_params["optimize_hyperparameters"])
+            )
+            or (("select_features" in fit_params) and (fit_params["select_features"]))
         ):
             assert "param_space" in fit_params
             param_space = fit_params["param_space"]
+            if ("select_features" in fit_params) and (fit_params["select_features"]):
+                assert self._select_features
+                assert any(key.startswith("selector__") for key in param_space)
+
+                # NOTE: Update max_features to have valid values.
+                param_space["selector__max_features"] = [
+                    v
+                    for v in param_space["selector__max_features"]
+                    if (len(self._feature_cols) > v)
+                ]
 
             # NOTE: 1. optimize hyperparameters refits the estimator
             #          with the optimal hyperparameter values.
@@ -119,10 +144,18 @@ class SklearnModel(BaseModel):
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
         best_params = grid_search.best_params_
+        est = grid_search.best_estimator_
+
+        if self._select_features:
+            selector = est.named_steps["selector"]
+            self._logger.debug("Selected Features")
+            indices = selector.get_support(indices=True)
+            self._logger.debug([self._feature_cols[i] for i in indices])
+
         self._logger.debug("Optimal Hyperparameters")
         self._logger.debug(best_params)
 
-        return grid_search.best_estimator_
+        return est
 
     def _design_features(self, crop, data_df):
         """Design features using data samples.
