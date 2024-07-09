@@ -30,7 +30,7 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
     "SklearnRF": SklearnModel,
-    "LSTM": ExampleLSTM,
+    # "LSTM": ExampleLSTM,
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
@@ -184,6 +184,7 @@ def load_results(
         if os.path.isfile(os.path.join(path_results, f))
     ]
 
+    print(files)
     # No files, return an empty data frame
     if not files:
         return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
@@ -221,9 +222,10 @@ def compute_metrics(
     rows = []
     all_years = sorted(df_all[KEY_YEAR].unique())
     for yr in all_years:
-        y_true = df_all["targets"].values
+        df_yr = df_all[df_all[KEY_YEAR] == yr]
+        y_true = df_yr["targets"].values
         for model_name in model_names:
-            metrics = evaluate_predictions(y_true, df_all[[model_name]].values)
+            metrics = evaluate_predictions(y_true, df_yr[model_name].values)
             metrics_row = {
                 "model": model_name,
                 "year": yr,
