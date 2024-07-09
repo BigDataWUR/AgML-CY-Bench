@@ -3,17 +3,17 @@ import pandas as pd
 from sklearn.model_selection import ParameterGrid
 
 
-def data_to_pandas(data_items):
+def data_to_pandas(data_items, data_cols=None):
     """Convert data items as dict to pandas DataFrame
 
     Args:
       data_items : list of data items, each of which is a dict
+      data_cols : list of keys to include as columns
 
     Returns:
       pd.DataFrame
     """
     data = []
-    data_cols = None
     for item in data_items:
         if data_cols is None:
             data_cols = list(item.keys())
