@@ -110,8 +110,8 @@ def test_trend_model():
     for sel_loc in yield_df[KEY_LOC].unique():
         yield_loc_df = yield_df[yield_df[KEY_LOC] == sel_loc]
         all_years = sorted(yield_loc_df[KEY_YEAR].unique())
-    
-        if (sel_loc in ["US-01-001", "US-01-002"]):
+
+        if sel_loc in ["US-01-001", "US-01-002"]:
             test_indexes = [0, 2, len(all_years) - 1]
             for idx in test_indexes:
                 test_year = all_years[idx]

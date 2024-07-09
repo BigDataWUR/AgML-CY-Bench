@@ -72,20 +72,20 @@ class TrendModel(BaseModel):
             # TODO: Find an appropriate place to define the threshold.
             if (trend_x.shape[0] < 6) or not result.h:
                 self._trend_estimators[loc] = {
-                    "estimator" : None,
-                    "mean" : np.mean(trend_y)
+                    "estimator": None,
+                    "mean": np.mean(trend_y),
                 }
             else:
-              # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
-              if self._trend == "quadratic":
-                  trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
-              else:
-                  trend_est = self._linear_trend_estimator(trend_x, trend_y)
+                # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
+                if self._trend == "quadratic":
+                    trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
+                else:
+                    trend_est = self._linear_trend_estimator(trend_x, trend_y)
 
-              self._trend_estimators[loc] = {
-                  "estimator" : trend_est,
-                  "mean" : None,
-              }
+                self._trend_estimators[loc] = {
+                    "estimator": trend_est,
+                    "mean": None,
+                }
 
         return self, {}
 
@@ -101,7 +101,7 @@ class TrendModel(BaseModel):
             loc_id = item[KEY_LOC]
             year = item[KEY_YEAR]
             trend_est = self._trend_estimators[loc_id]["estimator"]
-            if (trend_est is None):
+            if trend_est is None:
                 predictions[i] = self._trend_estimators[loc_id]["mean"]
             else:
                 trend_x = np.array([year]).reshape((1, 1))
