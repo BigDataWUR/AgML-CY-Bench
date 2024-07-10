@@ -10,11 +10,12 @@ from cybench.config import KEY_LOC, KEY_YEAR
 
 
 def _add_cutoff_days(df, lead_time):
+    # For lead_time, see FORECAST_LEAD_TIME in config.py.
     if "day" in lead_time:
         df["cutoff_days"] = int(lead_time.split("-")[0])
     else:
         assert "season" in lead_time
-        if lead_time == "mid-season":
+        if lead_time == "middle-of-season":
             df["cutoff_days"] = df["season_length"] // 2
         elif lead_time == "quarter-of-season":
             df["cutoff_days"] = df["season_length"] // 4

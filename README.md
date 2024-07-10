@@ -177,12 +177,16 @@ production / harvest_area)
 
 ### Leaderboard
 
-| Model Name        | NRMSE | MAPE |
-|-------------------|-------|------|
-| AverageYieldModel |       |      |
-| Linear TrendModel |       |      |
-| Ridge (sklearn)   |       |      |
-| TorchLSTMModel    |       |      |
+| Crop, Country     | Lead time         | Average Yield NRMSE | Linear Trend NRMSE | Ridge (sklearn) NRMSE | Random Forest (sklearn) NRMSE | Average Yield MAPE | Linear Trend MAPE | Ridge (sklearn) MAPE | Random Forest (sklearn) MAPE |
+|-------------------|-------------------|--------|--------|--------|--------|---------|---------|---------|---------|
+| Maize, AO         | middle-of-season  | 41.272 | 35.346 | 45.959 | 44.240 | 137.177 | 132.131 | 235.828 | 208.672 |
+| Maize, AO         | quarter-of-season | 41.272 | 35.346 | 59.937 | 44.234 | 137.177 | 132.131 | 184.587 | 209.559 |
+| Maize, ES         | middle-of-season  | 15.573 | 11.911 | 24.285 | 19.230 | 14.464  | 11.236  | 25.299  | 19.124  |
+| Maize, ES         | quarter-of-season | 15.573 | 11.911 | 22.107 | 18.936 | 14.464  | 11.236  | 24.757  | 18.669  |
+| Maize, NL         | middle-of-season  | 15.315 | 15.510 | 18.111 | 16.109 | 13.888  | 14.045  | 16.252  | 14.635  |
+| Maize, NL         | quarter-of-season | 15.315 | 15.510 | 17.552 | 15.340 | 13.888  | 14.045  | 16.051  | 13.834  |
+
+NOTE: Results indicate that access to more data from the crop growing season does not significantly improve performance. 
 
 ### How to cite
 

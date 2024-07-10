@@ -11,8 +11,12 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where output is stored
+PATH_OUTPUT_DIR = os.path.join(CONFIG_DIR, "output")
+os.makedirs(PATH_OUTPUT_DIR, exist_ok=True)
+
 # Path to folder where benchmark results
-PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
+PATH_RESULTS_DIR = os.path.join(PATH_OUTPUT_DIR, "runs")
 os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
 
 
@@ -146,13 +150,13 @@ GDD_UPPER_LIMIT = {
 
 
 # Lead time for forecasting
-# NOTE: can be: "mid-season", "quarter-of-season",
-# "n-days" with n is an integer
-FORECAST_LEAD_TIME = "mid-season"
+# Choices: "middle-of-season", "quarter-of-season",
+# "n-day(s)" with n is an integer
+FORECAST_LEAD_TIME = "quarter-of-season"
 
 
 # Logging
-PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
+PATH_LOGS_DIR = os.path.join(PATH_OUTPUT_DIR, "logs")
 os.makedirs(PATH_LOGS_DIR, exist_ok=True)
 
 LOG_FILE = datetime.now().strftime("agml_cybench_%H_%M_%d_%m_%Y.log")

@@ -15,8 +15,6 @@ from cybench.datasets.transforms import (
 
 from cybench.models.model import BaseModel
 from cybench.util.data import (
-    flatten_nested_dict,
-    unflatten_nested_dict,
     generate_settings,
 )
 
@@ -55,7 +53,7 @@ class BaseNNModel(BaseModel, nn.Module):
             random.seed(seed)
 
         train_years = dataset.years
-        self.best_model = None
+        self._best_model = None
 
         if (len(train_years) > 1) and optimize_hyperparameters:
             assert param_space is not None
@@ -139,8 +137,8 @@ class BaseNNModel(BaseModel, nn.Module):
             # If early stopping is used, use best val
             # loss and save best model for prediction
             if output["best_val_loss"] is not None:
-                self.best_model = output["best_model"]
-                return self.best_model, output
+                self._best_model = output["best_model"]
+                return self._best_model, output
             else:
                 return model, output
 
@@ -208,7 +206,7 @@ class BaseNNModel(BaseModel, nn.Module):
         train_years = train_dataset.years
         self._min_date = train_dataset.min_date
         self._max_date = train_dataset.max_date
-        self.batch_size = batch_size
+        self._batch_size = batch_size
         self.to(device)
 
         if "seed" in fit_params.keys():
@@ -411,7 +409,7 @@ class BaseNNModel(BaseModel, nn.Module):
         Args:
           X: a list of data items, each of which is a dict
           device: str, the device to use, default is "cuda" if available else "cpu"
-          batch_size: int, the batch size, default is self.batch_size stored during fit method
+          batch_size: int, the batch size, default is self._batch_size stored during fit method
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
@@ -419,12 +417,12 @@ class BaseNNModel(BaseModel, nn.Module):
         if device is None:
             device = "cuda" if torch.cuda.is_available() else "cpu"
         if batch_size is None:
-            batch_size = self.batch_size
+            batch_size = self._batch_size
 
-        if self.best_model is not None:
+        if self._best_model is not None:
             # Log
             self._logger.debug("Using best model from early stopping for prediction")
-            model = self.best_model
+            model = self._best_model
         else:
             model = self
 
@@ -487,8 +485,6 @@ class ExampleLSTM(BaseNNModel):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
-        kwargs["n_ts_inputs"] = n_ts_inputs
-        kwargs["n_static_inputs"] = n_static_inputs
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size

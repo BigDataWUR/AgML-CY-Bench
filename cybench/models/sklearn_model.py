@@ -146,10 +146,11 @@ class SklearnModel(BaseModel):
         best_params = grid_search.best_params_
         est = grid_search.best_estimator_
 
+        self._logger.debug(est)
         if self._select_features:
             selector = est.named_steps["selector"]
-            self._logger.debug("Selected Features")
             indices = selector.get_support(indices=True)
+            self._logger.debug(f"Selected {len(indices)} Features")
             self._logger.debug([self._feature_cols[i] for i in indices])
 
         self._logger.debug("Optimal Hyperparameters")
