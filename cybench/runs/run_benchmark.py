@@ -253,7 +253,6 @@ def compute_metrics(
             rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
-    print(df_all.groupby("model").agg({metric: "mean" for metric in metrics}).head())
     df_all.set_index(["model", KEY_YEAR], inplace=True)
 
     return df_all
