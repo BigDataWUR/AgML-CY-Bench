@@ -31,7 +31,7 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnModel,
     "SklearnRF": SklearnModel,
-    # "LSTM": ExampleLSTM,
+    "LSTM": ExampleLSTM,
 }
 
 sklearn_ridge = Ridge(alpha=0.5)

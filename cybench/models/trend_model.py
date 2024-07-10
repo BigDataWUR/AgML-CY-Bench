@@ -22,7 +22,7 @@ class TrendModel(BaseModel):
 
     def __init__(self, trend="linear"):
         self._trend = trend
-        if (trend not in ["linear", "quadratic"]):
+        if trend not in ["linear", "quadratic"]:
             raise Exception(f"Unsupported trend {trend}")
 
         self._trend_estimators = {}
@@ -78,11 +78,11 @@ class TrendModel(BaseModel):
             # TODO: Find an appropriate place to define the threshold.
             # NOTE mannkendall test throws a division by zero error for samples < 2.
             # So check number of samples before running the test.
-            if (trend_y.shape[0] >= 6):
+            if trend_y.shape[0] >= 6:
                 result = trend_mk.original_test(trend_y)
                 trend_exists = result.h
 
-            if (trend_exists):
+            if trend_exists:
                 if self._trend == "quadratic":
                     trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
                 else:
@@ -97,7 +97,7 @@ class TrendModel(BaseModel):
                 self._trend_estimators[loc] = {
                     "estimator": None,
                     "mean": np.mean(trend_y),
-                }                
+                }
 
         return self, {}
 
