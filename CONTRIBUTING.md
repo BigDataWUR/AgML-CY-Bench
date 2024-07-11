@@ -15,7 +15,7 @@ Add your GitHub username to this [document](https://docs.google.com/document/d/1
 For any changes or enhancements, check if a related issue already exists. If not, open a new issue. If you do not have collaborator access, what you are fixing can be described in the pull request (see below).
 
 ## Make changes
-Clone the repository or fork the project. Create a working branch from `main` to make changes. The branch can be named something like `<username>/<short-summary-of-issue>`.
+Clone the repository. Another option is to fork the repository and clone the forked repository. Create a working branch from `main` to make changes. The branch can be named something like `<username>/<short-summary-of-issue>`.
 
 Make necessary changes and test them. Commit your changes (add the issue number in the commit message). Before pushing your changes, run [`black`](https://github.com/psf/black) to format your code.
 
