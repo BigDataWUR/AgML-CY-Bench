@@ -7,8 +7,8 @@ from sklearn.linear_model import Ridge
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.naive_models import AverageYieldModel
-from cybench.models.trend_model import TrendModel
-from cybench.models.sklearn_model import SklearnModel
+from cybench.models.trend_models import TrendModel
+from cybench.models.sklearn_models import SklearnRidge
 from cybench.models.nn_models import ExampleLSTM
 from cybench.evaluation.eval import evaluate_model
 
@@ -168,8 +168,7 @@ def test_sklearn_model():
     )
 
     # Model
-    ridge = Ridge(alpha=0.5)
-    model = SklearnModel(ridge)
+    model = SklearnRidge()
     model.fit(train_dataset)
 
     test_preds, _ = model.predict(test_dataset)
@@ -193,12 +192,10 @@ def test_sklearn_model():
     test_dataset = Dataset("maize", test_yields, [test_features])
 
     # Model
-    ridge = Ridge(alpha=0.5)
-    model = SklearnModel(
-        ridge,
+    model = SklearnRidge(
         feature_cols=feature_cols,
     )
-    model.fit(train_dataset, **{"predesigned_features": True})
+    model.fit(train_dataset)
 
     test_preds, _ = model.predict(test_dataset)
     assert test_preds.shape[0] == len(test_dataset)
@@ -220,8 +217,6 @@ def test_sklearn_model():
     # Test 3: Test hyperparameter optimization
     fit_params = {
         "optimize_hyperparameters": True,
-        "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
-        "predesigned_features": True,
     }
     model.fit(train_dataset, **fit_params)
     test_preds, _ = model.predict(test_dataset)

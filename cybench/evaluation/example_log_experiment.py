@@ -10,8 +10,8 @@ import pandas as pd
 import torch
 from sklearn.linear_model import Ridge
 from cybench.models.model import BaseModel
-from cybench.models.sklearn_model import SklearnModel
-from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.trend_models import TrendModel
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.nn_models import BaseNNModel
 
@@ -96,14 +96,11 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
     test_dataset = Dataset(test_yields, [test_features])
 
     # Model
-    ridge = Ridge(alpha=0.5)
-    model = SklearnModel(
-        ridge,
+    model = SklearnRidge(
         feature_cols=feature_cols,
     )
     fit_params = {
         "optimize_hyperparameters": True,
-        "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
     }
     model.fit(train_dataset, **fit_params)
 

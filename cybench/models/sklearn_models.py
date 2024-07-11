@@ -1,7 +1,11 @@
 import pickle
 import numpy as np
+import pandas as pd
 import logging
 from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import Ridge, Lasso
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_selection import SelectFromModel
 from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.pipeline import Pipeline
 
@@ -23,15 +27,37 @@ from cybench.config import (
 )
 
 
-class SklearnModel(BaseModel):
-    def __init__(self, sklearn_est, feature_cols=None, scaler=None):
-        self._feature_cols = feature_cols
-        self._predesigned_features = False
+class BaseSklearnModel(BaseModel):
+    """Base class for wrappers around scikit learn estimators."""
 
-        if scaler is None:
+    def __init__(self, **kwargs):
+        super(BaseModel, self).__init__()
+        self._feature_cols = None
+        self._predesigned_features = False
+        if ("feature_cols" in kwargs) and kwargs["feature_cols"] is not None:
+            self._feature_cols = kwargs["feature_cols"]
+            self._predesigned_features = True
+
+        assert "estimator" in kwargs and kwargs["estimator"] is not None
+        estimator = kwargs["estimator"]
+
+        if ("scaler" in kwargs) and kwargs["scaler"] is not None:
+            scaler = kwargs["scaler"]
+        else:
             scaler = StandardScaler()
 
-        self._est = Pipeline([("scaler", scaler), ("estimator", sklearn_est)])
+        if ("ft_selector" in kwargs) and kwargs["ft_selector"] is not None:
+            ft_selector = kwargs["ft_selector"]
+            self._est = Pipeline(
+                [
+                    ("scaler", scaler),
+                    ("selector", ft_selector),
+                    ("estimator", estimator),
+                ]
+            )
+        else:
+            self._est = Pipeline([("scaler", scaler), ("estimator", estimator)])
+
         self._logger = logging.getLogger(__name__)
 
     def fit(self, dataset: Dataset, **fit_params) -> tuple:
@@ -47,12 +73,9 @@ class SklearnModel(BaseModel):
         """
         train_data = data_to_pandas(dataset)
         train_years = dataset.years
-        # NOTE: We want to support dataset that already contains pre-designed features
-        if ("predesigned_features" in fit_params) and fit_params[
-            "predesigned_features"
-        ]:
-            self._predesigned_features = True
-        else:
+
+        # NOTE: We want to support a dataset with pre-designed features.
+        if not self._predesigned_features:
             train_features = self._design_features(dataset.crop, train_data)
             self._feature_cols = [
                 ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
@@ -65,11 +88,28 @@ class SklearnModel(BaseModel):
         y = train_data[KEY_TARGET].values
         if (
             (len(train_years) > 1)
-            and ("optimize_hyperparameters" in fit_params)
-            and (fit_params["optimize_hyperparameters"])
+            and (
+                ("optimize_hyperparameters" in fit_params)
+                and fit_params["optimize_hyperparameters"]
+            )
+            or (("select_features" in fit_params) and fit_params["select_features"])
         ):
-            assert "param_space" in fit_params
+            assert "param_space" in fit_params, "Parameter space not provided"
             param_space = fit_params["param_space"]
+            assert param_space, "Parameter space is empty"
+
+            if (
+                ("select_features" in fit_params)
+                and fit_params["select_features"]
+                and ("max_features" in fit_params)
+            ):
+                param_space["selector__max_features"] = fit_params["max_features"]
+                # NOTE: Update max_features to have valid values.
+                param_space["selector__max_features"] = [
+                    v
+                    for v in param_space["selector__max_features"]
+                    if (len(self._feature_cols) > v)
+                ]
 
             # NOTE: 1. optimize hyperparameters refits the estimator
             #          with the optimal hyperparameter values.
@@ -119,12 +159,21 @@ class SklearnModel(BaseModel):
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
         best_params = grid_search.best_params_
+        est = grid_search.best_estimator_
+
+        self._logger.debug(est)
+        if "selector" in est.named_steps:
+            selector = est.named_steps["selector"]
+            indices = selector.get_support(indices=True)
+            self._logger.debug(f"Selected {len(indices)} Features")
+            self._logger.debug([self._feature_cols[i] for i in indices])
+
         self._logger.debug("Optimal Hyperparameters")
         self._logger.debug(best_params)
 
-        return grid_search.best_estimator_
+        return est
 
-    def _design_features(self, crop, data_df):
+    def _design_features(self, crop: str, data_df: pd.DataFrame):
         """Design features using data samples.
 
         Args:
@@ -159,7 +208,7 @@ class SklearnModel(BaseModel):
 
         return features
 
-    def predict(self, dataset):
+    def predict(self, dataset: Dataset):
         """Run fitted model on batched data items.
 
         Args:
@@ -201,7 +250,7 @@ class SklearnModel(BaseModel):
 
         return self._est.predict(X_test), {}
 
-    def save(self, model_name):
+    def save(self, model_name: str):
         """Save model, e.g. using pickle.
         Check here for options to save and load scikit-learn models:
         https://scikit-learn.org/stable/model_persistence.html
@@ -212,7 +261,7 @@ class SklearnModel(BaseModel):
         with open(model_name, "wb") as f:
             pickle.dump(self, f)
 
-    def load(cls, model_name):
+    def load(cls, model_name: str):
         """Deserialize a saved model.
 
         Args:
@@ -225,3 +274,80 @@ class SklearnModel(BaseModel):
             saved_model = pickle.load(f)
 
         return saved_model
+
+
+class SklearnRidge(BaseSklearnModel):
+    def __init__(self, feature_cols: list = None):
+        ridge = Ridge(alpha=0.5)
+        lasso_selector = SelectFromModel(Lasso(), threshold="median")
+        kwargs = {
+            "feature_cols": feature_cols,
+            "estimator": ridge,
+            "ft_selector": lasso_selector,
+        }
+
+        super().__init__(**kwargs)
+
+    def fit(self, train_dataset: Dataset, **fit_params):
+        """Fit or train the model.
+
+        Args:
+          train_dataset: Dataset
+
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        param_space = {
+            "estimator__alpha": [0.01, 0.1, 1.0, 5.0, 10.0],
+            "selector__estimator__alpha": [0.1, 1.0, 5.0],
+            "selector__max_features": [20, 25, 30],
+        }
+
+        if (
+            ("optimize_hyperparameters" in fit_params)
+            and fit_params["optimize_hyperparameters"]
+        ) or (("select_features" in fit_params) and fit_params["select_features"]):
+            if "param_space" not in fit_params:
+                fit_params["param_space"] = param_space
+
+        super().fit(train_dataset, **fit_params)
+
+
+class SklearnRandomForest(BaseSklearnModel):
+    def __init__(self, feature_cols: list = None):
+        random_forest = RandomForestRegressor(
+            oob_score=True, n_estimators=100, min_samples_leaf=5
+        )
+
+        kwargs = {
+            "feature_cols": feature_cols,
+            "estimator": random_forest,
+        }
+
+        super().__init__(**kwargs)
+
+    def fit(self, train_dataset: Dataset, **fit_params):
+        """Fit or train the model.
+
+        Args:
+          train_dataset: Dataset
+
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        param_space = {
+            "estimator__n_estimators": [50, 100, 500],
+        }
+
+        if (
+            ("optimize_hyperparameters" in fit_params)
+            and fit_params["optimize_hyperparameters"]
+        ) or (("select_features" in fit_params) and fit_params["select_features"]):
+            if "param_space" not in fit_params:
+                fit_params["param_space"] = param_space
+
+        super().fit(train_dataset, **fit_params)
