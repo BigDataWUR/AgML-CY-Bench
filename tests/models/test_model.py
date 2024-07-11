@@ -242,7 +242,7 @@ def test_nn_model():
     # Initialize model, assumes that all features are in np.ndarray format
     model = ExampleLSTM(
         hidden_size=64,
-        num_layers=2,
+        num_layers=1,
         output_size=1,
     )
     scheduler_fn = torch.optim.lr_scheduler.StepLR
@@ -251,12 +251,23 @@ def test_nn_model():
     # Train model
     model.fit(
         train_dataset,
-        batch_size=3200,
-        num_epochs=2,
+        batch_size=16,
+        num_epochs=5,
+        param_space = {
+            "optim_kwargs": {
+                "lr": [0.0001, 0.00001],
+                "weight_decay": [0.0001, 0.00001],
+            },
+        },
         device=device,
         optim_kwargs={"lr": 0.01},
         scheduler_fn=scheduler_fn,
         scheduler_kwargs=scheduler_kwargs,
+        **{
+            "optimize_hyperparameters": True,
+            "do_kfold": True,
+            "kfolds": 1,
+        }
     )
 
     test_preds, _ = model.predict(test_dataset)
@@ -264,7 +275,6 @@ def test_nn_model():
 
     # Check if evaluation results are within expected range
     evaluation_result = evaluate_model(model, test_dataset)
-    print(evaluation_result)
 
     min_expected_values = {
         "normalized_rmse": 0,
@@ -281,3 +291,5 @@ def test_nn_model():
         assert not np.isnan(
             evaluation_result[metric]
         ), f"Value of metric '{metric}' is NaN"
+
+test_nn_model()

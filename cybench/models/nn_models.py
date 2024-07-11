@@ -6,6 +6,8 @@ from tqdm import tqdm
 import numpy as np
 import logging
 
+from sklearn.model_selection import ParameterGrid
+
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.transforms import (
@@ -14,11 +16,7 @@ from cybench.datasets.transforms import (
 )
 
 from cybench.models.model import BaseModel
-from cybench.util.data import (
-    flatten_nested_dict,
-    unflatten_nested_dict,
-    generate_settings,
-)
+from cybench.evaluation.eval import evaluate_predictions
 
 from cybench.config import (
     KEY_TARGET,
@@ -28,6 +26,32 @@ from cybench.config import (
 )
 
 
+class EarlyStopping:
+    """Based on the answer to
+    https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
+    """
+    def __init__(self, patience=3, min_delta=0.0):
+        self._patience = patience
+        self._min_delta = min_delta
+        self._counter = 0
+        self._opt_metric = float("inf")
+
+    def early_stop(self, val_metric):
+        if val_metric < self._opt_metric:
+            self._opt_metric = val_metric
+            self._counter = 0
+        elif val_metric > (self._opt_metric + self._min_delta):
+            self._counter += 1
+            if self._counter >= self._patience:
+                return True
+
+        return False
+
+    @property
+    def patience(self):
+        return self._patience
+
+
 class BaseNNModel(BaseModel, nn.Module):
     def __init__(self, **kwargs):
         super(BaseModel, self).__init__()
@@ -35,6 +59,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self._norm_params = None
         self._init_args = kwargs
+        self._early_stopper = EarlyStopping(patience=4, min_delta=0.05)
         self._logger = logging.getLogger(__name__)
 
     def fit(
@@ -44,112 +69,128 @@ class BaseNNModel(BaseModel, nn.Module):
         param_space: dict = None,
         do_kfold: bool = False,
         kfolds: int = 5,
-        *args,
         **kwargs,
     ):
+        """Fit or train the model.
+
+        Args:
+          dataset: Dataset. Training dataset.
+
+          optimize_hyperparameters: bool
+
+          param_space: dict. Each entry is a hyperparameter name and list or range of values.
+
+          do_kfold: bool
+
+          kfolds: int. k in k-fold cv.
+
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
         # Set seed if seed is provided
         if "seed" in kwargs:
             seed = kwargs["seed"]
+            assert seed is not None
             torch.manual_seed(seed)
             np.random.seed(seed)
             random.seed(seed)
 
-        train_years = dataset.years
-        self.best_model = None
+        opt_param_setting = {}
+        if (len(dataset.years) > 1) and optimize_hyperparameters:
+            opt_param_setting = self._optimize_hyperparameters(dataset, param_space, do_kfold, kfolds, **kwargs)
 
-        if (len(train_years) > 1) and optimize_hyperparameters:
-            assert param_space is not None
+        output = self._train_model(dataset, **opt_param_setting, **kwargs)
 
-            best_loss = float("inf")
-            best_setting = None
+        return self, output
 
-            settings = generate_settings(param_space, kwargs)
-            for i, setting in enumerate(settings):
-                val_loss = None
-                if do_kfold:
-                    # Split data into k folds
-                    all_years = dataset.years
-                    list_all_years = list(all_years)
-                    random.shuffle(list_all_years)
-                    cv_folds = [list_all_years[i::kfolds] for i in range(kfolds)]
+    def _optimize_hyperparameters(self, dataset: Dataset, do_kfold: bool = False, kfolds: int = 5,
+                                  param_space: dict = None, **kwargs) -> dict:
+        """Optimize hyperparameters
 
-                    # For each fold, create new model and datasets, train and record val loss. Finally, average val loss.
-                    val_loss_fold = []
-                    for j, val_fold in enumerate(cv_folds):
-                        self._logger.debug(
-                            f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
-                        )
-                        val_years = val_fold
-                        train_years = [y for y in all_years if y not in val_years]
-                        train_dataset, val_dataset = dataset.split_on_years(
-                            (train_years, val_years)
-                        )
-                        new_model = self.__class__(**self._init_args)
-                        _, output = new_model.train_model(
-                            train_dataset=train_dataset,
-                            val_dataset=val_dataset,
-                            *args,
-                            **setting,
-                        )
+        Args:
+          dataset: Dataset. Training dataset.
 
-                        # If early stopping is used, use best val loss. Otherwise, use final val loss.
-                        if output["best_val_loss"] is not None:
-                            val_loss_fold.append(output["best_val_loss"])
-                        else:
-                            val_loss_fold.append(output["val_loss"])
-                    val_loss = np.mean(val_loss_fold)
+          param_space: a dict of parameters to optimize
 
-                else:
-                    # Train new model with single randomly sampled validation set
-                    self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
+          do_kfold: bool. Flag for whether or not to run k-fold cv.
+
+          kfolds: k for k-fold cv.
+
+        Returns:
+          A dict of optimal hyperparameter setting
+        """
+        
+        assert param_space is not None
+
+        opt_loss = float("inf")
+        opt_param_setting = {}
+        all_years = list(dataset.years)
+        random.shuffle(all_years)
+        settings = list(ParameterGrid(param_space))
+        for i, setting in enumerate(settings):
+            if do_kfold and (kfolds > 1):
+                # Split data into k folds
+                # For each fold, create new model and datasets, train and record val loss.
+                # Finally, average val loss.
+                cv_years = [all_years[i::kfolds] for i in range(kfolds)]
+                cv_losses = []
+                for j, val_years in enumerate(cv_years):
+                    self._logger.debug(
+                        f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
+                    )
+                    train_years = [y for y in all_years if y not in val_years]
+                    train_dataset, val_dataset = dataset.split_on_years(
+                        (train_years, val_years)
+                    )
                     new_model = self.__class__(**self._init_args)
-                    _, output = new_model.fit(dataset=dataset, *args, **setting)
-                    if "val_loss" not in output:
-                        raise ValueError(
-                            "No validation loss recorder, set val_fraction > 0 when tuning without kfold cross validation."
-                        )
+                    _, output = new_model._train_model(
+                        train_dataset=train_dataset,
+                        val_dataset=val_dataset,
+                        **setting,
+                        **kwargs,
+                    )
 
-                    # If early stopping is used, use best val loss. Otherwise, use final val loss.
-                    if output["best_val_loss"] is not None:
-                        val_loss = output["best_val_loss"]
-                    else:
-                        val_loss = output["val_loss"]
-                assert val_loss is not None
+                    cv_losses.append(output["val_loss"])
 
-                self._logger.debug(
-                    f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
-                )
-                self._logger.debug(f"Settings: {setting}")
-
-                # Store best model setting
-                if val_loss < best_loss:
-                    best_loss = val_loss
-                    best_setting = setting
-
-            # Finally, train model with best setting
-            final_model, final_output = self.fit(dataset=dataset, *args, **best_setting)
-            self._logger.debug(
-                f"Final validation loss of outer fold: {final_output['val_loss']}"
-            )
-            self._logger.debug(f"Final best setting of outer fold: {best_setting}")
-            return final_model, final_output
-        else:
-            model, output = self.train_model(dataset, *args, **kwargs)
-
-            # If early stopping is used, use best val
-            # loss and save best model for prediction
-            if output["best_val_loss"] is not None:
-                self.best_model = output["best_model"]
-                return self.best_model, output
+                val_loss = np.mean(cv_losses)
             else:
-                return model, output
+                # Train new model with single randomly sampled validation set
+                self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
+                val_years = all_years[len(all_years) // 2:]
+
+                train_years = [y for y in all_years if y not in val_years]
+                train_dataset, val_dataset = dataset.split_on_years(
+                        (train_years, val_years)
+                )
+                new_model = self.__class__(**self._init_args)
+                _, output = new_model._train_model(
+                    train_dataset=train_dataset,
+                    val_dataset=val_dataset,
+                    **setting,
+                    **kwargs,
+                )
+                val_loss = output["val_loss"]
+
+            assert val_loss is not None
+
+            self._logger.debug(
+                f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
+            )
+            self._logger.debug(f"Settings: {setting}")
+
+            # Store best model setting
+            if val_loss < opt_loss:
+                opt_loss = val_loss
+                opt_param_setting = setting
+
+        return opt_param_setting
 
     def train_model(
         self,
         train_dataset: Dataset,
         val_dataset: Dataset = None,
-        val_fraction: float = 0.1,
-        val_split_by_year: bool = False,
         val_every_n_epochs: int = 1,
         do_early_stopping: bool = False,
         num_epochs: int = 1,
@@ -160,8 +201,8 @@ class BaseNNModel(BaseModel, nn.Module):
         optim_kwargs: dict = None,
         scheduler_fn: callable = None,
         scheduler_kwargs: dict = None,
-        device: str = None,
-        **fit_params,
+        device: str = "cpu",
+        **kwargs,
     ):
         """
         Fit or train the model.
@@ -192,8 +233,7 @@ class BaseNNModel(BaseModel, nn.Module):
         # Set default values
         if loss_fn is None:
             loss_fn = torch.nn.functional.mse_loss
-        if loss_kwargs is None:
-            loss_kwargs = {"reduction": "mean"}
+
         if optim_fn is None:
             optim_fn = torch.optim.Adam
         if optim_kwargs is None:
@@ -211,9 +251,6 @@ class BaseNNModel(BaseModel, nn.Module):
         self.batch_size = batch_size
         self.to(device)
 
-        if "seed" in fit_params.keys():
-            random.seed(fit_params["seed"])
-
         if val_dataset is not None:
             train_dataset = TorchDataset(train_dataset)
             val_dataset = TorchDataset(val_dataset)
@@ -227,62 +264,6 @@ class BaseNNModel(BaseModel, nn.Module):
             val_loader = torch.utils.data.DataLoader(
                 val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn
             )
-        elif val_fraction > 0 and not val_split_by_year:
-            n = len(train_dataset)
-            n_val = int(n * val_fraction)
-            val_ids = np.random.choice(n, n_val, replace=False).tolist()
-            train_ids = list(set(range(n)) - set(val_ids))
-            assert len(set(val_ids).intersection(set(train_ids))) == 0
-
-            train_dataset = TorchDataset(train_dataset)
-
-            train_loader = torch.utils.data.DataLoader(
-                train_dataset,
-                batch_size=batch_size,
-                sampler=torch.utils.data.SubsetRandomSampler(train_ids),
-                collate_fn=train_dataset.collate_fn,
-            )
-            if val_fraction > 0:
-                val_loader = torch.utils.data.DataLoader(
-                    train_dataset,
-                    batch_size=batch_size,
-                    sampler=torch.utils.data.SubsetRandomSampler(val_ids),
-                    collate_fn=train_dataset.collate_fn,
-                )
-        elif val_fraction > 0 and val_split_by_year and (len(train_years) > 1):
-            all_years = train_dataset.years
-            list_all_years = list(all_years)
-            random.shuffle(list_all_years)
-            n_val = int(np.ceil(len(all_years) * val_fraction))
-            val_years = list_all_years[:n_val]
-            train_years = list_all_years[n_val:]
-            self._logger.debug(f"Validation years: {val_years}")
-            self._logger.debug(f"Training years: {train_years}")
-            train_dataset, val_dataset = train_dataset.split_on_years(
-                (train_years, val_years)
-            )
-            train_dataset = TorchDataset(train_dataset)
-            val_dataset = TorchDataset(val_dataset)
-            train_loader = torch.utils.data.DataLoader(
-                train_dataset,
-                batch_size=batch_size,
-                collate_fn=train_dataset.collate_fn,
-                shuffle=True,
-                drop_last=True,
-            )
-            val_loader = torch.utils.data.DataLoader(
-                val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn
-            )
-        else:
-            train_dataset = TorchDataset(train_dataset)
-            train_loader = torch.utils.data.DataLoader(
-                train_dataset,
-                batch_size=batch_size,
-                collate_fn=train_dataset.collate_fn,
-                shuffle=True,
-                drop_last=True,
-            )
-            val_loader = None
 
         # Load optimizer and scheduler
         optimizer = optim_fn(self.parameters(), **optim_kwargs)
@@ -295,11 +276,10 @@ class BaseNNModel(BaseModel, nn.Module):
         )
         all_train_losses = []
         all_val_losses = []
-
-        best_val_loss = float("inf")
-        best_model = None
+        saved_metrics = []
 
         # Training loop
+        max_epoch = num_epochs
         for epoch in range(num_epochs):
             losses = []
             self.train()
@@ -338,53 +318,25 @@ class BaseNNModel(BaseModel, nn.Module):
                 all_train_losses.append(mean_train_loss)
 
             if val_loader is not None and (
-                epoch % val_every_n_epochs == 0 or epoch == num_epochs - 1
+                (epoch % val_every_n_epochs == 0) or (epoch == num_epochs - 1)
             ):
                 self.eval()
 
                 # Validation loop
                 with torch.no_grad():
-                    val_losses = []
-                    tqdm_val = tqdm(
-                        val_loader, desc=f"Validation Epoch {epoch + 1}/{num_epochs}"
-                    )
-                    for batch in tqdm_val:
-                        for key in batch:
-                            if isinstance(batch[key], torch.Tensor):
-                                batch[key] = batch[key].to(device)
+                    y_pred, _ = self.predict(val_dataset, device=device)
+                    y_true = val_dataset.targets
+                    val_metric = evaluate_predictions(y_true, y_pred)
+                    saved_metrics.append(val_metric)
+                
+                    if do_early_stopping and self._early_stopper.early_stop(val_metric):
+                        max_epoch = epoch - self._early_stopper.patience
 
-                        inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
-
-                        # Normalize inputs
-                        inputs = self._normalize_inputs(inputs)
-                        predictions = self(inputs)
-
-                        if predictions.dim() > 1:
-                            predictions = predictions.squeeze(-1)
-                        target = batch[KEY_TARGET]
-                        loss = loss_fn(predictions, target, **loss_kwargs)
-
-                        val_losses.append(loss.item())
-                        mean_val_loss = np.mean(val_losses)
-
-                        tqdm_val.set_description(
-                            f"Validation Epoch {epoch + 1}/{num_epochs} | Loss: {mean_val_loss:.4f}"
-                        )
-                    all_val_losses.append(mean_val_loss)
-                    if mean_val_loss < best_val_loss and do_early_stopping:
-                        best_val_loss = mean_val_loss
-                        best_model = copy.deepcopy(self)
 
         return self, {
-            "train_loss": np.mean(losses),
-            "val_loss": np.mean(val_losses) if val_loader is not None else None,
             "train_losses": all_train_losses,
             "val_losses": all_val_losses if val_loader is not None else None,
-            "best_val_loss": best_val_loss,
-            "best_val_epoch": (
-                np.argmin(all_val_losses) if val_loader is not None else None
-            ),
-            "best_model": best_model,
+            "max_epoch": max_epoch,
         }
 
     def _normalize_inputs(self, inputs):

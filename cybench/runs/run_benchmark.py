@@ -17,7 +17,7 @@ from cybench.config import (
 
 from cybench.datasets.dataset import Dataset
 
-from cybench.evaluation.eval import evaluate_model, evaluate_predictions
+from cybench.evaluation.eval import evaluate_predictions
 
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_model import TrendModel
@@ -40,19 +40,19 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
 
-_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
-_BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
-
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
     "num_layers": 1,
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
-
 _BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
+    "select_features": True,
     "optimize_hyperparameters": True,
-    "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+}
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
+    "optimize_hyperparameters": True,
 }
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
@@ -184,7 +184,6 @@ def load_results(
         if os.path.isfile(os.path.join(path_results, f))
     ]
 
-    print(files)
     # No files, return an empty data frame
     if not files:
         return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
