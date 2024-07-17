@@ -9,14 +9,13 @@ At the moment, there are two ways to contribute to the AgML Subnational Crop Yie
 If you have not yet joined the AgML team, please send an email to agml+join@mail.agml.org.
 
 ## Request collaborator access
-Add your GitHub username to this [document](https://docs.google.com/document/d/1Hhk2BEHmvHxg8ghc4pVRcGNvvIoX8XKN3Mj5hsSmC4A/edit?usp=sharing) to get collaborator access.
+Add your GitHub username to this [document](https://docs.google.com/document/d/1Hhk2BEHmvHxg8ghc4pVRcGNvvIoX8XKN3Mj5hsSmC4A/edit?usp=sharing) to get collaborator access. Another option is to fork the project or repository; this does not require collaborator access.
 
 ## Create an issue
-For any changes or enhancements, check if a related issue already exists. If not, open a new issue.
+For any changes or enhancements, check if a related issue already exists. If not, open a new issue. If you do not have collaborator access, what you are fixing can be described in the pull request (see below).
 
 ## Make changes
-Clone the repository. Create a working branch to make changes. The branch can be named something like
-`<username>/<short-summary-of-issue>`.
+Clone the repository. Another option is to fork the repository and clone the forked repository. Create a working branch from `main` to make changes. The branch can be named something like `<username>/<short-summary-of-issue>`.
 
 Make necessary changes and test them. Commit your changes (add the issue number in the commit message). Before pushing your changes, run [`black`](https://github.com/psf/black) to format your code.
 
