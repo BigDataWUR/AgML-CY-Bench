@@ -237,7 +237,7 @@ def test_sklearn_model():
 def test_nn_model():
     train_dataset = Dataset.load("maize_ES")
     test_dataset = Dataset.load("maize_ES")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize model, assumes that all features are in np.ndarray format
     model = ExampleLSTM(
@@ -246,28 +246,29 @@ def test_nn_model():
         output_size=1,
     )
     scheduler_fn = torch.optim.lr_scheduler.StepLR
-    scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
     # Train model
     model.fit(
         train_dataset,
         batch_size=16,
-        num_epochs=5,
-        param_space = {
-            "optim_kwargs": {
-                "lr": [0.0001, 0.00001],
-                "weight_decay": [0.0001, 0.00001],
-            },
+        epochs=20,
+        param_space={
+            "optimizer__lr": [0.0001, 0.00001],
+            "optimizer__weight_decay": [0.0001, 0.00001],
         },
         device=device,
-        optim_kwargs={"lr": 0.01},
         scheduler_fn=scheduler_fn,
-        scheduler_kwargs=scheduler_kwargs,
         **{
             "optimize_hyperparameters": True,
-            "do_kfold": True,
-            "kfolds": 1,
-        }
+            "validation_interval" : 5,
+            "loss_kwargs": {
+                "reduction": "mean",
+            },
+            "sched_kwargs": {
+                "step_size": 2,
+                "gamma": 0.5,
+            },
+        },
     )
 
     test_preds, _ = model.predict(test_dataset)
@@ -291,5 +292,3 @@ def test_nn_model():
         assert not np.isnan(
             evaluation_result[metric]
         ), f"Value of metric '{metric}' is NaN"
-
-test_nn_model()

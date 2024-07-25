@@ -26,32 +26,6 @@ from cybench.config import (
 )
 
 
-class EarlyStopping:
-    """Based on the answer to
-    https://stackoverflow.com/questions/71998978/early-stopping-in-pytorch
-    """
-    def __init__(self, patience=3, min_delta=0.0):
-        self._patience = patience
-        self._min_delta = min_delta
-        self._counter = 0
-        self._opt_metric = float("inf")
-
-    def early_stop(self, val_metric):
-        if val_metric < self._opt_metric:
-            self._opt_metric = val_metric
-            self._counter = 0
-        elif val_metric > (self._opt_metric + self._min_delta):
-            self._counter += 1
-            if self._counter >= self._patience:
-                return True
-
-        return False
-
-    @property
-    def patience(self):
-        return self._patience
-
-
 class BaseNNModel(BaseModel, nn.Module):
     def __init__(self, **kwargs):
         super(BaseModel, self).__init__()
@@ -59,7 +33,6 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self._norm_params = None
         self._init_args = kwargs
-        self._early_stopper = EarlyStopping(patience=4, min_delta=0.05)
         self._logger = logging.getLogger(__name__)
 
     def fit(
@@ -67,116 +40,132 @@ class BaseNNModel(BaseModel, nn.Module):
         dataset: Dataset,
         optimize_hyperparameters: bool = False,
         param_space: dict = None,
-        do_kfold: bool = False,
-        kfolds: int = 5,
-        **kwargs,
+        kfolds: int = 1,
+        epochs: int = 10,
+        seed: int = 42,
+        **fit_params,
     ):
         """Fit or train the model.
 
         Args:
           dataset: Dataset. Training dataset.
-
-          optimize_hyperparameters: bool
-
+          optimize_hyperparameters: bool. Flag to tune hyperparameters.
           param_space: dict. Each entry is a hyperparameter name and list or range of values.
-
-          do_kfold: bool
-
           kfolds: int. k in k-fold cv.
-
+          epochs: int. Number of epochs to train.
+          seed: seed for random number generator.
           **fit_params: Additional parameters.
 
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        # Set seed if seed is provided
-        if "seed" in kwargs:
-            seed = kwargs["seed"]
-            assert seed is not None
-            torch.manual_seed(seed)
-            np.random.seed(seed)
-            random.seed(seed)
+        torch.manual_seed(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+        # Default optimizer args
+        self._optim_kwargs = {
+            "lr": 0.0001,
+            "weight_decay": 0.00001,
+        }
 
-        opt_param_setting = {}
-        if (len(dataset.years) > 1) and optimize_hyperparameters:
-            opt_param_setting = self._optimize_hyperparameters(dataset, param_space, do_kfold, kfolds, **kwargs)
+        if optimize_hyperparameters:
+            if len(dataset.years) == 1:
+                opt_param_setting = {}
+            else:
+                opt_param_setting = self._optimize_hyperparameters(
+                    dataset, param_space, kfolds=kfolds, epochs=epochs, **fit_params
+                )
 
-        output = self._train_model(dataset, **opt_param_setting, **kwargs)
+        optim_kwargs = self._optim_kwargs
+        for k in opt_param_setting:
+            if k.startswith("optimizer"):
+                optim_kwargs = {
+                    k.split("__")[1]: v for k, v in opt_param_setting.items() if k.startswith("optimizer")
+                }
 
-        return self, output
+        train_losses = self._train_final_model(
+            dataset, optim_kwargs=optim_kwargs, epochs=epochs, **opt_param_setting, **fit_params
+        )
 
-    def _optimize_hyperparameters(self, dataset: Dataset, do_kfold: bool = False, kfolds: int = 5,
-                                  param_space: dict = None, **kwargs) -> dict:
+        return self, {"train_losses" : train_losses}
+
+    def _optimize_hyperparameters(
+        self,
+        dataset: Dataset,
+        param_space: dict,
+        kfolds: int = 1,
+        epochs: int = 10,
+        **fit_params,
+    ) -> dict:
         """Optimize hyperparameters
 
         Args:
           dataset: Dataset. Training dataset.
-
           param_space: a dict of parameters to optimize
-
-          do_kfold: bool. Flag for whether or not to run k-fold cv.
-
           kfolds: k for k-fold cv.
+          epochs: Number of epochs to train.
+          **fit_params: Additional parameters.
 
         Returns:
           A dict of optimal hyperparameter setting
         """
-        
         assert param_space is not None
 
         opt_loss = float("inf")
         opt_param_setting = {}
+        opt_epochs = epochs
         all_years = list(dataset.years)
         random.shuffle(all_years)
         settings = list(ParameterGrid(param_space))
         for i, setting in enumerate(settings):
-            if do_kfold and (kfolds > 1):
+            optim_kwargs = self._optim_kwargs
+            for k in setting:
+                if k.startswith("optimizer"):
+                    optim_kwargs = {
+                        k.split("__")[1]: v for k, v in opt_param_setting.items() if k.startswith("optimizer")
+                    }
+
+            val_loss = None
+            val_epochs = None
+            if kfolds == 1:
+                self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
+                val_years = all_years[len(all_years) // 2 :]
+                train_years = [y for y in all_years if y not in val_years]
+                train_losses, val_losses = self._train_model(
+                    dataset,
+                    train_years,
+                    val_years,
+                    epochs=epochs,
+                    optim_kwargs=optim_kwargs,
+                    **setting,
+                    **fit_params,
+                )
+
+                val_loss = val_losses[-1]
+            else:
                 # Split data into k folds
                 # For each fold, create new model and datasets, train and record val loss.
                 # Finally, average val loss.
                 cv_years = [all_years[i::kfolds] for i in range(kfolds)]
                 cv_losses = []
+                early_stop_epochs = []
                 for j, val_years in enumerate(cv_years):
                     self._logger.debug(
                         f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
                     )
                     train_years = [y for y in all_years if y not in val_years]
-                    train_dataset, val_dataset = dataset.split_on_years(
-                        (train_years, val_years)
-                    )
-                    new_model = self.__class__(**self._init_args)
-                    _, output = new_model._train_model(
-                        train_dataset=train_dataset,
-                        val_dataset=val_dataset,
-                        **setting,
-                        **kwargs,
+                    train_losses, val_losses = self._train_model(
+                        dataset, train_years, val_years, epochs=epochs, **setting, **fit_params
                     )
 
-                    cv_losses.append(output["val_loss"])
+                    cv_losses.append(val_losses[-1])
 
                 val_loss = np.mean(cv_losses)
-            else:
-                # Train new model with single randomly sampled validation set
-                self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
-                val_years = all_years[len(all_years) // 2:]
-
-                train_years = [y for y in all_years if y not in val_years]
-                train_dataset, val_dataset = dataset.split_on_years(
-                        (train_years, val_years)
-                )
-                new_model = self.__class__(**self._init_args)
-                _, output = new_model._train_model(
-                    train_dataset=train_dataset,
-                    val_dataset=val_dataset,
-                    **setting,
-                    **kwargs,
-                )
-                val_loss = output["val_loss"]
 
             assert val_loss is not None
 
             self._logger.debug(
-                f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
+                f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}, median epochs: {val_epochs}"
             )
             self._logger.debug(f"Settings: {setting}")
 
@@ -187,20 +176,21 @@ class BaseNNModel(BaseModel, nn.Module):
 
         return opt_param_setting
 
-    def train_model(
+    def _train_model(
         self,
-        train_dataset: Dataset,
-        val_dataset: Dataset = None,
-        val_every_n_epochs: int = 1,
+        dataset: Dataset,
+        train_years: list,
+        val_years: list,
+        validation_interval: int = 5,
         do_early_stopping: bool = False,
-        num_epochs: int = 1,
-        batch_size: int = 10,
-        loss_fn: callable = None,
-        loss_kwargs: dict = None,
-        optim_fn: callable = None,
-        optim_kwargs: dict = None,
+        epochs: int = 10,
+        batch_size: int = 16,
+        optimizer_fn: callable = torch.optim.Adam,
+        optim_kwargs: dict = {},
+        loss_fn: callable = torch.nn.functional.mse_loss,
+        loss_kwargs: dict = {},
         scheduler_fn: callable = None,
-        scheduler_kwargs: dict = None,
+        sched_kwargs: dict = {},
         device: str = "cpu",
         **kwargs,
     ):
@@ -208,136 +198,196 @@ class BaseNNModel(BaseModel, nn.Module):
         Fit or train the model.
 
         Args:
-            train_dataset: Dataset,
-            val_dataset: Dataset, default is None. If None, val_fraction is used to split train_dataset into train and val.
-            val_fraction: float, percentage of data to use for validation, default is 0.1
-            val_split_by_year: bool, whether to split validation data by year, default is False
-            val_every_n_epochs: int, validation frequency, default is 1
+            dataset: Dataset,
+            train_years: training years
+            val_years: validation years
+            validation_interval: int, validation frequency, default is 5
             do_early_stopping: bool, whether to use early stopping, default is False
-            num_epochs: int, the number of epochs to train the model, default is 1
-            batch_size: int, the batch size, default is 10
-            loss_fn: callable, the loss function, default is torch.nn.functional.mse_loss
-            loss_kwargs: dict, additional parameters for the loss function, default is {"reduction": "mean"}
+            epochs: int, the number of epochs to train the model, default is 10
+            batch_size: int, the batch size, default is 16
             optim_fn: callable, the optimizer function, default is torch.optim.Adam
-            optim_kwargs: dict, additional parameters for the optimizer function, default is {}
+            optim_kwargs: dict, arguments to the optimizer function
+            loss_fn: callable, the loss function, default is torch.nn.functional.mse_loss
+            loss_kwargs: dict, arguments to the loss function
             scheduler_fn: callable, the scheduler function, default is None
-            scheduler_kwargs: dict, additional parameters for the scheduler function, default is {}
+            sched_kwargs: dict, arguments to the scheduler function
             device: str, the device to use, default is "cpu"
-
             **fit_params: Additional parameters.
 
         Returns:
-          A tuple containing the fitted model and a dict with additional information.
+          A tuple training losses, validation losses and maximum epochs to train.
         """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.to(device)
+        assert epochs > 0
 
-        # Set default values
-        if loss_fn is None:
-            loss_fn = torch.nn.functional.mse_loss
-
-        if optim_fn is None:
-            optim_fn = torch.optim.Adam
-        if optim_kwargs is None:
-            optim_kwargs = {}
-
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-            self._logger.debug(f"Warning: Device not specified, using {device}")
-
-        assert num_epochs > 0
-
-        train_years = train_dataset.years
+        train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
         self._min_date = train_dataset.min_date
         self._max_date = train_dataset.max_date
-        self.batch_size = batch_size
-        self.to(device)
 
-        if val_dataset is not None:
-            train_dataset = TorchDataset(train_dataset)
-            val_dataset = TorchDataset(val_dataset)
-            train_loader = torch.utils.data.DataLoader(
-                train_dataset,
-                batch_size=batch_size,
-                collate_fn=train_dataset.collate_fn,
-                shuffle=True,
-                drop_last=True,
-            )
-            val_loader = torch.utils.data.DataLoader(
-                val_dataset, batch_size=batch_size, collate_fn=val_dataset.collate_fn
-            )
+        train_dataset = TorchDataset(train_dataset)
+        val_dataset = TorchDataset(val_dataset)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            collate_fn=train_dataset.collate_fn,
+            shuffle=True,
+            drop_last=True,
+        )
+        val_loader = torch.utils.data.DataLoader(
+            val_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
+        )
 
         # Load optimizer and scheduler
-        optimizer = optim_fn(self.parameters(), **optim_kwargs)
+        self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
+        self._loss = loss_fn
+        self._loss_kwargs = loss_kwargs
+        self._scheduler = None
         if scheduler_fn is not None:
-            scheduler = scheduler_fn(optimizer, **scheduler_kwargs)
+            self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
 
         # Store training set feature means and sds for normalization
         self._norm_params = train_dataset.get_normalization_params(
             normalization="standard"
         )
-        all_train_losses = []
-        all_val_losses = []
-        saved_metrics = []
+
+        train_losses = []
+        val_losses = []
 
         # Training loop
-        max_epoch = num_epochs
-        for epoch in range(num_epochs):
-            losses = []
+        for epoch in range(epochs):
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}")
-            for batch in pbar:
-                # Set gradients to zero
-                optimizer.zero_grad()
-
-                for key in batch:
-                    if isinstance(batch[key], torch.Tensor):
-                        batch[key] = batch[key].to(device)
-
-                # Forward pass
-                inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
-
-                # Normalize inputs
-                inputs = self._normalize_inputs(inputs)
-                predictions = self(inputs)
-                if predictions.dim() > 1:
-                    predictions = predictions.squeeze(-1)
-                target = batch[KEY_TARGET]
-                loss = loss_fn(predictions, target, **loss_kwargs)
-
-                # Backward pass
-                loss.backward()
-                optimizer.step()
-                if scheduler_fn is not None:
-                    scheduler.step()
-                losses.append(loss.item())
-
-                mean_train_loss = np.mean(losses)
-
-                pbar.set_description(
-                    f"Epoch {epoch + 1}/{num_epochs} | Loss: {mean_train_loss:.4f}"
-                )
-                all_train_losses.append(mean_train_loss)
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
+            train_loss = self._train_epoch(pbar, device)
+            pbar.set_description(
+                f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}"
+            )
+            train_losses.append(train_loss)
 
             if val_loader is not None and (
-                (epoch % val_every_n_epochs == 0) or (epoch == num_epochs - 1)
+                (epoch % validation_interval == 0) or (epoch == epochs - 1)
             ):
-                self.eval()
-
-                # Validation loop
                 with torch.no_grad():
-                    y_pred, _ = self.predict(val_dataset, device=device)
-                    y_true = val_dataset.targets
-                    val_metric = evaluate_predictions(y_true, y_pred)
-                    saved_metrics.append(val_metric)
-                
-                    if do_early_stopping and self._early_stopper.early_stop(val_metric):
-                        max_epoch = epoch - self._early_stopper.patience
+                    self.eval()
+                    tqdm_val = tqdm(
+                        val_loader, desc=f"Validation Epoch {epoch + 1}/{epochs}"
+                    )
 
+                    losses = []
+                    for batch in tqdm_val:
+                        targets = batch[KEY_TARGET]
+                        batch_preds = self._forward_pass(batch, device)
+                        loss = self._loss(batch_preds, targets, **loss_kwargs)
+                        losses.append(loss.item())
 
-        return self, {
-            "train_losses": all_train_losses,
-            "val_losses": all_val_losses if val_loader is not None else None,
-            "max_epoch": max_epoch,
-        }
+                    val_loss = np.mean(losses)
+                    val_losses.append(val_loss)
+
+        return train_losses, val_losses
+
+    def _train_final_model(self, dataset: Dataset,
+                           epochs: int,
+                           optimizer_fn: callable = torch.optim.Adam,
+                           optim_kwargs: dict = {},
+                           scheduler_fn: callable = None,
+                           sched_kwargs: dict = {},
+                           device: str = "cpu",
+                           batch_size: int = 16,
+                           **kwargs):
+        """
+        Fit or train the model on the entire training set.
+
+        Args:
+            dataset: Dataset,
+            epochs: int, number of epochs to train
+            optimizer_fn: callable, the optimizer function, default is torch.optim.Adam
+            optim_kwargs: dict, arguments to the optimizer function
+            scheduler_fn: callable, the scheduler function, default is None
+            sched_kwargs: dict, arguments to the scheduler function
+            device: str, the device to use, default is "cpu"
+            batch_size: int, default is 16
+            **fit_params: Additional parameters.
+
+        Returns:
+          A tuple training losses, validation losses and maximum epochs to train.
+        """
+        train_dataset = TorchDataset(dataset)
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            batch_size=batch_size,
+            collate_fn=train_dataset.collate_fn,
+            shuffle=True,
+            drop_last=True,
+        )
+
+        self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
+        self._scheduler = None
+        if scheduler_fn is not None:
+            self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
+
+        train_losses = []
+        for epoch in range(epochs):
+            self.train()
+            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
+            train_loss = self._train_epoch(pbar, device)
+            pbar.set_description(
+                f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}"
+            )
+            train_losses.append(train_loss)
+
+        return train_losses
+
+    def _train_epoch(self, tqdm_loader: tqdm, device: torch.device):
+        """Run one epoch during trainig
+
+        Args:
+          tqdm_loader: data loader with progress bar
+          device: torch.device, the device to use
+
+        Returns:
+          An np.ndarray of predictions and mean loss
+        """
+        losses = []
+        for batch in tqdm_loader:
+            # Set gradients to zero
+            self._optimizer.zero_grad()
+
+            batch_preds = self._forward_pass(batch, device)
+            targets = batch[KEY_TARGET]
+            loss = self._loss(batch_preds, targets, **self._loss_kwargs)
+
+            # Backward pass
+            loss.backward()
+            self._optimizer.step()
+            if self._scheduler is not None:
+                self._scheduler.step()
+
+            losses.append(loss.item())
+
+        return np.mean(losses)
+
+    def _forward_pass(self, batch: dict, device: torch.device):
+        """A forward pass for batched data.
+
+        Args:
+          batch: a dict of batched data
+          device: torch.device, the device to use
+
+        Returns:
+          An np.ndarray
+        """
+        for key in batch:
+            if isinstance(batch[key], torch.Tensor):
+                batch[key] = batch[key].to(device)
+
+        # Normalize inputs
+        inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
+        inputs = self._normalize_inputs(inputs)
+        batch_preds = self(inputs)
+        if batch_preds.dim() > 1:
+            batch_preds = batch_preds.squeeze(-1)
+
+        return batch_preds
 
     def _normalize_inputs(self, inputs):
         """Normalize inputs using saved normalization parameters.
@@ -357,50 +407,63 @@ class BaseNNModel(BaseModel, nn.Module):
 
         return inputs
 
-    def predict_batch(self, X: list, device: str = None, batch_size: int = None):
+    def predict_batch(self, X: list, device: str = "cpu", **predict_params):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
-          device: str, the device to use, default is "cuda" if available else "cpu"
-          batch_size: int, the batch size, default is self.batch_size stored during fit method
+          device: str, the device to use
+          **predict_params: Additional parameters
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
-        if batch_size is None:
-            batch_size = self.batch_size
-
-        if self.best_model is not None:
-            # Log
-            self._logger.debug("Using best model from early stopping for prediction")
-            model = self.best_model
-        else:
-            model = self
-
-        model.to(device)
-        model.eval()
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.to(device)
+        self.eval()
 
         with torch.no_grad():
-            predictions = np.zeros((len(X)))
-            for i in range(0, len(X), batch_size):
-                batch_end = min(i + batch_size, len(X))
-                batch = X[i:batch_end]
-                batch = TorchDataset.collate_fn(
-                    [TorchDataset._cast_to_tensor(sample) for sample in batch]
-                )
-                for key in batch:
-                    if isinstance(batch[key], torch.Tensor):
-                        batch[key] = batch[key].to(device)
-                inputs = {k: v for k, v in batch.items() if k != KEY_TARGET}
-                inputs = self._normalize_inputs(inputs)
-                y_pred = model(inputs)
-                if y_pred.dim() > 1:
-                    y_pred = y_pred.squeeze(-1)
-                y_pred = y_pred.cpu().numpy()
-                predictions[i : i + len(y_pred)] = y_pred
+            X_collated = TorchDataset.collate_fn(
+                [TorchDataset._cast_to_tensor(x) for x in X]
+            )
+            y_pred = self._forward_pass(X_collated, device)
+            y_pred = y_pred.cpu().numpy()
+            return y_pred, {}
+
+    def predict(
+        self,
+        dataset: Dataset,
+        device: str = "cpu",
+        batch_size: int = 16,
+        **predict_params,
+    ):
+        """Run fitted model on batched data items.
+
+        Args:
+          dataset: validation dataset
+          device: str, the device to use
+          **predict_params: Additional parameters
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.to(device)
+        self.eval()
+        test_dataset = TorchDataset(dataset)
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
+        )
+
+        with torch.no_grad():
+            predictions = None
+            for batch in test_loader:
+                batch_preds = self._forward_pass(batch, device)
+                if (predictions is None):
+                    predictions = batch_preds
+                else:
+                    predictions = np.concatenate((predictions, batch_preds), axis=0)
+
             return predictions, {}
 
     def save(self, model_name):
@@ -439,8 +502,6 @@ class ExampleLSTM(BaseNNModel):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
-        kwargs["n_ts_inputs"] = n_ts_inputs
-        kwargs["n_static_inputs"] = n_static_inputs
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
@@ -450,6 +511,53 @@ class ExampleLSTM(BaseNNModel):
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
+
+    def fit(
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters: bool = False,
+        param_space: dict = {},
+        kfolds: int = 1,
+        epochs: int = 10,
+        seed: int = 42,
+        **fit_params,
+    ):
+        """Fit or train the model.
+
+        Args:
+          dataset: Dataset. Training dataset.
+          optimize_hyperparameters: bool. Flag to tune hyperparameters.
+          param_space: dict. Each entry is a hyperparameter name and list or range of values.
+          kfolds: int. k in k-fold cv.
+          epochs: int. Number of epochs to train.
+          seed: seed for random number generator.
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        fit_params = {
+            "batch_size": 16,
+            "device": "cuda" if torch.cuda.is_available() else "cpu",
+            "optimizer_fn": torch.optim.Adam,
+            "scheduler_fn": torch.optim.lr_scheduler.StepLR,
+            "sched_kwargs": {"step_size": 1, "gamma": 1},
+        }
+
+        if (not param_space):
+            param_space = {
+                "optimizer__lr": [0.0001, 0.00001],
+                "optimizer__weight_decay": [0.0001, 0.00001],
+            }
+
+        super().fit(dataset,
+                    optimize_hyperparameters=optimize_hyperparameters,
+                    param_space=param_space,
+                    kfolds=kfolds,
+                    epochs=epochs,
+                    seed=seed,
+                    **fit_params
+                    )
 
     def forward(self, x):
         for transform in self._transforms:
