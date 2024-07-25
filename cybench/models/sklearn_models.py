@@ -60,49 +60,46 @@ class BaseSklearnModel(BaseModel):
 
         self._logger = logging.getLogger(__name__)
 
-    def fit(self, dataset: Dataset, **fit_params) -> tuple:
+    def fit(
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters=False,
+        select_features=False,
+        **fit_params,
+    ) -> tuple:
         """Fit or train the model.
 
         Args:
           dataset: Dataset
-
           **fit_params: Additional parameters.
 
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        train_data = data_to_pandas(dataset)
-        train_years = dataset.years
-
         # NOTE: We want to support a dataset with pre-designed features.
-        if not self._predesigned_features:
-            train_features = self._design_features(dataset.crop, train_data)
+        if self._predesigned_features:
+            train_data = data_to_pandas(dataset)
+            train_years = dataset.years
+        else:
+            train_features = self._design_features(dataset)
+            train_labels = data_to_pandas(
+                dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+            )
             self._feature_cols = [
                 ft for ft in train_features.columns if ft not in [KEY_LOC, KEY_YEAR]
             ]
-            train_labels = train_data[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
             train_data = train_features.merge(train_labels, on=[KEY_LOC, KEY_YEAR])
             train_years = sorted(train_data[KEY_YEAR].unique())
 
         X = train_data[self._feature_cols].values
         y = train_data[KEY_TARGET].values
-        if (
-            (len(train_years) > 1)
-            and (
-                ("optimize_hyperparameters" in fit_params)
-                and fit_params["optimize_hyperparameters"]
-            )
-            or (("select_features" in fit_params) and fit_params["select_features"])
-        ):
+        if (len(train_years) > 1) and (optimize_hyperparameters or select_features):
             assert "param_space" in fit_params, "Parameter space not provided"
             param_space = fit_params["param_space"]
             assert param_space, "Parameter space is empty"
 
-            if (
-                ("select_features" in fit_params)
-                and fit_params["select_features"]
-                and ("max_features" in fit_params)
-            ):
+            if select_features and ("max_features" in fit_params):
+                assert fit_params["max_features"] is not None
                 param_space["selector__max_features"] = fit_params["max_features"]
                 # NOTE: Update max_features to have valid values.
                 param_space["selector__max_features"] = [
@@ -129,18 +126,21 @@ class BaseSklearnModel(BaseModel):
 
         return self, {}
 
-    def _optimize_hyperparameters(self, X, y, param_space, groups=None, kfolds=5):
+    def _optimize_hyperparameters(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        param_space: dict,
+        groups: np.ndarray = None,
+        kfolds=5,
+    ):
         """Optimize hyperparameters
 
         Args:
           X: np.ndarray of training features
-
           y: np.ndarray of training labels
-
           param_space: a dict of parameters to optimize
-
           groups: np.ndarray with group values (e.g year values) for each row in X and y
-
           kfolds: number of splits cross validation
 
         Returns:
@@ -173,53 +173,65 @@ class BaseSklearnModel(BaseModel):
 
         return est
 
-    def _design_features(self, crop: str, data_df: pd.DataFrame):
+    def _design_features(self, dataset: Dataset):
         """Design features using data samples.
-
-        Args:
-          crop: crop name (e.g. maize)
-          data_df: A pandas dataframe of data samples from Dataset
-
-        Returns:
-          A pandas dataframe with KEY_LOC, KEY_YEAR and features.
-        """
-        # static data is repeated for every year. Drop duplicates.
-        soil_df = data_df[[KEY_LOC] + SOIL_PROPERTIES].drop_duplicates()
-        weather_df = data_df[
-            [KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
-        ].copy()
-        weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
-
-        fpar_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_FPAR]].copy()
-        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
-
-        ndvi_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]].copy()
-        ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
-
-        soil_moisture_df = data_df[
-            [KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
-        ].copy()
-        soil_moisture_df = unpack_time_series(
-            soil_moisture_df, SOIL_MOISTURE_INDICATORS
-        )
-        features = design_features(
-            crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df
-        )
-
-        return features
-
-    def predict(self, dataset: Dataset):
-        """Run fitted model on batched data items.
 
         Args:
           dataset: Dataset
 
         Returns:
+          A pandas dataframe with KEY_LOC, KEY_YEAR and features.
+        """
+        # static data is repeated for every year. Drop duplicates.
+        assert len(SOIL_PROPERTIES) > 0
+        soil_df = data_to_pandas(dataset, data_cols=[KEY_LOC] + SOIL_PROPERTIES)
+        soil_df = soil_df.drop_duplicates()
+
+        assert len(METEO_INDICATORS) > 0
+        weather_df = data_to_pandas(
+            dataset, data_cols=[KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
+        )
+        weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
+
+        fpar_df = data_to_pandas(
+            dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_FPAR]
+        )
+        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
+
+        ndvi_df = data_to_pandas(
+            dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]
+        )
+        ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
+
+        soil_moisture_df = data_to_pandas(
+            dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
+        )
+        soil_moisture_df = unpack_time_series(
+            soil_moisture_df, SOIL_MOISTURE_INDICATORS
+        )
+        features = design_features(
+            dataset.crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df
+        )
+
+        return features
+
+    def predict(self, dataset: Dataset, **predict_params):
+        """Run fitted model on batched data items.
+
+        Args:
+          dataset: Dataset
+          **predict_params: Additional parameters.
+
+        Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        test_data = data_to_pandas(dataset)
-        if not self._predesigned_features:
-            test_features = self._design_features(dataset.crop, test_data)
+        if self._predesigned_features:
+            test_data = data_to_pandas(dataset)
+        else:
+            test_features = self._design_features(dataset)
+            test_labels = data_to_pandas(
+                dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
+            )
             # Check features are the same for training and test data
             ft_cols = list(test_features.columns)[len([KEY_LOC, KEY_YEAR]) :]
             missing_features = [ft for ft in self._feature_cols if ft not in ft_cols]
@@ -227,18 +239,18 @@ class BaseSklearnModel(BaseModel):
                 test_features[ft] = 0.0
 
             test_features = test_features[[KEY_LOC, KEY_YEAR] + self._feature_cols]
-            test_labels = test_data[[KEY_LOC, KEY_YEAR, KEY_TARGET]]
             test_data = test_features.merge(test_labels, on=[KEY_LOC, KEY_YEAR])
 
         X_test = test_data[self._feature_cols].values
 
         return self._est.predict(X_test), {}
 
-    def predict_batch(self, X: list):
+    def predict_batch(self, X: list, **predict_params):
         """Run fitted model on batched data items.
 
         Args:
           X: a list of data items, each of which is a dict
+          **predict_params: Additional parameters.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.

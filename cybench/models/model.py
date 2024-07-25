@@ -13,7 +13,6 @@ class BaseModel(ABC):
 
         Args:
           dataset: Dataset
-
           **fit_params: Additional parameters.
 
         Returns:
