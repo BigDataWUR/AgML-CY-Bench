@@ -40,6 +40,9 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
 
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
+
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
     "num_layers": 1,
