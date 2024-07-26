@@ -235,8 +235,8 @@ def test_sklearn_model():
 
 
 def test_nn_model():
-    train_dataset = Dataset.load("maize_ES")
-    test_dataset = Dataset.load("maize_ES")
+    train_dataset = Dataset.load("maize_NL")
+    test_dataset = Dataset.load("maize_NL")
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize model, assumes that all features are in np.ndarray format
@@ -251,16 +251,16 @@ def test_nn_model():
     model.fit(
         train_dataset,
         batch_size=16,
-        epochs=20,
+        epochs=10,
         param_space={
-            "optimizer__lr": [0.0001, 0.00001],
-            "optimizer__weight_decay": [0.0001, 0.00001],
+            "lr": [0.0001, 0.00001],
+            "weight_decay": [0.0001, 0.00001],
         },
         device=device,
         scheduler_fn=scheduler_fn,
         **{
             "optimize_hyperparameters": True,
-            "validation_interval" : 5,
+            "validation_interval": 5,
             "loss_kwargs": {
                 "reduction": "mean",
             },
@@ -271,8 +271,11 @@ def test_nn_model():
         },
     )
 
-    test_preds, _ = model.predict(test_dataset)
-    assert test_preds.shape[0] == len(test_dataset)
+    # Test predict_batch
+    num_test_items = len(test_dataset)
+    test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
+    test_preds, _ = model.predict_batch(test_data)
+    assert test_preds.shape[0] == min(num_test_items, 16)
 
     # Check if evaluation results are within expected range
     evaluation_result = evaluate_model(model, test_dataset)

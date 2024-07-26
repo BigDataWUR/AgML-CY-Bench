@@ -40,8 +40,7 @@ class BaseNNModel(BaseModel, nn.Module):
         dataset: Dataset,
         optimize_hyperparameters: bool = False,
         param_space: dict = None,
-        kfolds: int = 1,
-        epochs: int = 10,
+        optim_kwargs: dict = {},
         seed: int = 42,
         **fit_params,
     ):
@@ -63,36 +62,37 @@ class BaseNNModel(BaseModel, nn.Module):
         np.random.seed(seed)
         random.seed(seed)
         # Default optimizer args
-        self._optim_kwargs = {
-            "lr": 0.0001,
-            "weight_decay": 0.00001,
-        }
+        if not optim_kwargs:
+            optim_kwargs = {
+                "lr": 0.0001,
+                "weight_decay": 0.00001,
+            }
 
-        if optimize_hyperparameters:
-            if len(dataset.years) == 1:
-                opt_param_setting = {}
-            else:
-                opt_param_setting = self._optimize_hyperparameters(
-                    dataset, param_space, kfolds=kfolds, epochs=epochs, **fit_params
-                )
-
-        optim_kwargs = self._optim_kwargs
-        for k in opt_param_setting:
-            if k.startswith("optimizer"):
-                optim_kwargs = {
-                    k.split("__")[1]: v for k, v in opt_param_setting.items() if k.startswith("optimizer")
-                }
+        opt_param_setting = {}
+        if optimize_hyperparameters and (len(dataset.years) > 1):
+            opt_param_setting = self._optimize_hyperparameters(
+                dataset, param_space, optim_kwargs=optim_kwargs, **fit_params
+            )
+            # replace optimizer args with optimal values
+            if "lr" in opt_param_setting:
+                optim_kwargs["lr"] = opt_param_setting["lr"]
+            if "weight_decay" in opt_param_setting:
+                optim_kwargs["weight_decay"] = opt_param_setting["weight_decay"]
 
         train_losses = self._train_final_model(
-            dataset, optim_kwargs=optim_kwargs, epochs=epochs, **opt_param_setting, **fit_params
+            dataset,
+            optim_kwargs=optim_kwargs,
+            **opt_param_setting,
+            **fit_params,
         )
 
-        return self, {"train_losses" : train_losses}
+        return self, {"train_losses": train_losses}
 
     def _optimize_hyperparameters(
         self,
         dataset: Dataset,
         param_space: dict,
+        optim_kwargs: dict,
         kfolds: int = 1,
         epochs: int = 10,
         **fit_params,
@@ -113,30 +113,27 @@ class BaseNNModel(BaseModel, nn.Module):
 
         opt_loss = float("inf")
         opt_param_setting = {}
-        opt_epochs = epochs
         all_years = list(dataset.years)
         random.shuffle(all_years)
         settings = list(ParameterGrid(param_space))
         for i, setting in enumerate(settings):
-            optim_kwargs = self._optim_kwargs
-            for k in setting:
-                if k.startswith("optimizer"):
-                    optim_kwargs = {
-                        k.split("__")[1]: v for k, v in opt_param_setting.items() if k.startswith("optimizer")
-                    }
+            if "lr" in setting:
+                optim_kwargs["lr"] = setting["lr"]
+            if "weight_decay" in setting:
+                optim_kwargs["weight_decay"] = setting["weight_decay"]
 
             val_loss = None
-            val_epochs = None
             if kfolds == 1:
                 self._logger.debug(f"Running setting {i + 1}/{len(settings)}")
                 val_years = all_years[len(all_years) // 2 :]
                 train_years = [y for y in all_years if y not in val_years]
-                train_losses, val_losses = self._train_model(
+                new_model = self.__class__(**self._init_args)
+                train_losses, val_losses = new_model._train_and_validate(
                     dataset,
                     train_years,
                     val_years,
-                    epochs=epochs,
                     optim_kwargs=optim_kwargs,
+                    epochs=epochs,
                     **setting,
                     **fit_params,
                 )
@@ -148,14 +145,20 @@ class BaseNNModel(BaseModel, nn.Module):
                 # Finally, average val loss.
                 cv_years = [all_years[i::kfolds] for i in range(kfolds)]
                 cv_losses = []
-                early_stop_epochs = []
                 for j, val_years in enumerate(cv_years):
                     self._logger.debug(
                         f"Running inner fold {j + 1}/{kfolds} for hyperparameter setting {i + 1}/{len(settings)}"
                     )
                     train_years = [y for y in all_years if y not in val_years]
-                    train_losses, val_losses = self._train_model(
-                        dataset, train_years, val_years, epochs=epochs, **setting, **fit_params
+                    new_model = self.__class__(**self._init_args)
+                    train_losses, val_losses = new_model._train_and_validate(
+                        dataset,
+                        train_years,
+                        val_years,
+                        optim_kwargs=optim_kwargs,
+                        epochs=epochs,
+                        **setting,
+                        **fit_params,
                     )
 
                     cv_losses.append(val_losses[-1])
@@ -165,7 +168,7 @@ class BaseNNModel(BaseModel, nn.Module):
             assert val_loss is not None
 
             self._logger.debug(
-                f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}, median epochs: {val_epochs}"
+                f"For setting {i + 1}/{len(settings)}, average validation loss: {val_loss}"
             )
             self._logger.debug(f"Settings: {setting}")
 
@@ -176,13 +179,12 @@ class BaseNNModel(BaseModel, nn.Module):
 
         return opt_param_setting
 
-    def _train_model(
+    def _train_and_validate(
         self,
         dataset: Dataset,
         train_years: list,
         val_years: list,
         validation_interval: int = 5,
-        do_early_stopping: bool = False,
         epochs: int = 10,
         batch_size: int = 16,
         optimizer_fn: callable = torch.optim.Adam,
@@ -195,7 +197,7 @@ class BaseNNModel(BaseModel, nn.Module):
         **kwargs,
     ):
         """
-        Fit or train the model.
+        Fit or train the model and evaluate on validation data.
 
         Args:
             dataset: Dataset,
@@ -217,7 +219,7 @@ class BaseNNModel(BaseModel, nn.Module):
         Returns:
           A tuple training losses, validation losses and maximum epochs to train.
         """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
         assert epochs > 0
 
@@ -238,13 +240,14 @@ class BaseNNModel(BaseModel, nn.Module):
             val_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
         )
 
-        # Load optimizer and scheduler
+        # Initialize optimizer and scheduler
         self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
         self._loss = loss_fn
         self._loss_kwargs = loss_kwargs
-        self._scheduler = None
         if scheduler_fn is not None:
             self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
+        else:
+            self._scheduler = None
 
         # Store training set feature means and sds for normalization
         self._norm_params = train_dataset.get_normalization_params(
@@ -259,9 +262,7 @@ class BaseNNModel(BaseModel, nn.Module):
             self.train()
             pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(pbar, device)
-            pbar.set_description(
-                f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}"
-            )
+            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
             if val_loader is not None and (
@@ -285,15 +286,20 @@ class BaseNNModel(BaseModel, nn.Module):
 
         return train_losses, val_losses
 
-    def _train_final_model(self, dataset: Dataset,
-                           epochs: int,
-                           optimizer_fn: callable = torch.optim.Adam,
-                           optim_kwargs: dict = {},
-                           scheduler_fn: callable = None,
-                           sched_kwargs: dict = {},
-                           device: str = "cpu",
-                           batch_size: int = 16,
-                           **kwargs):
+    def _train_final_model(
+        self,
+        dataset: Dataset,
+        epochs: int,
+        optimizer_fn: callable = torch.optim.Adam,
+        optim_kwargs: dict = {},
+        loss_fn: callable = torch.nn.functional.mse_loss,
+        loss_kwargs: dict = {"reduction" : "mean"},
+        scheduler_fn: callable = None,
+        sched_kwargs: dict = {},
+        device: str = "cpu",
+        batch_size: int = 16,
+        **kwargs,
+    ):
         """
         Fit or train the model on the entire training set.
 
@@ -309,8 +315,11 @@ class BaseNNModel(BaseModel, nn.Module):
             **fit_params: Additional parameters.
 
         Returns:
-          A tuple training losses, validation losses and maximum epochs to train.
+          A list of training losses (one value per epoch).
         """
+        self._min_date = dataset.min_date
+        self._max_date = dataset.max_date
+
         train_dataset = TorchDataset(dataset)
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
@@ -320,29 +329,36 @@ class BaseNNModel(BaseModel, nn.Module):
             drop_last=True,
         )
 
+        # Initialize optimizer and scheduler
         self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
-        self._scheduler = None
+        self._loss = loss_fn
+        self._loss_kwargs = loss_kwargs
         if scheduler_fn is not None:
             self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
+        else:
+            self._scheduler = None
+
+        # Store training set feature means and sds for normalization
+        self._norm_params = train_dataset.get_normalization_params(
+            normalization="standard"
+        )
 
         train_losses = []
         for epoch in range(epochs):
             self.train()
             pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(pbar, device)
-            pbar.set_description(
-                f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}"
-            )
+            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
         return train_losses
 
-    def _train_epoch(self, tqdm_loader: tqdm, device: torch.device):
+    def _train_epoch(self, tqdm_loader: tqdm, device: str):
         """Run one epoch during trainig
 
         Args:
           tqdm_loader: data loader with progress bar
-          device: torch.device, the device to use
+          device: str, the device to use
 
         Returns:
           An np.ndarray of predictions and mean loss
@@ -366,12 +382,12 @@ class BaseNNModel(BaseModel, nn.Module):
 
         return np.mean(losses)
 
-    def _forward_pass(self, batch: dict, device: torch.device):
+    def _forward_pass(self, batch: dict, device: str):
         """A forward pass for batched data.
 
         Args:
           batch: a dict of batched data
-          device: torch.device, the device to use
+          device: str, the device to use
 
         Returns:
           An np.ndarray
@@ -447,7 +463,7 @@ class BaseNNModel(BaseModel, nn.Module):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
         self.eval()
         test_dataset = TorchDataset(dataset)
@@ -459,7 +475,7 @@ class BaseNNModel(BaseModel, nn.Module):
             predictions = None
             for batch in test_loader:
                 batch_preds = self._forward_pass(batch, device)
-                if (predictions is None):
+                if predictions is None:
                     predictions = batch_preds
                 else:
                     predictions = np.concatenate((predictions, batch_preds), axis=0)
@@ -490,13 +506,9 @@ class BaseNNModel(BaseModel, nn.Module):
 class ExampleLSTM(BaseNNModel):
     def __init__(
         self,
-        hidden_size,
-        num_layers,
+        hidden_size=64,
+        num_layers=1,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-            transform_stack_ts_static_inputs,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
@@ -509,8 +521,10 @@ class ExampleLSTM(BaseNNModel):
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
-        self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._transforms = [
+            transform_ts_inputs_to_dekadal,
+            transform_stack_ts_static_inputs,
+        ]
 
     def fit(
         self,
@@ -536,28 +550,24 @@ class ExampleLSTM(BaseNNModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        fit_params = {
-            "batch_size": 16,
-            "device": "cuda" if torch.cuda.is_available() else "cpu",
-            "optimizer_fn": torch.optim.Adam,
-            "scheduler_fn": torch.optim.lr_scheduler.StepLR,
-            "sched_kwargs": {"step_size": 1, "gamma": 1},
-        }
+        if ("scheduler_fn" in fit_params) and (fit_params["scheduler_fn"] is not None):
+            fit_params["sched_kwargs"] = {"step_size": 2, "gamma": 0.5}
 
-        if (not param_space):
+        if not param_space:
             param_space = {
-                "optimizer__lr": [0.0001, 0.00001],
-                "optimizer__weight_decay": [0.0001, 0.00001],
+                "lr": [0.0001, 0.00001],
+                "weight_decay": [0.0001, 0.00001],
             }
 
-        super().fit(dataset,
-                    optimize_hyperparameters=optimize_hyperparameters,
-                    param_space=param_space,
-                    kfolds=kfolds,
-                    epochs=epochs,
-                    seed=seed,
-                    **fit_params
-                    )
+        super().fit(
+            dataset,
+            optimize_hyperparameters=optimize_hyperparameters,
+            param_space=param_space,
+            kfolds=kfolds,
+            epochs=epochs,
+            seed=seed,
+            **fit_params,
+        )
 
     def forward(self, x):
         for transform in self._transforms:
@@ -565,7 +575,7 @@ class ExampleLSTM(BaseNNModel):
 
         x_ts = x["ts"]
         x_static = x["static"]
-        x_ts, _ = self._lstm(x_ts.to(device=self._device))
+        x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)
         return output
