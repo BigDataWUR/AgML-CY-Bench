@@ -35,8 +35,8 @@ class BaseModel(ABC):
         return self.predict_batch(batch, **predict_params)
 
     @abstractmethod
-    def predict_batch(self, X: list, **predict_params):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list, **predict_params):
+        """Run fitted model on a list of data items.
 
         Args:
           X: a list of data items, each of which is a dict
@@ -46,19 +46,6 @@ class BaseModel(ABC):
           A tuple containing a np.ndarray and a dict with additional information.
         """
         raise NotImplementedError
-
-    def predict_item(self, X: dict, **predict_params):
-        """Run fitted model on one data item.
-
-        Args:
-          X: a data item
-          **predict_params: Additional parameters.
-
-        Returns:
-          A tuple containing a np.ndarray and a dict with additional information.
-        """
-        batch = [X]
-        return self.predict_batch(batch, **predict_params)
 
     @abstractmethod
     def save(self, model_name):

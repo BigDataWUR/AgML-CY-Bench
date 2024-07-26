@@ -44,7 +44,7 @@ def test_average_yield_model():
         KEY_YEAR: sel_year,
     }
 
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test one more location
@@ -52,7 +52,7 @@ def test_average_yield_model():
     test_data[KEY_LOC] = sel_loc
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
     expected_pred = filtered_df[KEY_TARGET].mean()
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test prediction for a non-existent item
@@ -62,7 +62,7 @@ def test_average_yield_model():
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 
@@ -128,14 +128,14 @@ def test_trend_model():
                     KEY_LOC: sel_loc,
                     KEY_YEAR: test_year,
                 }
-                test_preds, _ = model.predict_item(test_data)
+                test_preds, _ = model.predict_items([test_data])
                 expected_pred = test_yields[KEY_TARGET].values[0]
                 assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
                 # quadratic trend ( trend = c + a x + b x^2)
                 model = TrendModel(trend="quadratic")
                 model.fit(train_dataset)
-                test_preds, _ = model.predict_item(test_data)
+                test_preds, _ = model.predict_items([test_data])
                 expected_pred = test_yields[KEY_TARGET].values[0]
                 assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
         else:
@@ -152,7 +152,7 @@ def test_trend_model():
                 KEY_LOC: sel_loc,
                 KEY_YEAR: test_year,
             }
-            test_preds, _ = model.predict_item(test_data)
+            test_preds, _ = model.predict_items([test_data])
             expected_pred = train_yields[KEY_TARGET].mean()
             assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
@@ -271,10 +271,10 @@ def test_nn_model():
         },
     )
 
-    # Test predict_batch
+    # Test predict_items()
     num_test_items = len(test_dataset)
     test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
-    test_preds, _ = model.predict_batch(test_data)
+    test_preds, _ = model.predict_items(test_data)
     assert test_preds.shape[0] == min(num_test_items, 16)
 
     # Check if evaluation results are within expected range
