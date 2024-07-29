@@ -60,6 +60,7 @@ _BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "optimize_hyperparameters": False,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
 

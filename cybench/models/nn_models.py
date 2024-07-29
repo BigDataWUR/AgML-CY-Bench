@@ -41,6 +41,7 @@ class BaseNNModel(BaseModel, nn.Module):
         optimize_hyperparameters: bool = False,
         param_space: dict = None,
         optim_kwargs: dict = {},
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         seed: int = 42,
         **fit_params,
     ):
@@ -71,7 +72,11 @@ class BaseNNModel(BaseModel, nn.Module):
         opt_param_setting = {}
         if optimize_hyperparameters and (len(dataset.years) > 1):
             opt_param_setting = self._optimize_hyperparameters(
-                dataset, param_space, optim_kwargs=optim_kwargs, **fit_params
+                dataset,
+                param_space,
+                optim_kwargs=optim_kwargs,
+                device=device,
+                **fit_params,
             )
             # replace optimizer args with optimal values
             if "lr" in opt_param_setting:
@@ -82,6 +87,7 @@ class BaseNNModel(BaseModel, nn.Module):
         train_losses = self._train_final_model(
             dataset,
             optim_kwargs=optim_kwargs,
+            device=device,
             **opt_param_setting,
             **fit_params,
         )
@@ -93,6 +99,7 @@ class BaseNNModel(BaseModel, nn.Module):
         dataset: Dataset,
         param_space: dict,
         optim_kwargs: dict,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         kfolds: int = 1,
         epochs: int = 10,
         **fit_params,
@@ -102,6 +109,8 @@ class BaseNNModel(BaseModel, nn.Module):
         Args:
           dataset: Dataset. Training dataset.
           param_space: a dict of parameters to optimize
+          optim_kwargs: a dict of arguments to the optimizer
+          device: str, the device to use
           kfolds: k for k-fold cv.
           epochs: Number of epochs to train.
           **fit_params: Additional parameters.
@@ -134,6 +143,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     val_years,
                     optim_kwargs=optim_kwargs,
                     epochs=epochs,
+                    device=device,
                     **setting,
                     **fit_params,
                 )
@@ -156,6 +166,7 @@ class BaseNNModel(BaseModel, nn.Module):
                         train_years,
                         val_years,
                         optim_kwargs=optim_kwargs,
+                        device=device,
                         epochs=epochs,
                         **setting,
                         **fit_params,
@@ -193,7 +204,7 @@ class BaseNNModel(BaseModel, nn.Module):
         loss_kwargs: dict = {},
         scheduler_fn: callable = None,
         sched_kwargs: dict = {},
-        device: str = "cpu",
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         **kwargs,
     ):
         """
@@ -213,13 +224,12 @@ class BaseNNModel(BaseModel, nn.Module):
             loss_kwargs: dict, arguments to the loss function
             scheduler_fn: callable, the scheduler function, default is None
             sched_kwargs: dict, arguments to the scheduler function
-            device: str, the device to use, default is "cpu"
-            **fit_params: Additional parameters.
+            device: str, the device to use
+            **kwargs: Additional parameters.
 
         Returns:
           A tuple training losses, validation losses and maximum epochs to train.
         """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
         assert epochs > 0
 
@@ -241,13 +251,12 @@ class BaseNNModel(BaseModel, nn.Module):
         )
 
         # Initialize optimizer and scheduler
-        self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
-        self._loss = loss_fn
-        self._loss_kwargs = loss_kwargs
+        optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
         if scheduler_fn is not None:
-            self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
+            assert sched_kwargs
+            scheduler = scheduler_fn(optimizer, **sched_kwargs)
         else:
-            self._scheduler = None
+            scheduler = None
 
         # Store training set feature means and sds for normalization
         self._norm_params = train_dataset.get_normalization_params(
@@ -261,7 +270,14 @@ class BaseNNModel(BaseModel, nn.Module):
         for epoch in range(epochs):
             self.train()
             pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
-            train_loss = self._train_epoch(pbar, device)
+            train_loss = self._train_epoch(
+                pbar,
+                device,
+                optimizer,
+                loss_fn=loss_fn,
+                loss_kwargs=loss_kwargs,
+                scheduler=scheduler,
+            )
             pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
@@ -278,7 +294,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     for batch in tqdm_val:
                         targets = batch[KEY_TARGET]
                         batch_preds = self._forward_pass(batch, device)
-                        loss = self._loss(batch_preds, targets, **loss_kwargs)
+                        loss = loss_fn(batch_preds, targets, **loss_kwargs)
                         losses.append(loss.item())
 
                     val_loss = np.mean(losses)
@@ -293,10 +309,10 @@ class BaseNNModel(BaseModel, nn.Module):
         optimizer_fn: callable = torch.optim.Adam,
         optim_kwargs: dict = {},
         loss_fn: callable = torch.nn.functional.mse_loss,
-        loss_kwargs: dict = {"reduction" : "mean"},
+        loss_kwargs: dict = {"reduction": "mean"},
         scheduler_fn: callable = None,
         sched_kwargs: dict = {},
-        device: str = "cpu",
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         batch_size: int = 16,
         **kwargs,
     ):
@@ -306,13 +322,15 @@ class BaseNNModel(BaseModel, nn.Module):
         Args:
             dataset: Dataset,
             epochs: int, number of epochs to train
-            optimizer_fn: callable, the optimizer function, default is torch.optim.Adam
+            optimizer_fn: callable, the optimizer function, default is Adam
             optim_kwargs: dict, arguments to the optimizer function
+            loss_fn: callable, the loss function, default is mse_loss
+            loss_kwargs: dict, arguments to the loss function
             scheduler_fn: callable, the scheduler function, default is None
             sched_kwargs: dict, arguments to the scheduler function
             device: str, the device to use, default is "cpu"
             batch_size: int, default is 16
-            **fit_params: Additional parameters.
+            **kwargs: Additional parameters.
 
         Returns:
           A list of training losses (one value per epoch).
@@ -330,13 +348,12 @@ class BaseNNModel(BaseModel, nn.Module):
         )
 
         # Initialize optimizer and scheduler
-        self._optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
-        self._loss = loss_fn
-        self._loss_kwargs = loss_kwargs
+        optimizer = optimizer_fn(self.parameters(), **optim_kwargs)
         if scheduler_fn is not None:
-            self._scheduler = scheduler_fn(self._optimizer, **sched_kwargs)
+            assert sched_kwargs
+            scheduler = scheduler_fn(optimizer, **sched_kwargs)
         else:
-            self._scheduler = None
+            scheduler = None
 
         # Store training set feature means and sds for normalization
         self._norm_params = train_dataset.get_normalization_params(
@@ -347,36 +364,55 @@ class BaseNNModel(BaseModel, nn.Module):
         for epoch in range(epochs):
             self.train()
             pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
-            train_loss = self._train_epoch(pbar, device)
+            train_loss = self._train_epoch(
+                pbar,
+                device,
+                optimizer,
+                loss_fn=loss_fn,
+                loss_kwargs=loss_kwargs,
+                scheduler=scheduler,
+            )
             pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
         return train_losses
 
-    def _train_epoch(self, tqdm_loader: tqdm, device: str):
+    def _train_epoch(
+        self,
+        tqdm_loader: tqdm,
+        device: str,
+        optimizer: torch.optim.Optimizer,
+        loss_fn: callable = torch.nn.functional.mse_loss,
+        loss_kwargs: dict = {"reduction": "mean"},
+        scheduler: torch.optim.lr_scheduler.LRScheduler = None,
+    ):
         """Run one epoch during trainig
 
         Args:
           tqdm_loader: data loader with progress bar
           device: str, the device to use
+          optimizer: the optimizer
+          loss_fn: the loss function, default mse_loss
+          loss_kwargs: dict, the arguments to loss_fn
+          scheduler: scheduler for learning rate of optimizer
 
         Returns:
-          An np.ndarray of predictions and mean loss
+          The average of all batch losses
         """
         losses = []
         for batch in tqdm_loader:
             # Set gradients to zero
-            self._optimizer.zero_grad()
+            optimizer.zero_grad()
 
             batch_preds = self._forward_pass(batch, device)
             targets = batch[KEY_TARGET]
-            loss = self._loss(batch_preds, targets, **self._loss_kwargs)
+            loss = loss_fn(batch_preds, targets, **loss_kwargs)
 
             # Backward pass
             loss.backward()
-            self._optimizer.step()
-            if self._scheduler is not None:
-                self._scheduler.step()
+            optimizer.step()
+            if scheduler is not None:
+                scheduler.step()
 
             losses.append(loss.item())
 
@@ -533,6 +569,7 @@ class ExampleLSTM(BaseNNModel):
         param_space: dict = {},
         kfolds: int = 1,
         epochs: int = 10,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         seed: int = 42,
         **fit_params,
     ):
@@ -565,6 +602,7 @@ class ExampleLSTM(BaseNNModel):
             param_space=param_space,
             kfolds=kfolds,
             epochs=epochs,
+            device=device,
             seed=seed,
             **fit_params,
         )
