@@ -144,17 +144,17 @@ class SklearnModel(BaseModel):
         fpar_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_FPAR]].copy()
         fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
 
-        ndvi_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]].copy()
-        ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
+        # ndvi_df = data_df[[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]].copy()
+        # ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
 
-        soil_moisture_df = data_df[
-            [KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
-        ].copy()
-        soil_moisture_df = unpack_time_series(
-            soil_moisture_df, SOIL_MOISTURE_INDICATORS
-        )
+        # soil_moisture_df = data_df[
+        #     [KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
+        # ].copy()
+        # soil_moisture_df = unpack_time_series(
+        #     soil_moisture_df, SOIL_MOISTURE_INDICATORS
+        # )
         features = design_features(
-            crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df
+            crop, weather_df, soil_df, fpar_df, None, None
         )
 
         return features

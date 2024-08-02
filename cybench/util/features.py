@@ -22,6 +22,22 @@ def fortnight_from_date(date_str):
     else:
         return fortnight_number + 2
 
+def date_from_dekad(dekad, year):
+    date_str = str(year)
+    month = int(np.ceil(dekad/3))
+    if (month < 10):
+        date_str += '0' + str(month)
+    else:
+        date_str += str(month)
+
+    if dekad % 3 == 1:
+        date_str += '01'
+    elif dekad % 3 == 2:
+        date_str += '11'
+    else:
+        date_str += '21'
+
+    return date_str
 
 def dekad_from_date(date_str):
     """Get the dekad number from date.
@@ -258,8 +274,8 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     period_length = "month"
     weather_df = _add_period(weather_df, period_length)
     fpar_df = _add_period(fpar_df, period_length)
-    ndvi_df = _add_period(ndvi_df, period_length)
-    soil_moisture_df = _add_period(soil_moisture_df, period_length)
+    # ndvi_df = _add_period(ndvi_df, period_length)
+    # soil_moisture_df = _add_period(soil_moisture_df, period_length)
 
     # cumlative sums
     weather_df = weather_df.sort_values(by=index_cols + ["period"])
@@ -282,9 +298,9 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     fpar_df["fpar"] = fpar_df["fpar"].astype(float)
     fpar_df["cum_fpar"] = fpar_df.groupby(index_cols)["fpar"].cumsum()
 
-    ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
-    ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
-    ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
+    # ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
+    # ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
+    # ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
 
     # Aggregate by period
     avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
@@ -334,17 +350,17 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     fpar_fts = _aggregate_by_period(
         fpar_df, index_cols, "period", {"cum_fpar": "max"}, {"cum_fpar": "max_cum_fpar"}
     )
-    ndvi_fts = _aggregate_by_period(
-        ndvi_df, index_cols, "period", {"cum_ndvi": "max"}, {"cum_ndvi": "max_cum_ndvi"}
-    )
+    # ndvi_fts = _aggregate_by_period(
+    #     ndvi_df, index_cols, "period", {"cum_ndvi": "max"}, {"cum_ndvi": "max_cum_ndvi"}
+    # )
 
-    soil_moisture_fts = _aggregate_by_period(
-        soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
-    )
+    # soil_moisture_fts = _aggregate_by_period(
+    #     soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
+    # )
 
     all_fts = soil_features.merge(weather_fts, on=[KEY_LOC])
     all_fts = all_fts.merge(fpar_fts, on=index_cols)
-    all_fts = all_fts.merge(ndvi_fts, on=index_cols)
-    all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
+    # all_fts = all_fts.merge(ndvi_fts, on=index_cols)
+    # all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
 
     return all_fts

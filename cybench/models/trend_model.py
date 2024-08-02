@@ -66,16 +66,16 @@ class TrendModel(BaseModel):
             trend_x = loc_df[KEY_YEAR].values
             trend_y = loc_df[KEY_TARGET].values
 
-            result = trend_mk.original_test(trend_y)
+            trend_exists = False
             # NOTE Changing this condition may require an update to
             # test_trend_model in tests/models/test_model.py.
             # TODO: Find an appropriate place to define the threshold.
-            if (trend_x.shape[0] < 6) or not result.h:
-                self._trend_estimators[loc] = {
-                    "estimator": None,
-                    "mean": np.mean(trend_y),
-                }
-            else:
+            # NOTE mannkendall test throws a division by zero error for samples < 2.
+            # So check number of samples before running the test.
+            if trend_y.shape[0] >= 6:
+                result = trend_mk.original_test(trend_y)
+                trend_exists = result.h
+            if trend_exists:
                 # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
                 if self._trend == "quadratic":
                     trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
@@ -85,6 +85,12 @@ class TrendModel(BaseModel):
                 self._trend_estimators[loc] = {
                     "estimator": trend_est,
                     "mean": None,
+                }
+            else:
+                # return the average
+                self._trend_estimators[loc] = {
+                    "estimator": None,
+                    "mean": np.mean(trend_y),
                 }
 
         return self, {}

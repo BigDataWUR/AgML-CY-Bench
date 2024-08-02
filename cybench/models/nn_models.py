@@ -150,7 +150,7 @@ class BaseNNModel(BaseModel, nn.Module):
         val_dataset: Dataset = None,
         val_fraction: float = 0.1,
         val_split_by_year: bool = False,
-        val_every_n_epochs: int = 1,
+        val_every_n_epochs: int = 5,
         do_early_stopping: bool = False,
         num_epochs: int = 1,
         batch_size: int = 10,
@@ -303,6 +303,7 @@ class BaseNNModel(BaseModel, nn.Module):
         for epoch in range(num_epochs):
             losses = []
             self.train()
+            print("epoch", epoch)
             pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{num_epochs}")
             for batch in pbar:
                 # Set gradients to zero
@@ -348,7 +349,7 @@ class BaseNNModel(BaseModel, nn.Module):
                     tqdm_val = tqdm(
                         val_loader, desc=f"Validation Epoch {epoch + 1}/{num_epochs}"
                     )
-                    for batch in tqdm_val:
+                    for batch in val_loader:
                         for key in batch:
                             if isinstance(batch[key], torch.Tensor):
                                 batch[key] = batch[key].to(device)

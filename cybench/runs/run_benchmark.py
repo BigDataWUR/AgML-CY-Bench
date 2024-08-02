@@ -16,7 +16,8 @@ from cybench.config import (
 )
 
 from cybench.datasets.dataset import Dataset
-
+from cybench.util.features import date_from_dekad
+from cybench.datasets.alignment import align_data
 from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
 from cybench.models.naive_models import AverageYieldModel
@@ -26,10 +27,10 @@ from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
-    "AverageYieldModel": AverageYieldModel,
-    "LinearTrend": TrendModel,
-    "SklearnRidge": SklearnModel,
-    "SklearnRF": SklearnModel,
+    # "AverageYieldModel": AverageYieldModel,
+    # "LinearTrend": TrendModel,
+    # "SklearnRidge": SklearnModel,
+    # "SklearnRF": SklearnModel,
     "LSTM": ExampleLSTM,
 }
 
@@ -57,7 +58,7 @@ _BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "batch_size": 16,
-    "num_epochs": 50,
+    "num_epochs": 10,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "optim_fn": torch.optim.Adam,
     "optim_kwargs": {"lr": 0.0001, "weight_decay": 0.00001},
@@ -135,42 +136,65 @@ def run_benchmark(
         models_init_kwargs[model_name] = model_init_kwargs
         models_fit_kwargs[model_name] = model_fit_kwargs
 
-    dataset = Dataset.load(dataset_name)
+
+    path_data_cn = "C:/Users/paude006/Documents/git-repos/AgML-crop-yield-forecasting/cybench/data/US-county-data"
+    df_y = pd.read_csv(os.path.join(path_data_cn, "yield_maize_US.csv"), header=0)
+    df_y = df_y.rename(columns={"harvest_year" : KEY_YEAR})
+    df_y.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    dfs_x = []
+    for input in ["soil", "meteo", "fpar"]:
+        df_x = pd.read_csv(os.path.join(path_data_cn, input + "_maize_US.csv"), header=0)
+        if (input == "soil"):
+            df_x = df_x[[KEY_LOC, "awc"]]
+            df_x.set_index([KEY_LOC], inplace=True)
+        else:
+            # lead time = 6 dekads
+            df_x = df_x[df_x["dekad"] <= 30]
+            df_x["date"] = df_x.apply(lambda r: date_from_dekad(r["dekad"], r["year"]), axis=1)
+            df_x = df_x.drop(columns=["dekad"])
+            df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+            if (input == "meteo"):
+                df_x["cwb"] = df_x["prec"] = df_x["et0"]
+
+        dfs_x.append(df_x)
+
+    df_y, dfs_x = align_data(df_y, dfs_x)
+    dataset = Dataset("maize", df_y, dfs_x)
 
     all_years = sorted(dataset.years)
-    for test_year in all_years:
-        train_years = [y for y in all_years if y != test_year]
-        test_years = [test_year]
-        train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
+    test_years = [2012, 2018]
+    train_years = [y for y in all_years if y not in test_years]
+    train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
-        labels = test_dataset.targets()
+    labels = test_dataset.targets()
 
-        model_output = {
-            KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
-            KEY_YEAR: [year for _, year in test_dataset.indices()],
-            "targets": labels,
-        }
+    # model_output = {
+    #     KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+    #     KEY_YEAR: [year for _, year in test_dataset.indices()],
+    #     "targets": labels,
+    # }
 
-        compiled_results = {}
-        for model_name, model_constructor in model_constructors.items():
-            model = model_constructor(**models_init_kwargs[model_name])
-            model.fit(train_dataset, **models_fit_kwargs[model_name])
-            predictions, _ = model.predict(test_dataset)
-            # save predictions
-            results = evaluate_predictions(labels, predictions)
-            compiled_results[model_name] = results
+    # compiled_results = {}
+    for model_name, model_constructor in model_constructors.items():
+        model = model_constructor(**models_init_kwargs[model_name])
+        model.fit(train_dataset, **models_fit_kwargs[model_name])
+        predictions, _ = model.predict(test_dataset)
+        # save predictions
+        results = evaluate_predictions(labels, predictions)
+        print(model_name, results)
+        # compiled_results[model_name] = results
 
-            model_output[model_name] = predictions
+        # model_output[model_name] = predictions
 
-        df = pd.DataFrame.from_dict(model_output)
-        df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
-        df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
+    # df = pd.DataFrame.from_dict(model_output)
+    # df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    # df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
-    df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
+    # df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
 
-    return {
-        "df_metrics": df_metrics,
-    }
+    # return {
+    #     "df_metrics": df_metrics,
+    # }
 
 
 def load_results(
@@ -253,3 +277,5 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
+run_benchmark("maize_US", dataset_name="maize_US")

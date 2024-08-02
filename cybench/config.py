@@ -104,7 +104,7 @@ KEY_TARGET = "yield"
 KEY_DATES = "dates"
 
 # Soil properties
-SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
+SOIL_PROPERTIES = ["awc"] #, "bulk_density"]  # "drainage_class", "bulk_density"]
 
 # Static predictors. Add more when available
 STATIC_PREDICTORS = SOIL_PROPERTIES
@@ -122,7 +122,7 @@ SOIL_MOISTURE_INDICATORS = ["ssm"]  # , "rsm"]
 
 # Time series predictors
 TIME_SERIES_PREDICTORS = (
-    METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
+    METEO_INDICATORS + [RS_FPAR] #, RS_NDVI] + SOIL_MOISTURE_INDICATORS
 )
 
 # All predictors. Add more when available
