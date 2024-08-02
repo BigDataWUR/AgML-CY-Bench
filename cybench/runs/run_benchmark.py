@@ -3,8 +3,9 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
-from datetime import datetime
 from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
+from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 
 from cybench.config import (
@@ -34,15 +35,19 @@ _BASELINE_MODEL_CONSTRUCTORS = {
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
+lasso_selector = SelectFromModel(Lasso(), threshold="median")
 sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
+
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {
+    "sklearn_est": sklearn_ridge,
+    "ft_selector": lasso_selector,
+}
 
-_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
 _BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
-
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
     "num_layers": 1,
@@ -52,7 +57,19 @@ _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 
 _BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
     "optimize_hyperparameters": True,
-    "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
+    "select_features": True,
+    "param_space": {
+        "estimator__alpha": [0.01, 0.1, 1.0, 5.0, 10.0],
+        "selector__estimator__alpha": [0.1, 1.0, 5.0],
+        "selector__max_features": [20, 25, 30],
+    },
+}
+
+_BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
+    "optimize_hyperparameters": True,
+    "param_space": {
+        "estimator__n_estimators": [50, 100, 500],
+    },
 }
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
@@ -184,7 +201,6 @@ def load_results(
         if os.path.isfile(os.path.join(path_results, f))
     ]
 
-    print(files)
     # No files, return an empty data frame
     if not files:
         return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
