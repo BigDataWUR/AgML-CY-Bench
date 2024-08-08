@@ -34,8 +34,6 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LSTM": ExampleLSTM,
 }
 
-sklearn_ridge = Ridge(alpha=0.5)
-sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
@@ -47,15 +45,6 @@ _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
 }
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_FIT_KWARGS["SklearnRidge"] = {
-    "select_features": True,
-    "optimize_hyperparameters": True,
-}
-
-_BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
-    "optimize_hyperparameters": True,
-}
-
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "batch_size": 16,
     "num_epochs": 50,

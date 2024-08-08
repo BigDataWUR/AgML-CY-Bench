@@ -311,18 +311,13 @@ class SklearnRidge(BaseSklearnModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        param_space = {
+        fit_params["select_features"] = True
+        fit_params["optimize_hyperparameters"] = True
+        fit_params["param_space"] = {
             "estimator__alpha": [0.01, 0.1, 1.0, 5.0, 10.0],
             "selector__estimator__alpha": [0.1, 1.0, 5.0],
             "selector__max_features": [20, 25, 30],
         }
-
-        if (
-            ("optimize_hyperparameters" in fit_params)
-            and fit_params["optimize_hyperparameters"]
-        ) or (("select_features" in fit_params) and fit_params["select_features"]):
-            if "param_space" not in fit_params:
-                fit_params["param_space"] = param_space
 
         super().fit(train_dataset, **fit_params)
 
@@ -351,15 +346,9 @@ class SklearnRandomForest(BaseSklearnModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        param_space = {
+        fit_params["optimize_hyperparameters"] = True
+        fit_params["param_space"] = {
             "estimator__n_estimators": [50, 100, 500],
         }
-
-        if (
-            ("optimize_hyperparameters" in fit_params)
-            and fit_params["optimize_hyperparameters"]
-        ) or (("select_features" in fit_params) and fit_params["select_features"]):
-            if "param_space" not in fit_params:
-                fit_params["param_space"] = param_space
 
         super().fit(train_dataset, **fit_params)
