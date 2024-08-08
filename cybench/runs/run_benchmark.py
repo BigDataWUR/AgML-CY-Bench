@@ -4,6 +4,8 @@ from collections import defaultdict
 import pandas as pd
 import torch
 from sklearn.linear_model import Ridge
+from sklearn.linear_model import Lasso
+from sklearn.feature_selection import SelectFromModel
 from sklearn.ensemble import RandomForestRegressor
 
 from cybench.config import (
@@ -31,13 +33,18 @@ _BASELINE_MODEL_CONSTRUCTORS = {
 }
 
 sklearn_ridge = Ridge(alpha=0.5)
+lasso_selector = SelectFromModel(Lasso(), threshold="median")
 sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
+
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
+_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {
+    "sklearn_est": sklearn_ridge,
+    "ft_selector": lasso_selector,
+}
 
-_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {"sklearn_est": sklearn_ridge}
 _BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
