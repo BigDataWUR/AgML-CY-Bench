@@ -3,9 +3,6 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
-from datetime import datetime
-from sklearn.linear_model import Ridge
-from sklearn.ensemble import RandomForestRegressor
 
 from cybench.config import (
     DATASETS,
@@ -37,7 +34,6 @@ _BASELINE_MODEL_CONSTRUCTORS = {
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
 
 _BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
     "hidden_size": 64,
