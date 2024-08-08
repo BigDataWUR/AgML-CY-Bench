@@ -10,13 +10,9 @@ from sklearn.model_selection import ParameterGrid
 
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.transforms import (
-    transform_ts_inputs_to_dekadal,
-    transform_stack_ts_static_inputs,
-)
+from cybench.datasets.transforms import transform_ts_inputs_to_dekadal
 
 from cybench.models.model import BaseModel
-from cybench.evaluation.eval import evaluate_predictions
 
 from cybench.config import (
     KEY_TARGET,
@@ -559,7 +555,6 @@ class ExampleLSTM(BaseNNModel):
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = [
             transform_ts_inputs_to_dekadal,
-            transform_stack_ts_static_inputs,
         ]
 
     def fit(
@@ -607,12 +602,25 @@ class ExampleLSTM(BaseNNModel):
             **fit_params,
         )
 
+    def _separate_ts_static_inputs(self, batch: dict) -> tuple:
+        """Stack time series and static inputs separately.
+
+        Args:
+          batch: dict of inputs
+
+        Returns:
+          A tuple of torch tensors for time series and static inputs
+        """
+        ts = torch.cat([batch[k].unsqueeze(2) for k in TIME_SERIES_PREDICTORS], dim=2)
+        static = torch.cat([batch[k].unsqueeze(1) for k in STATIC_PREDICTORS], dim=1)
+
+        return ts, static
+
     def forward(self, x):
         for transform in self._transforms:
             x = transform(x, self._min_date, self._max_date)
 
-        x_ts = x["ts"]
-        x_static = x["static"]
+        x_ts, x_static = self._separate_ts_static_inputs(x)
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)

@@ -32,7 +32,7 @@ class BaseModel(ABC):
           A tuple containing a np.ndarray and a dict with additional information.
         """
         batch = [d for d in dataset]
-        return self.predict_batch(batch, **predict_params)
+        return self.predict_items(batch, **predict_params)
 
     @abstractmethod
     def predict_items(self, X: list, **predict_params):
