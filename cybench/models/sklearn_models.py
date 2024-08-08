@@ -98,6 +98,12 @@ class BaseSklearnModel(BaseModel):
             param_space = fit_params["param_space"]
             assert param_space, "Parameter space is empty"
 
+            # check select_features and pipeline are set correctly
+            if select_features:
+                assert "selector" in self._est.named_steps
+            else:
+                assert "selector" not in self._est.named_steps
+
             if select_features and ("max_features" in fit_params):
                 assert fit_params["max_features"] is not None
                 param_space["selector__max_features"] = fit_params["max_features"]
@@ -146,15 +152,15 @@ class BaseSklearnModel(BaseModel):
         Returns:
           A sklearn pipeline refitted with the optimal hyperparameters.
         """
+        # regular k-fold cv
+        cv = kfolds
+
         # GroupKFold to split by years
         if groups is not None:
             group_kfold = GroupKFold(n_splits=kfolds)
             # cv is here a list of tuples (train split, validation split)
             cv = group_kfold.split(X, y, groups)
-        else:
-            # regular k-fold cv
-            cv = kfolds
-
+    
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
