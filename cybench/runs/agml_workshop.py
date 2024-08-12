@@ -74,7 +74,7 @@ class LSTMModel(BaseModel, nn.Module):
             self.load_state_dict(torch.load(save_model_path))
         else:
             sel_lr = 0.0001
-            sel_wt_decay = 0.0001
+            sel_wt_decay = 0.00001
 
         torch_dataset = TorchDataset(train_dataset)
         data_loader = torch.utils.data.DataLoader(
@@ -297,6 +297,15 @@ class LSTMModel(BaseModel, nn.Module):
 
 
 def date_from_dekad(dekad, year):
+    """Reconstruct date string from dekad and year.
+
+    Args:
+        dekad (int): a number from 1-36 indicating ~10-day periods
+        year (int): year in YYYY format
+
+    Returns:
+        Date string in the format YYYYmmdd
+    """
     date_str = str(year)
     month = int(np.ceil(dekad / 3))
     if month < 10:
@@ -319,6 +328,24 @@ from cybench.datasets.dataset import Dataset
 
 
 if __name__ == "__main__":
+    """
+    Reproduce results from AgML 2024 for LSTM models.
+    Compare the workshop LSTM implementation and benchmark LSTM implementation
+    to validate their performance on the same data. NRMSE must be around 25%.
+    These results were produced with
+        inputs:
+            static: ["awc"]
+            time series: ["tmin", "tmax", "tavg", "prec", "cwb", "rad"] + ["fpar"]
+        NOTE: These should match the definitions of STATIC_PREDICTORS
+              and TIME_SERIES_PREDICTORS.
+        NOTE: All time series inputs are at the same (dekadal) resolution.
+              This means `ExampleLSTM` does not need to aggregate time series data.
+
+        epochs=10
+        lr=0.0001
+        weight_decay=0.0001. Since `ExampleLSTM` uses weight_decay=0.00001, the same value
+        is now used for the workshop `LSTMModel` implementation above.
+    """
     path_data_cn = os.path.join(PATH_DATA_DIR, "workshop-data")
     df_y = pd.read_csv(os.path.join(path_data_cn, "yield_maize_US.csv"), header=0)
     # convert maize (corn) yield from bushels/acre to t/ha
@@ -327,11 +354,6 @@ if __name__ == "__main__":
     df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y.set_index([KEY_LOC, KEY_YEAR], inplace=True)
 
-    df_crop_cal = pd.read_csv(
-        os.path.join(path_data_cn, "crop_calendar_maize_US.csv"), header=0
-    )
-    season_start = int(df_crop_cal["sos"].mean())
-    season_end = int(df_crop_cal["eos"].mean())
     dfs_x = []
     for input in ["soil", "meteo", "fpar"]:
         df_x = pd.read_csv(
