@@ -44,12 +44,12 @@ class BaseNNModel(BaseModel, nn.Module):
         """Fit or train the model.
 
         Args:
-          dataset: Dataset. Training dataset.
-          optimize_hyperparameters: bool. Flag to tune hyperparameters.
-          param_space: dict. Each entry is a hyperparameter name and list or range of values.
-          kfolds: int. k in k-fold cv.
-          epochs: int. Number of epochs to train.
-          seed: seed for random number generator.
+          dataset (Dataset): training dataset.
+          optimize_hyperparameters (bool): whether to tune hyperparameters
+          param_space (dict): each entry is a hyperparameter name and list or range of values
+          optim_kwargs (dict): arguments to the optimizer
+          device (str): the device to use.
+          seed (float): seed for random number generator
           **fit_params: Additional parameters.
 
         Returns:
@@ -103,12 +103,12 @@ class BaseNNModel(BaseModel, nn.Module):
         """Optimize hyperparameters
 
         Args:
-          dataset: Dataset. Training dataset.
-          param_space: a dict of parameters to optimize
-          optim_kwargs: a dict of arguments to the optimizer
-          device: str, the device to use
-          kfolds: k for k-fold cv.
-          epochs: Number of epochs to train.
+          dataset (Dataset): training dataset
+          param_space (dict): hypperparameters to optimize
+          optim_kwargs (dict): arguments to the optimizer
+          device (str): the device to use
+          kfolds (int): k for k-fold cv (default: 1)
+          epochs (int): Number of epochs to train (default: 10)
           **fit_params: Additional parameters.
 
         Returns:
@@ -207,20 +207,19 @@ class BaseNNModel(BaseModel, nn.Module):
         Fit or train the model and evaluate on validation data.
 
         Args:
-            dataset: Dataset,
-            train_years: training years
-            val_years: validation years
-            validation_interval: int, validation frequency, default is 5
-            do_early_stopping: bool, whether to use early stopping, default is False
-            epochs: int, the number of epochs to train the model, default is 10
-            batch_size: int, the batch size, default is 16
-            optim_fn: callable, the optimizer function, default is torch.optim.Adam
-            optim_kwargs: dict, arguments to the optimizer function
-            loss_fn: callable, the loss function, default is torch.nn.functional.mse_loss
-            loss_kwargs: dict, arguments to the loss function
-            scheduler_fn: callable, the scheduler function, default is None
-            sched_kwargs: dict, arguments to the scheduler function
-            device: str, the device to use
+            dataset (Dataset): training dataset
+            train_years (list): training years
+            val_years (list): validation years
+            validation_interval (int): validation frequency (default: 5)
+            epochs (int): the number of epochs to train the model (default: 10)
+            batch_size (int): the batch size (default: 16)
+            optim_fn (callable): the optimizer function (default: Adam)
+            optim_kwargs (dict): arguments to the optimizer function
+            loss_fn (callable): the loss function (default: mse_loss)
+            loss_kwargs (dict): arguments to the loss function
+            scheduler_fn (callable): the scheduler function (default: None)
+            sched_kwargs (dict): arguments to the scheduler function
+            device (str): the device to use
             **kwargs: Additional parameters.
 
         Returns:
@@ -316,16 +315,16 @@ class BaseNNModel(BaseModel, nn.Module):
         Fit or train the model on the entire training set.
 
         Args:
-            dataset: Dataset,
-            epochs: int, number of epochs to train
-            optimizer_fn: callable, the optimizer function, default is Adam
-            optim_kwargs: dict, arguments to the optimizer function
-            loss_fn: callable, the loss function, default is mse_loss
-            loss_kwargs: dict, arguments to the loss function
-            scheduler_fn: callable, the scheduler function, default is None
-            sched_kwargs: dict, arguments to the scheduler function
-            device: str, the device to use, default is "cpu"
-            batch_size: int, default is 16
+            dataset (Dataset): training dataset,
+            epochs (int): number of epochs to train
+            optimizer_fn (callable): the optimizer function (default: Adam)
+            optim_kwargs (dict): arguments to the optimizer function
+            loss_fn (callable): the loss function (default: mse_loss)
+            loss_kwargs (dict): arguments to the loss function
+            scheduler_fn (callable): the scheduler function (default: None)
+            sched_kwargs (dict): arguments to the scheduler function
+            device (str): the device to use
+            batch_size (int): default is 16
             **kwargs: Additional parameters.
 
         Returns:
@@ -385,12 +384,12 @@ class BaseNNModel(BaseModel, nn.Module):
         """Run one epoch during trainig
 
         Args:
-          tqdm_loader: data loader with progress bar
-          device: str, the device to use
-          optimizer: the optimizer
-          loss_fn: the loss function, default mse_loss
-          loss_kwargs: dict, the arguments to loss_fn
-          scheduler: scheduler for learning rate of optimizer
+          tqdm_loader (tqdm): data loader with progress bar
+          device (str): the device to use
+          optimizer (torch.optim.Optimizer): the optimizer
+          loss_fn (callable): the loss function, default mse_loss
+          loss_kwargs (dict): the arguments to loss_fn
+          scheduler (torch.optim.lr_scheduler.LRScheduler): scheduler for learning rate of optimizer
 
         Returns:
           The average of all batch losses
@@ -418,8 +417,8 @@ class BaseNNModel(BaseModel, nn.Module):
         """A forward pass for batched data.
 
         Args:
-          batch: a dict of batched data
-          device: str, the device to use
+          batch (dict): batched inputs
+          device (str): the device to use
 
         Returns:
           An np.ndarray
@@ -441,32 +440,37 @@ class BaseNNModel(BaseModel, nn.Module):
         """Normalize inputs using saved normalization parameters.
 
         Args:
-          inputs: a dict of inputs
+          inputs (dict): unnormalized inputs
 
         Returns:
           The same dict after normalizing the entries
         """
         for pred in ALL_PREDICTORS:
-            assert pred in inputs
-            assert pred in self._norm_params
-            inputs[pred] = (
-                inputs[pred] - self._norm_params[pred]["mean"]
-            ) / self._norm_params[pred]["std"]
+            try:
+                inputs[pred] = (
+                    inputs[pred] - self._norm_params[pred]["mean"]
+                ) / self._norm_params[pred]["std"]
+            except KeyError:
+                raise Exception(f"Unexpected input {pred}")
 
         return inputs
 
-    def predict_items(self, X: list, device: str = "cpu", **predict_params):
+    def predict_items(
+        self,
+        X: list,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        **predict_params,
+    ):
         """Run fitted model on a list of data items.
 
         Args:
-          X: a list of data items, each of which is a dict
-          device: str, the device to use
+          X (list): a list of data items, each of which is a dict
+          device (str): str, the device to use
           **predict_params: Additional parameters
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
         self.eval()
 
@@ -481,21 +485,20 @@ class BaseNNModel(BaseModel, nn.Module):
     def predict(
         self,
         dataset: Dataset,
-        device: str = "cpu",
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
         batch_size: int = 16,
         **predict_params,
     ):
         """Run fitted model on batched data items.
 
         Args:
-          dataset: validation dataset
-          device: str, the device to use
+          dataset (Dataset): validation dataset
+          device (str): the device to use
           **predict_params: Additional parameters
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        device = "cuda" if torch.cuda.is_available() else "cpu"
         self.to(device)
         self.eval()
         test_dataset = TorchDataset(dataset)
@@ -518,7 +521,7 @@ class BaseNNModel(BaseModel, nn.Module):
         """Save model using torch.save.
 
         Args:
-          model_name: Filename that will be used to save the model.
+          model_name (str): Filename that will be used to save the model.
         """
         torch.save(self, model_name)
 
@@ -527,7 +530,7 @@ class BaseNNModel(BaseModel, nn.Module):
         """Load model using torch.load.
 
         Args:
-            model_name: Filename that was used to save the model.
+            model_name (str): Filename that was used to save the model.
 
         Returns:
             The loaded model.
@@ -541,6 +544,9 @@ class ExampleLSTM(BaseNNModel):
         hidden_size=64,
         num_layers=1,
         output_size=1,
+        transforms=[
+            transform_ts_inputs_to_dekadal,
+        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
@@ -553,9 +559,7 @@ class ExampleLSTM(BaseNNModel):
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = [
-            transform_ts_inputs_to_dekadal,
-        ]
+        self._transforms = transforms
 
     def fit(
         self,
@@ -571,12 +575,12 @@ class ExampleLSTM(BaseNNModel):
         """Fit or train the model.
 
         Args:
-          dataset: Dataset. Training dataset.
-          optimize_hyperparameters: bool. Flag to tune hyperparameters.
-          param_space: dict. Each entry is a hyperparameter name and list or range of values.
-          kfolds: int. k in k-fold cv.
-          epochs: int. Number of epochs to train.
-          seed: seed for random number generator.
+          dataset (Dataset): Training dataset.
+          optimize_hyperparameters (bool): Flag to tune hyperparameters.
+          param_space (dict): Each entry is a hyperparameter name and list or range of values.
+          kfolds (int): k in k-fold cv.
+          epochs (int): Number of epochs to train.
+          seed (float): seed for random number generator.
           **fit_params: Additional parameters.
 
         Returns:
@@ -585,7 +589,7 @@ class ExampleLSTM(BaseNNModel):
         if ("scheduler_fn" in fit_params) and (fit_params["scheduler_fn"] is not None):
             fit_params["sched_kwargs"] = {"step_size": 2, "gamma": 0.5}
 
-        if not param_space:
+        if optimize_hyperparameters and not param_space:
             param_space = {
                 "lr": [0.0001, 0.00001],
                 "weight_decay": [0.0001, 0.00001],
@@ -606,7 +610,7 @@ class ExampleLSTM(BaseNNModel):
         """Stack time series and static inputs separately.
 
         Args:
-          batch: dict of inputs
+          batch (dict): batched inputs
 
         Returns:
           A tuple of torch tensors for time series and static inputs
