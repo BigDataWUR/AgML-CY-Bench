@@ -8,19 +8,13 @@ library(reshape2)
 library(stringr)
 library(abjutils)
 library(pbapply)
-library("optparse")
+library(optparse)
 
-#############
-# Version 1 #
-#############
-# NOTE: This version makes directly extracts and aggregates
-# from raster stack. Preferred based on suggestion from
-# our R expert.
 
-crops <- c("maize") #, "wheat")
+crops <- c("maize", "wheat")
 start_year <- 2000
-end_year <- 2001
-AGML_ROOT <- "/mnt/guanabana/raid/home/paude006/agml"
+end_year <- 2023
+AGML_ROOT <- "path/to/agml"
 PREDICTORS_DATA_PATH <- file.path(AGML_ROOT, "predictors")
 OUTPUT_PATH <- file.path(AGML_ROOT, "R-output")
 
@@ -459,4 +453,3 @@ for (crop in crops) {
     process_indicators(crop, reg, sel_indicators, start_year, end_year, crop_mask_file)
   }
 }
-
