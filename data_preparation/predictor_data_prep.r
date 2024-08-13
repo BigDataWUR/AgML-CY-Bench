@@ -190,15 +190,11 @@ process_ts_raster <- function(ind_filename, region, indicator, crop_mask_filenam
   # AgERA5 files (not ET0 files) are NetCDF or .nc files.
   is_netcdf_file <- endsWith(ind_filename, ".nc")
   if (is_netcdf_file) {
-    ind_rast <- rast(ind_filename, 1)
+    ind_rast <- rast(ind_filename, subds=1, win=ext(sel_shapes))
   } else {
-    ind_rast <- rast(sel_files)
+    ind_rast <- rast(sel_files, win=ext(sel_shapes))
   }
 
-  # Crop raster to shapes
-  ind_rast <- crop(ind_rast, sel_shapes)
-
-  # TODO: filter invalid values
   # filter and transform indicators
   if (indicator == "fpar") {
     # check data_preparation/global_fpar_500m
@@ -243,6 +239,7 @@ process_ts_raster <- function(ind_filename, region, indicator, crop_mask_filenam
   aggregates$crop_name <- crop
   aggregates <- aggregates[, c("crop_name", "adm_id",
                                "date", indicator)]
+  return(aggregates)
 }
 
 process_ts_year <- function(year, region, file_path, filename_pattern,
@@ -254,10 +251,11 @@ process_ts_year <- function(year, region, file_path, filename_pattern,
     return (NULL)
   }
 
-  dfs <- pblapply(file_list, my_fun, region=region, indicator=indicator,
+  dfs <- pblapply(file_list, process_ts_raster, region=region, indicator=indicator,
                   crop_mask_filename=crop_mask_filename)
 
   result <- rbindlist(dfs)
+  return(result)
 }
 
 
@@ -288,22 +286,27 @@ process_indicators <- function(crop, region,
     if (!is_time_series) {
       # NOTE for crop calendars, sos and eos are crop specific.
       if (indicator_source == "ESA_WC_Crop_Calendars") {
-        ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
-                                   indicator_source,
-                                   paste0(crop, "_", filename_pattern, ".tif")))
+        ind_filename <- file.path(PREDICTORS_DATA_PATH,
+                                  indicator_source,
+                                  paste0(crop, "_", filename_pattern, ".tif"))
       } else {
-        ind_rast <- rast(file.path(PREDICTORS_DATA_PATH,
-                                   indicator_source,
-                                   paste0(filename_pattern, ".tif")))
+        ind_filename <- file.path(PREDICTORS_DATA_PATH,
+                                  indicator_source,
+                                  paste0(filename_pattern, ".tif"))
       }
  
-      # resample
+      # Resample crop mask to the resolution of indicator.
+      ind_rast <- rast(ind_filename)
       crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
+
+      # Crop rasters
+      sel_shapes <- get_shapes(region)
+      crop_mask <- crop(crop_mask, sel_shapes)
+      ind_rast <- crop(crop_mask, sel_shapes)
 
       # TODO: filter invalid indicator values
 
       # Extract indicator values for boundaries
-      sel_shapes <- get_shapes(region)
       ind_vals <- extract(ind_rast, sel_shapes, xy=TRUE)
       ind_vals$adm_id <- sel_shapes$adm_id[ind_vals$ID]
       ind_vals$ID <- NULL
@@ -366,19 +369,21 @@ process_indicators <- function(crop, region,
                                 pattern=glob2rx(paste0(filename_pattern, as.character(start_year), "*")),
                                 full.names=TRUE)
         if (length(file_list) == 0) {
+          warning(paste("Files not found for", start_year))
           start_year <- start_year + 1 
         } else {
           found_raster_file <- TRUE
         }
       }
 
-      # resample
+      # Resample crop mask to indicator rastor resolution.
       ind_rast <- rast(file_list[[1]])
       crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
       crop_mask <- crop(crop_mask, sel_shapes)
       resampled_filename <- file.path(AGML_ROOT, "crop_masks", "resampled_crop_mask.tif")
       writeRaster(crop_mask, resampled_filename)
 
+      rm(list=c("ind_rast", "crop_mask"))
       dfs <- pblapply(start_year:end_year, process_ts_year,
                       region=region,
                       file_path=indicator_path,
@@ -387,7 +392,7 @@ process_indicators <- function(crop, region,
                       cl=num_cpus)
   
       result <- rbindlist(dfs)
-      rm(list=c("ind_rast", "crop_mask", "dfs"))
+      rm(dfs)
       gc()
     }
  
