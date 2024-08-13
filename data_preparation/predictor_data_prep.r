@@ -14,7 +14,7 @@ library(optparse)
 crops <- c("maize", "wheat")
 start_year <- 2000
 end_year <- 2023
-AGML_ROOT <- "path/to/agml"
+AGML_ROOT <- "/path/to/agml"
 PREDICTORS_DATA_PATH <- file.path(AGML_ROOT, "predictors")
 OUTPUT_PATH <- file.path(AGML_ROOT, "R-output")
 
@@ -362,7 +362,7 @@ process_indicators <- function(crop, region,
 
       found_raster_file <- FALSE
       while(!found_raster_file) {
-        file_list <- list.files(path=file_path,
+        file_list <- list.files(path=indicator_path,
                                 pattern=glob2rx(paste0(filename_pattern, as.character(start_year), "*")),
                                 full.names=TRUE)
         if (length(file_list) == 0) {
