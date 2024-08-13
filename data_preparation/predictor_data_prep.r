@@ -1,16 +1,26 @@
 if(!"terra" %in% installed.packages()){install.packages("terra")}
 if(!"reshape2" %in% installed.packages()){install.packages("reshape2")}
 if(!"abjutils" %in% installed.packages()){install.packages("abjutils")}
+if(!"pbapply" %in% installed.packages()){install.packages("pbapply", repos='http://cran.us.r-project.org')}
+if(!"optparse" %in% installed.packages()){install.packages("optparse", repos='http://cran.us.r-project.org')}
 library(terra)
 library(reshape2)
 library(stringr)
 library(abjutils)
+library(pbapply)
+library("optparse")
 
+#############
+# Version 1 #
+#############
+# NOTE: This version makes directly extracts and aggregates
+# from raster stack. Preferred based on suggestion from
+# our R expert.
 
-crops <- c("maize", "wheat")
+crops <- c("maize") #, "wheat")
 start_year <- 2000
-end_year <- 2023
-AGML_ROOT <- "/path/to/agml"
+end_year <- 2001
+AGML_ROOT <- "/mnt/guanabana/raid/home/paude006/agml"
 PREDICTORS_DATA_PATH <- file.path(AGML_ROOT, "predictors")
 OUTPUT_PATH <- file.path(AGML_ROOT, "R-output")
 
@@ -30,22 +40,22 @@ indicators <- list(
                 "filename_pattern" = "fpar_",
                 "is_time_series" = TRUE,
                 "is_categorical" = FALSE),
-  "ndvi" = list("source" = "MOD09CMG",
-                "filename_pattern" = "MOD09CMG_ndvi_",
-                "is_time_series" = TRUE,
-                "is_categorical" = FALSE),
+   "ndvi" = list("source" = "MOD09CMG",
+                 "filename_pattern" = "MOD09CMG_ndvi_",
+                 "is_time_series" = TRUE,
+                 "is_categorical" = FALSE),
   "et0" = list("source" = "FAO_AQUASTAT",
-                "filename_pattern" = "AGERA5_ET0_",
-                "is_time_series" = TRUE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "AGERA5_ET0_",
+               "is_time_series" = TRUE,
+               "is_categorical" = FALSE),
   "ssm" = list("source" = "GLDAS",
-                "filename_pattern" = "GLDAS_surface_moisture_A",
-                "is_time_series" = TRUE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "GLDAS_surface_moisture_A",
+               "is_time_series" = TRUE,
+               "is_categorical" = FALSE),
   "rsm" = list("source" = "GLDAS",
-                "filename_pattern" = "GLDAS_rootzone_moisture_A",
-                "is_time_series" = TRUE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "GLDAS_rootzone_moisture_A",
+               "is_time_series" = TRUE,
+               "is_categorical" = FALSE),
   "prec" = list("source" = "AgERA5",
                 "filename_pattern" = "AgERA5_Precipitation_Flux_",
                 "is_time_series" = TRUE,
@@ -63,13 +73,13 @@ indicators <- list(
                 "is_time_series" = TRUE,
                 "is_categorical" = FALSE),
   "rad" = list("source" = "AgERA5",
-                "filename_pattern" = "AgERA5_Solar_Radiation_Flux_",
-                "is_time_series" = TRUE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "AgERA5_Solar_Radiation_Flux_",
+               "is_time_series" = TRUE,
+               "is_categorical" = FALSE),
   "awc" = list("source" = "WISE_Soil",
-                "filename_pattern" = "awc",
-                "is_time_series" = FALSE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "awc",
+               "is_time_series" = FALSE,
+               "is_categorical" = FALSE),
   "bulk_density" = list("source" = "WISE_Soil",
                         "filename_pattern" = "bulk_density",
                         "is_time_series" = FALSE,
@@ -79,13 +89,13 @@ indicators <- list(
                           "is_time_series" = FALSE,
                           "is_categorical" = TRUE),
   "st_clay" = list("source" = "WISE_Soil",
-                    "filename_pattern" = "st_clay",
-                    "is_time_series" = FALSE,
-                    "is_categorical" = FALSE),
+                   "filename_pattern" = "st_clay",
+                   "is_time_series" = FALSE,
+                   "is_categorical" = FALSE),
   "st_sand" = list("source" = "WISE_Soil",
-                    "filename_pattern" = "st_sand",
-                    "is_time_series" = FALSE,
-                    "is_categorical" = FALSE),
+                   "filename_pattern" = "st_sand",
+                   "is_time_series" = FALSE,
+                   "is_categorical" = FALSE),
   "st_silt" = list("source" = "WISE_Soil",
                     "filename_pattern" = "st_silt",
                     "is_time_series" = FALSE,
@@ -94,18 +104,15 @@ indicators <- list(
   # Therefore, filename_pattern will need crop name as well.
   # Check code where these are processed.             
   "sos" = list("source" = "ESA_WC_Crop_Calendars",
-                "filename_pattern" = "sos",
-                "is_time_series" = FALSE,
-                "is_categorical" = FALSE),
+               "filename_pattern" = "sos",
+               "is_time_series" = FALSE,
+               "is_categorical" = FALSE),
   "eos" = list("source" = "ESA_WC_Crop_Calendars",
-                "filename_pattern" = "eos",
-                "is_time_series" = FALSE,
-                "is_categorical" = FALSE))
+               "filename_pattern" = "eos",
+               "is_time_series" = FALSE,
+               "is_categorical" = FALSE))
 
-
-process_indicators <- function(crop, region, start_year, end_year, crop_mask_file) {
-  # print(region)
-
+get_shapes <- function(region) {
   ###############################
   # Select shapes or boundaries #
   ###############################
@@ -117,11 +124,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     for (cn in names(EU_countries)) {
       cn_shapes <- eu_shapes[(eu_shapes$CNTR_CODE == cn) &
                              (eu_shapes$LEVL_CODE == EU_countries[[cn]])]
-      if (is.null(sel_shapes)){
-        sel_shapes <- cn_shapes
-      }else {
-        sel_shapes <- rbind(sel_shapes, cn_shapes)
-      }
+      sel_shapes <- rbind(sel_shapes, cn_shapes)
     }
     sel_shapes$adm_id <- sel_shapes$NUTS_ID
   } else if (region %in% names(EU_countries)) {
@@ -171,7 +174,6 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_IN",
                        "India_585districts_adm2.shp"))
-    sel_shapes <- project(sel_shapes, "EPSG:4326")
   # ML: Already has adm_id
   } else if (region == "ML") {
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
@@ -182,38 +184,110 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
     sel_shapes <- vect(file.path(AGML_ROOT, "shapefiles",
                        "shapefiles_MX",
                        "00ent_edited.shp"))
-    sel_shapes <- project(sel_shapes, "EPSG:4326")
   }
+  sel_shapes <- project(sel_shapes, "EPSG:4326")
+}
+
+process_ts_raster <- function(region, ind_filename, indicator, crop_mask_filename) {
+  sel_shapes <- get_shapes(region)
+  crop_mask = rast(crop_mask_filename)
+
+  # Handle NetCDF files.
+  # AgERA5 files (not ET0 files) are NetCDF or .nc files.
+  is_netcdf_file <- endsWith(ind_filename, ".nc")
+  if (is_netcdf_file) {
+    ind_rast <- rast(ind_filename, 1)
+  } else {
+    ind_rast <- rast(sel_files)
+  }
+
+  # Crop raster to shapes
+  ind_rast <- crop(ind_rast, sel_shapes)
+
+  # TODO: filter invalid values
+  # filter and transform indicators
+  if (indicator == "fpar") {
+    # check data_preparation/global_fpar_500m
+    # FPAR values: 0 to 100 (%). Valid range is 0-100.
+    # Flags: 251 is "other land", 254 is "water", 255 is "not processed".
+    ind_rast[ind_rast > 100] <- NA
+    ind_rast[ind_rast < 0] <- NA
+  } else if (indicator == "ndvi") {
+    # check data_preparation/global_MOD09CMG
+    # Value range: 50 to 250 for NDVI.
+    ind_rast[ind_rast < 50] <- NA
+    ind_rast[ind_rast > 250] <- NA
+    #  To scale, apply the formula: (x - 50)/200
+    ind_rast <- (ind_rast - 50)/200
+  } else if (indicator %in% c("ET0", "surface_moisture", "rootzone_moisture")) {
+    # check data_preparation/global_ET0_FAO
+    ind_rast[ind_rast == -9999] <- NA
+  } else if (grepl("Temperature", indicator, fixed=TRUE)) {
+    # temp_C = temp_K - 273.15
+    ind_rast <- ind_rast - 273.15
+  }
+
+  # replicate crop mask to match number of indicator layers
+  # we set weights for NA values to 0
+  crop_mask[is.na(ind_rast)] <- 0
+
+  # NOTE the order of multiplication matters
+  ind_rast <- ind_rast * crop_masks
+
+  aggregates <- extract(ind_rast, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
+  aggregates$adm_id <- sel_shapes$adm_id
+
+  sum_wts <- extract(crop_mask, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
+  sum_wts$adm_id <- sel_shapes$adm_id
+
+  # Divide aggregates by weights. Added a tiny number to avoid division by Zero.
+  aggregates[-ncol(aggregates)] <- aggregates[-ncol(aggregates)]/(sum_wts[-ncol(sum_wts)] + 1e-6)
+  aggregates <- melt(aggregates)
+          
+  colnames(aggregates) <- c("adm_id", "ind_file", indicator)
+  aggregates$date <- str_sub(aggregates$ind_file, -8,-1)
+  aggregates$crop_name <- crop
+  aggregates <- aggregates[, c("crop_name", "adm_id",
+                               "date", indicator)]
+}
+
+process_ts_year <- function(year, region, file_path, filename_pattern,
+                            indicator, crop_mask_filename, sel_shapes) {
+  file_list <- list.files(path=file_path,
+                          pattern=glob2rx(paste0(filename_pattern, as.character(year), "*")),
+                          full.names=TRUE)
+  if (length(file_list) == 0) {
+    return (NULL)
+  }
+
+  dfs <- pblapply(file_list, my_fun, region=region, indicator=indicator,
+                  crop_mask_filename=crop_mask_filename)
+
+  result <- rbindlist(dfs)
+}
+
+
+process_indicators <- function(crop, region,
+                               sel_indicators,
+                               start_year, end_year,
+                               crop_mask_file, num_cpus) {
+  # print(region)
 
   ###############################
   # Process each indicator      #
   ###############################
-  for (indicator in names(indicators)) {
+  for (indicator in sel_indicators) {
     filename_pattern <- indicators[[indicator]][["filename_pattern"]]
     indicator_source <- indicators[[indicator]][["source"]]
     is_time_series <- indicators[[indicator]][["is_time_series"]]
     is_categorical <- indicators[[indicator]][["is_categorical"]]
-    # print(paste(indicator, indicator_source, filename_pattern
-    #             is_time_series, is_categorical))
 
-    resampled_crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
-                                          paste("crop_mask", crop, indicator, "res.tif", sep="_"))
-
-    crop_mask_cropped <- FALSE
-    resampled <- FALSE
-    # NOTE: AgERA5 data is cropped to specific regions.
-    # So we don't save resampled crop mask.
-    if ((indicator_source != "AgERA5") &
-        file.exists(resampled_crop_mask_file)) {
-      crop_mask <- rast(resampled_crop_mask_file)
-      resampled <- TRUE
-    } else {
-      crop_mask <- rast(crop_mask_file)
-    }
-    # print(resampled_crop_mask_file)
-    # print(resampled)
-
+    # print(paste(indicator, indicator_source, filename_pattern, is_time_series, is_categorical))
+    crop_mask <- rast(crop_mask_file)
+    crop_mask[crop_mask > 100] <- NA
+    crop_mask[crop_mask < 0] <- NA
     result <- NULL
+
     ###############
     # static data #
     ###############
@@ -228,20 +302,14 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                                    indicator_source,
                                    paste0(filename_pattern, ".tif")))
       }
-      
-      # resample crop mask to indicator extent and resolution
-      if (!resampled) {
-        crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
-        writeRaster(x=crop_mask, filename=resampled_crop_mask_file)
-      }
+ 
+      # resample
+      crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
 
-      # filter invalid values
-      crop_mask[crop_mask > 100] <- NA
-      crop_mask[crop_mask < 0] <- NA
-
-      # TODO: filter invalid values
+      # TODO: filter invalid indicator values
 
       # Extract indicator values for boundaries
+      sel_shapes <- get_shapes(region)
       ind_vals <- extract(ind_rast, sel_shapes, xy=TRUE)
       ind_vals$adm_id <- sel_shapes$adm_id[ind_vals$ID]
       ind_vals$ID <- NULL
@@ -252,10 +320,8 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       crop_mask_vals$ID <- NULL
       names(crop_mask_vals) <- c("crop_area_fraction", "x", "y", "adm_id")
 
-      result <- as.data.frame(cbind(ind_vals, crop_mask_vals$crop_area_fraction))
+      result <- as.data.frame(cbind(indicator = ind_vals, crop_area_fraction = crop_mask_vals$crop_area_fraction))
       result <- na.exclude(result)
-      names(result)[names(result) == "crop_mask_vals$crop_area_fraction"] <- "crop_area_fraction"
-      colnames(result) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
 
       # for now, "drainage_class" is the only categorical data
       if (is_categorical){
@@ -266,7 +332,7 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
                             FUN=sum)
         # order by sum_weight
         # print(head(result))
-        result <- result[order(result$adm_id, -result$sum_weight),]
+        order(result$adm_id, result$sum_weight, decreasing=TRUE)
         # keep only the first item per adm_id
         result <- result[ !duplicated(result$adm_id), ]
         result$sum_weight <- NULL
@@ -283,151 +349,94 @@ process_indicators <- function(crop, region, start_year, end_year, crop_mask_fil
       result$crop_name <- crop
       result <- result[, c("crop_name", "adm_id", "indicator")]
       colnames(result) <- c("crop_name", "adm_id", indicator)
+
+      # clean up memory
+      rm(list=c("ind_rast", "ind_vals", "crop_mask_vals"))
+      gc()
     } else {
       ####################
       # Time series data #
       ####################
-      for (yr in start_year:end_year) {
-        # NOTE: AgERA5 data is split by region.
-        # So include region-specific directory in path.
-        if (indicator_source == "AgERA5") {
-          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source,
-                                     paste(region, indicator_source, sep="_"), indicator)
-        } else {
-          indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
-        }
+      # NOTE: AgERA5 data is split by region.
+      # So include region-specific directory in path.
+      if (indicator_source == "AgERA5") {
+        indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source,
+                                   paste(region, indicator_source, sep="_"), indicator)
+      } else {
+        indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
+      }
 
-        file_list <- list.files(path=indicator_path,
-                                pattern=glob2rx(paste0(filename_pattern, as.character(yr), "*")),
+      found_raster_file <- FALSE
+      while(!found_raster_file) {
+        file_list <- list.files(path=file_path,
+                                pattern=glob2rx(paste0(filename_pattern, as.character(start_year), "*")),
                                 full.names=TRUE)
         num_year_files <- length(file_list)
-        if (num_year_files == 0) {
-          next
-        }
-
-        max_stack_size <- 50
-        for (i in seq(1, num_year_files, by=max_stack_size)) {
-          if ((i+max_stack_size-1) < num_year_files) {
-            file_seq <- seq(i, i+max_stack_size-1)
-          } else {
-            file_seq <- seq(i, num_year_files)
-          }
-
-          sel_files <- file_list[file_seq]
-          actual_stack_size <- length(sel_files)
-
-          # Handle NetCDF files.
-          # AgERA5 files (not ET0 files) are NetCDF or .nc files.
-          is_netcdf_file <- endsWith(sel_files[[1]], ".nc")
-          if (is_netcdf_file) {
-            rast_stack <- rast(sel_files, 1)
-            names(rast_stack) <- file_sans_ext(basename(sources(rast_stack)))
-          } else {
-            rast_stack <- rast(sel_files)
-          }
-
-          # resample crop mask to indicator extent and resolution
-          if (!resampled) {
-            if (actual_stack_size == 1) {
-              crop_mask <- resample(crop_mask, rast_stack, method="bilinear")
-            } else {
-              crop_mask <- resample(crop_mask, rast_stack[[1]], method="bilinear")
-            }
-            resampled <- TRUE
-            if (indicator_source != "AgERA5") {
-              writeRaster(x=crop_mask, filename=resampled_crop_mask_file, overwrite=TRUE)
-            }
-          }
-
-          # NOTE: crop and filter once per time series indicator.
-          # Don't need to do this per year or per indicator stack.
-          if (!crop_mask_cropped) {
-            crop_mask = crop(crop_mask, sel_shapes)
-            # filter invalid values
-            # Setting NA values to 0 is fine for weights.
-            crop_mask[crop_mask > 100] <- 0
-            crop_mask[crop_mask < 0] <- 0
-            crop_mask_cropped <- TRUE
-          }
-
-          # Crop rasters to shapes
-          rast_stack = crop(rast_stack, sel_shapes)
-
-          # TODO: filter invalid values
-          # filter and transform indicators
-          if (indicator == "fpar") {
-            # check data_preparation/global_fpar_500m
-            # FPAR values: 0 to 100 (%). Valid range is 0-100.
-            # Flags: 251 is "other land", 254 is "water", 255 is "not processed".
-            rast_stack[rast_stack > 100] <- NA
-            rast_stack[rast_stack < 0] <- NA
-          } else if (indicator == "ndvi") {
-            # check data_preparation/global_MOD09CMG
-            # Value range: 50 to 250 for NDVI.
-            rast_stack[rast_stack < 50] <- NA
-            rast_stack[rast_stack > 250] <- NA
-            #  To scale, apply the formula: (x - 50)/200
-            rast_stack <- (rast_stack - 50)/200
-          } else if ((indicator == "ET0") | (indicator_source == "GLDAS")) {
-            # check data_preparation/global_ET0_FAO
-            rast_stack[rast_stack == -9999] <- NA
-          } else if (grepl("Temperature", indicator, fixed=TRUE)) {
-            # temp_C = temp_K - 273.15
-            rast_stack <- rast_stack - 273.15
-          }
-
-          # replicate crop mask to match number of indicator layers
-          # we set weights for NA values to 0
-          crop_masks = rep(crop_mask, nlyr(rast_stack))
-          crop_masks[is.na(rast_stack)] = 0
-
-          # NOTE the order of multiplication matters
-          rast_stack = rast_stack * crop_masks
-
-          aggregates = extract(rast_stack, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-          aggregates$adm_id = sel_shapes$adm_id
-
-          sum_wts = extract(crop_masks, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-          sum_wts$adm_id = sel_shapes$adm_id
-
-          # Divide the aggregates by weights.
-          # NOTE: Added a tiny number to avoid division by Zero.
-          aggregates[-ncol(aggregates)] = aggregates[-ncol(aggregates)]/(sum_wts[-ncol(sum_wts)] + 1e-6)
-          aggregates <- melt(aggregates)
-          
-          colnames(aggregates) <- c("adm_id", "ind_file", indicator)
-          aggregates$date <- str_sub(aggregates$ind_file, -8,-1)
-          aggregates$crop_name <- crop
-          aggregates <- aggregates[, c("crop_name", "adm_id",
-                               "date", indicator)]
-          # print(head(aggregates))
-          if (is.null(result)) {
-            result <- aggregates
-          } else {
-            result <- rbind(result, aggregates)
-          }
-        }
-        # print(head(result))
+        found_raster_file <- length(file_list) > 0
       }
-    }
 
-    if (is.null(result)) {
-      next
-    }
+      # resample
+      ind_rast <- rast(file_list[[1]])
+      crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
+      crop_mask <- crop(crop_mask, sel_shapes)
+      resampled_filename <- file.path(AGML_ROOT, "crop_masks", "resampled_crop_mask.tif")
+      writeRaster(crop_mask, resampled_filename)
 
-    if (!dir.exists(file.path(OUTPUT_PATH, crop, region))) {
-        dir.create(file.path(OUTPUT_PATH, crop, region),
+      dfs <- pblapply(start_year:end_year, process_ts_year,
+                      region=region,
+                      file_path=indicator_path,
+                      filename_pattern=filename_pattern,
+                      crop_mask_filename=resampled_filename,
+                      cl=num_cpus)
+  
+      result <- rbindlist(dfs)
+      rm(list=c("ind_rast", "crop_mask", "dfs"))
+      gc()
+    }
+ 
+    if (!dir.exists(file.path(OUTPUT_PATH, crop, region, indicator))) {
+        dir.create(file.path(OUTPUT_PATH, crop, region, indicator),
                    recursive=TRUE)
     }
     # print(head(result))
     write.csv(result,
-              file.path(OUTPUT_PATH, crop, region,
+              file.path(OUTPUT_PATH, crop, region, indicator,
                         paste0(indicator, "_", region, ".csv")),
               row.names=FALSE)
+    
   }
 }
 
+option_list <- list(
+  make_option(c("-c", "--crop"), type="character", default=NULL, 
+              help="crop name", metavar="character"),
+  make_option(c("-r", "--region"), type="character", default=NULL, 
+              help="country or region", metavar="character"),
+  make_option(c("-i", "--indicator"), type="character", default=NULL, 
+              help="indicator", metavar="character"),
+  make_option(c("-p", "--cpus"), type="integerr", default=NULL, 
+              help="number of cpus", metavar="integer")
+); 
+ 
+opt_parser <- OptionParser(option_list=option_list);
+opt <- parse_args(opt_parser);
 
+num_cores <- 16
+if (!is.null(opt$cpus)) {
+  num_cpus <- opt$cpus;
+}
+
+if (!is.null(opt$crop)) {
+  crops <- c(opt$crop); 
+}
+
+sel_indicators <- names(indicators)
+if (!is.null(opt$indicator)) {
+  stopifnot(opt$indicator %in% names(indicators))
+  sel_indicators <- c(opt$indicator)
+}
+
+regions <- c("EU", "FEWSNET")
 for (crop in crops) {
   crop_mask_file <- file.path(AGML_ROOT, "crop_masks",
                               "crop_mask_generic_asap.tif")
@@ -441,9 +450,13 @@ for (crop in crops) {
     other_countries <- c("AR", "AU", "BR", "CN", "IN", "US")
   }
 
-  process_indicators(crop, "EU", start_year, end_year, crop_mask_file)
-  process_indicators(crop, "FEWSNET", start_year, end_year, crop_mask_file)
-  for (cn in other_countries) {
-    process_indicators(crop, cn, start_year, end_year, crop_mask_file)
+  regions <- c(regions, other_countries)
+  if (!is.null(opt$region)) {
+    regions <- c(opt$region);
+  }
+
+  for (reg in regions) {
+    process_indicators(crop, reg, sel_indicators, start_year, end_year, crop_mask_file)
   }
 }
+
