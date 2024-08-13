@@ -182,7 +182,7 @@ get_shapes <- function(region) {
   sel_shapes <- project(sel_shapes, "EPSG:4326")
 }
 
-process_ts_raster <- function(region, ind_filename, indicator, crop_mask_filename) {
+process_ts_raster <- function(ind_filename, region, indicator, crop_mask_filename) {
   sel_shapes <- get_shapes(region)
   crop_mask = rast(crop_mask_filename)
 
@@ -365,8 +365,11 @@ process_indicators <- function(crop, region,
         file_list <- list.files(path=file_path,
                                 pattern=glob2rx(paste0(filename_pattern, as.character(start_year), "*")),
                                 full.names=TRUE)
-        num_year_files <- length(file_list)
-        found_raster_file <- length(file_list) > 0
+        if (length(file_list) == 0) {
+          start_year <- start_year + 1 
+        } else {
+          found_raster_file <- TRUE
+        }
       }
 
       # resample
