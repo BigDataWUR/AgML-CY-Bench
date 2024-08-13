@@ -180,11 +180,12 @@ get_shapes <- function(region) {
                        "00ent_edited.shp"))
   }
   sel_shapes <- project(sel_shapes, "EPSG:4326")
+  return(sel_shapes)
 }
 
-process_ts_raster <- function(ind_filename, region, indicator, crop_mask_filename) {
+process_ts_raster <- function(ind_filename, region, indicator, crop_mask_file) {
   sel_shapes <- get_shapes(region)
-  crop_mask = rast(crop_mask_filename)
+  crop_mask = rast(crop_mask_file)
 
   # Handle NetCDF files.
   # AgERA5 files (not ET0 files) are NetCDF or .nc files.
@@ -243,7 +244,7 @@ process_ts_raster <- function(ind_filename, region, indicator, crop_mask_filenam
 }
 
 process_ts_year <- function(year, region, file_path, filename_pattern,
-                            indicator, crop_mask_filename, sel_shapes) {
+                            indicator, crop_mask_file, sel_shapes) {
   file_list <- list.files(path=file_path,
                           pattern=glob2rx(paste0(filename_pattern, as.character(year), "*")),
                           full.names=TRUE)
@@ -252,7 +253,7 @@ process_ts_year <- function(year, region, file_path, filename_pattern,
   }
 
   dfs <- pblapply(file_list, process_ts_raster, region=region, indicator=indicator,
-                  crop_mask_filename=crop_mask_filename)
+                  crop_mask_file=crop_mask_file)
 
   result <- rbindlist(dfs)
   return(result)
@@ -263,8 +264,6 @@ process_indicators <- function(crop, region,
                                sel_indicators,
                                start_year, end_year,
                                crop_mask_file, num_cpus) {
-  # print(region)
-
   ###############################
   # Process each indicator      #
   ###############################
@@ -302,7 +301,7 @@ process_indicators <- function(crop, region,
       # Crop rasters
       sel_shapes <- get_shapes(region)
       crop_mask <- crop(crop_mask, sel_shapes)
-      ind_rast <- crop(crop_mask, sel_shapes)
+      ind_rast <- crop(ind_rast, sel_shapes)
 
       # TODO: filter invalid indicator values
 
@@ -317,20 +316,19 @@ process_indicators <- function(crop, region,
       crop_mask_vals$ID <- NULL
       names(crop_mask_vals) <- c("crop_area_fraction", "x", "y", "adm_id")
 
-      result <- as.data.frame(cbind(indicator = ind_vals, crop_area_fraction = crop_mask_vals$crop_area_fraction))
+      result <- as.data.frame(cbind(ind_vals, crop_area_fraction=crop_mask_vals$crop_area_fraction))
       result <- na.exclude(result)
+      colnames(result) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
 
-      # for now, "drainage_class" is the only categorical data
       if (is_categorical){
         # aggregate area fraction by category
         result <- aggregate(list(sum_weight=result$crop_area_fraction),
                             by=list(adm_id=result$adm_id,
                                     indicator=result$indicator),
                             FUN=sum)
-        # order by sum_weight
-        # print(head(result))
-        order(result$adm_id, result$sum_weight, decreasing=TRUE)
-        # keep only the first item per adm_id
+        # order by sum_weight, largest first
+        result <- result[order(result$adm_id, -result$sum_weight),]
+        # keep only the indicator category with the largest sum_weight
         result <- result[ !duplicated(result$adm_id), ]
         result$sum_weight <- NULL
       } else {
@@ -345,7 +343,6 @@ process_indicators <- function(crop, region,
 
       result$crop_name <- crop
       result <- result[, c("crop_name", "adm_id", "indicator")]
-      colnames(result) <- c("crop_name", "adm_id", indicator)
 
       # clean up memory
       rm(list=c("ind_rast", "ind_vals", "crop_mask_vals"))
@@ -388,7 +385,7 @@ process_indicators <- function(crop, region,
                       region=region,
                       file_path=indicator_path,
                       filename_pattern=filename_pattern,
-                      crop_mask_filename=resampled_filename,
+                      crop_mask_file=resampled_filename,
                       cl=num_cpus)
   
       result <- rbindlist(dfs)
@@ -416,20 +413,20 @@ option_list <- list(
               help="country or region", metavar="character"),
   make_option(c("-i", "--indicator"), type="character", default=NULL, 
               help="indicator", metavar="character"),
-  make_option(c("-p", "--cpus"), type="integerr", default=NULL, 
+  make_option(c("-p", "--cpus"), type="integer", default=1, 
               help="number of cpus", metavar="integer")
-); 
- 
-opt_parser <- OptionParser(option_list=option_list);
-opt <- parse_args(opt_parser);
+)
 
-num_cores <- 16
+opt_parser <- OptionParser(option_list=option_list)
+opt <- parse_args(opt_parser)
+
+num_cpus <- 16
 if (!is.null(opt$cpus)) {
-  num_cpus <- opt$cpus;
+  num_cpus <- opt$cpus
 }
 
 if (!is.null(opt$crop)) {
-  crops <- c(opt$crop); 
+  crops <- c(opt$crop)
 }
 
 sel_indicators <- names(indicators)
@@ -458,6 +455,8 @@ for (crop in crops) {
   }
 
   for (reg in regions) {
-    process_indicators(crop, reg, sel_indicators, start_year, end_year, crop_mask_file)
+    process_indicators(crop, reg, sel_indicators,
+                       start_year, end_year,
+                       crop_mask_file, num_cpus)
   }
 }
