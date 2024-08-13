@@ -43,3 +43,9 @@ def test_split():
     ds1, ds2 = dataset_cv.split_on_years((even_years, odd_years))
     assert ds1.years == even_years
     assert ds2.years == odd_years
+
+def test_load():
+    ds1 = Dataset.load("maize_NL")
+    ds2 = Dataset.load("maize_ES")
+    ds3 = Dataset.load("maize_NL_ES")
+    assert len(ds3) == (len(ds1) + len(ds2))
