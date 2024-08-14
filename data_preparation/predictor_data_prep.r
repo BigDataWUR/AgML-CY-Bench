@@ -243,8 +243,7 @@ process_ts_raster <- function(indicator_file, indicator,
   colnames(aggregates) <- c("adm_id", "ind_file", indicator)
   aggregates$date <- str_sub(aggregates$ind_file, -8,-1)
   aggregates$crop_name <- crop
-  aggregates <- aggregates[, c("crop_name", "adm_id",
-                               "date", indicator)]
+  aggregates <- aggregates[, c("crop_name", "adm_id", "date", indicator)]
   return(aggregates)
 }
 
@@ -267,7 +266,6 @@ process_ts_year <- function(year, file_path, filename_pattern,
   result <- rbindlist(dfs)
   return(result)
 }
-
 
 process_indicators <- function(crop, region,
                                sel_indicators,
@@ -404,7 +402,7 @@ process_indicators <- function(crop, region,
       rm(list=c("ind_rast", "ind_vals", "crop_mask_vals"))
       gc()
     }
- 
+
     if (!dir.exists(file.path(OUTPUT_PATH, crop, region, indicator))) {
         dir.create(file.path(OUTPUT_PATH, crop, region, indicator),
                    recursive=TRUE)
@@ -413,8 +411,7 @@ process_indicators <- function(crop, region,
     write.csv(result,
               file.path(OUTPUT_PATH, crop, region, indicator,
                         paste0(indicator, "_", region, ".csv")),
-              row.names=FALSE)
-    
+              row.names=FALSE) 
   }
 }
 
