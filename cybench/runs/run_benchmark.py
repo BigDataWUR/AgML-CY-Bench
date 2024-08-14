@@ -12,14 +12,14 @@ from cybench.config import (
     DATASETS,
     PATH_DATA_DIR,
     PATH_RESULTS_DIR,
+    KEY_COUNTRY,
     KEY_LOC,
     KEY_YEAR,
+    KEY_TARGET,
 )
 
 from cybench.datasets.dataset import Dataset
-
-from cybench.evaluation.eval import evaluate_model, evaluate_predictions
-
+from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_model import TrendModel
 from cybench.models.sklearn_model import SklearnModel
@@ -74,7 +74,7 @@ _BASELINE_MODEL_FIT_KWARGS["SklearnRF"] = {
 
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
     "batch_size": 16,
-    "num_epochs": 50,
+    "num_epochs": 10,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
     "optim_fn": torch.optim.Adam,
     "optim_kwargs": {"lr": 0.0001, "weight_decay": 0.00001},
@@ -165,22 +165,18 @@ def run_benchmark(
         model_output = {
             KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
             KEY_YEAR: [year for _, year in test_dataset.indices()],
-            "targets": labels,
+            KEY_TARGET: labels,
         }
 
-        compiled_results = {}
         for model_name, model_constructor in model_constructors.items():
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
-            # save predictions
-            results = evaluate_predictions(labels, predictions)
-            compiled_results[model_name] = results
-
             model_output[model_name] = predictions
 
         df = pd.DataFrame.from_dict(model_output)
-        df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+        df[KEY_COUNTRY] = df[KEY_LOC].str[:2]
+        df.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
     df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
@@ -203,7 +199,7 @@ def load_results(
 
     # No files, return an empty data frame
     if not files:
-        return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
+        return pd.DataFrame(columns=[KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET])
 
     df_all = pd.DataFrame()
     for file in files:
@@ -220,9 +216,9 @@ def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
         return df_all
 
     for model_name, model_short_name in model_names.items():
-        df_all[model_short_name + "_res"] = df_all[model_name] - df_all["targets"]
+        df_all[model_short_name + "_res"] = df_all[model_name] - df_all[KEY_TARGET]
 
-    df_all.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    df_all.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
 
     return df_all
 
@@ -233,27 +229,31 @@ def compute_metrics(
 ) -> pd.DataFrame:
     df_all = load_results(run_name)
     if df_all.empty:
-        return pd.DataFrame(columns=["model", "year"])
+        return pd.DataFrame(columns=[KEY_COUNTRY, "model", KEY_YEAR])
 
     rows = []
-    all_years = sorted(df_all[KEY_YEAR].unique())
-    for yr in all_years:
-        df_yr = df_all[df_all[KEY_YEAR] == yr]
-        y_true = df_yr["targets"].values
-        for model_name in model_names:
-            metrics = evaluate_predictions(y_true, df_yr[model_name].values)
-            metrics_row = {
-                "model": model_name,
-                "year": yr,
-            }
+    country_codes = df_all[KEY_COUNTRY].unique()
+    for cn in country_codes:
+        df_cn = df_all[df_all[KEY_COUNTRY] == cn]
+        all_years = sorted(df_cn[KEY_YEAR].unique())
+        for yr in all_years:
+            df_yr = df_cn[df_cn[KEY_YEAR] == yr]
+            y_true = df_yr[KEY_TARGET].values
+            for model_name in model_names:
+                metrics = evaluate_predictions(y_true, df_yr[model_name].values)
+                metrics_row = {
+                    KEY_COUNTRY: cn,
+                    "model": model_name,
+                    KEY_YEAR: yr,
+                }
 
-            for metric_name, value in metrics.items():
-                metrics_row[metric_name] = value
+                for metric_name, value in metrics.items():
+                    metrics_row[metric_name] = value
 
-            rows.append(metrics_row)
+                rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
-    df_all.set_index(["model", KEY_YEAR], inplace=True)
+    df_all.set_index([KEY_COUNTRY, "model", KEY_YEAR], inplace=True)
 
     return df_all
 
