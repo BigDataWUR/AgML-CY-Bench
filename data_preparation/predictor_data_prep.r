@@ -268,6 +268,7 @@ process_ts_year <- function(year, file_path, filename_pattern,
                   region_boundaries=region_boundaries)
 
   result <- rbindlist(dfs)
+  rm(dfs)
   return(result)
 }
 
@@ -344,17 +345,17 @@ process_indicators <- function(crop, region,
 
       # NOTE for crop calendars, sos and eos are crop specific.
       if (indicator_source == "ESA_WC_Crop_Calendars") {
-        ind_filename <- file.path(PREDICTORS_DATA_PATH,
-                                  indicator_source,
-                                  paste0(crop, "_", filename_pattern, ".tif"))
+        indicator_file <- file.path(PREDICTORS_DATA_PATH,
+                                    indicator_source,
+                                    paste0(crop, "_", filename_pattern, ".tif"))
       } else {
-        ind_filename <- file.path(PREDICTORS_DATA_PATH,
-                                  indicator_source,
-                                  paste0(filename_pattern, ".tif"))
+        indicator_file <- file.path(PREDICTORS_DATA_PATH,
+                                    indicator_source,
+                                    paste0(filename_pattern, ".tif"))
       }
  
       # Resample crop mask to the resolution of indicator.
-      ind_rast <- rast(ind_filename)
+      ind_rast <- rast(indicator_file)
       crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
 
       # Crop rasters
