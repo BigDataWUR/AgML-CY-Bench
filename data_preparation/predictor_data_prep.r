@@ -120,7 +120,11 @@ get_shapes <- function(region) {
     for (cn in names(EU_countries)) {
       cn_shapes <- eu_shapes[(eu_shapes$CNTR_CODE == cn) &
                              (eu_shapes$LEVL_CODE == EU_countries[[cn]])]
-      sel_shapes <- rbind(sel_shapes, cn_shapes)
+      if (is.null(sel_shapes)) {
+        sel_shapes <- cn_shapes
+      } else {
+        sel_shapes <- rbind(sel_shapes, cn_shapes)
+      }
     }
     sel_shapes$adm_id <- sel_shapes$NUTS_ID
   } else if (region %in% names(EU_countries)) {
