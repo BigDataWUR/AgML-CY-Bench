@@ -3,12 +3,14 @@ if(!"reshape2" %in% installed.packages()){install.packages("reshape2")}
 if(!"abjutils" %in% installed.packages()){install.packages("abjutils")}
 if(!"pbapply" %in% installed.packages()){install.packages("pbapply", repos='http://cran.us.r-project.org')}
 if(!"optparse" %in% installed.packages()){install.packages("optparse", repos='http://cran.us.r-project.org')}
+if(!"data.table" %in% installed.packages()){install.packages("data.table", repos='http://cran.us.r-project.org')}
 library(terra)
 library(reshape2)
 library(stringr)
 library(abjutils)
 library(pbapply)
 library(optparse)
+library(data.table)
 
 
 crops <- c("maize", "wheat")
@@ -183,17 +185,20 @@ get_shapes <- function(region) {
   return(sel_shapes)
 }
 
-process_ts_raster <- function(ind_filename, region, indicator, crop_mask_file) {
-  sel_shapes <- get_shapes(region)
+process_ts_raster <- function(indicator_file, indicator,
+                              crop_mask_file, region_boundaries) {
+  ##################################
+  # Process one time series raster #
+  ##################################
   crop_mask = rast(crop_mask_file)
 
   # Handle NetCDF files.
   # AgERA5 files (not ET0 files) are NetCDF or .nc files.
-  is_netcdf_file <- endsWith(ind_filename, ".nc")
+  is_netcdf_file <- endsWith(indicator_file, ".nc")
   if (is_netcdf_file) {
-    ind_rast <- rast(ind_filename, subds=1, win=ext(sel_shapes))
+    ind_rast <- rast(indicator_file, subds=1, win=ext(region_boundaries))
   } else {
-    ind_rast <- rast(sel_files, win=ext(sel_shapes))
+    ind_rast <- rast(indicator_file, win=ext(region_boundaries))
   }
 
   # filter and transform indicators
@@ -223,13 +228,13 @@ process_ts_raster <- function(ind_filename, region, indicator, crop_mask_file) {
   crop_mask[is.na(ind_rast)] <- 0
 
   # NOTE the order of multiplication matters
-  ind_rast <- ind_rast * crop_masks
+  ind_rast <- ind_rast * crop_mask
 
-  aggregates <- extract(ind_rast, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-  aggregates$adm_id <- sel_shapes$adm_id
+  aggregates <- extract(ind_rast, region_boundaries, fun=sum, na.rm=TRUE, ID=FALSE)
+  aggregates$adm_id <- region_boundaries$adm_id
 
-  sum_wts <- extract(crop_mask, sel_shapes, fun=sum, na.rm=TRUE, ID=FALSE)
-  sum_wts$adm_id <- sel_shapes$adm_id
+  sum_wts <- extract(crop_mask, region_boundaries, fun=sum, na.rm=TRUE, ID=FALSE)
+  sum_wts$adm_id <- region_boundaries$adm_id
 
   # Divide aggregates by weights. Added a tiny number to avoid division by Zero.
   aggregates[-ncol(aggregates)] <- aggregates[-ncol(aggregates)]/(sum_wts[-ncol(sum_wts)] + 1e-6)
@@ -243,8 +248,11 @@ process_ts_raster <- function(ind_filename, region, indicator, crop_mask_file) {
   return(aggregates)
 }
 
-process_ts_year <- function(year, region, file_path, filename_pattern,
-                            indicator, crop_mask_file, sel_shapes) {
+process_ts_year <- function(year, file_path, filename_pattern,
+                            indicator, crop_mask_file, region_boundaries) {
+  ############################################
+  # Process time series rasters for one year #
+  ############################################
   file_list <- list.files(path=file_path,
                           pattern=glob2rx(paste0(filename_pattern, as.character(year), "*")),
                           full.names=TRUE)
@@ -252,8 +260,9 @@ process_ts_year <- function(year, region, file_path, filename_pattern,
     return (NULL)
   }
 
-  dfs <- pblapply(file_list, process_ts_raster, region=region, indicator=indicator,
-                  crop_mask_file=crop_mask_file)
+  dfs <- pblapply(file_list, process_ts_raster, indicator=indicator,
+                  crop_mask_file=crop_mask_file,
+                  region_boundaries=region_boundaries)
 
   result <- rbindlist(dfs)
   return(result)
@@ -264,9 +273,6 @@ process_indicators <- function(crop, region,
                                sel_indicators,
                                start_year, end_year,
                                crop_mask_file, num_cpus) {
-  ###############################
-  # Process each indicator      #
-  ###############################
   for (indicator in sel_indicators) {
     filename_pattern <- indicators[[indicator]][["filename_pattern"]]
     indicator_source <- indicators[[indicator]][["source"]]
@@ -274,83 +280,17 @@ process_indicators <- function(crop, region,
     is_categorical <- indicators[[indicator]][["is_categorical"]]
 
     # print(paste(indicator, indicator_source, filename_pattern, is_time_series, is_categorical))
+    region_boundaries <- get_shapes(region)
     crop_mask <- rast(crop_mask_file)
     crop_mask[crop_mask > 100] <- NA
     crop_mask[crop_mask < 0] <- NA
     result <- NULL
 
-    ###############
-    # static data #
-    ###############
-    if (!is_time_series) {
-      # NOTE for crop calendars, sos and eos are crop specific.
-      if (indicator_source == "ESA_WC_Crop_Calendars") {
-        ind_filename <- file.path(PREDICTORS_DATA_PATH,
-                                  indicator_source,
-                                  paste0(crop, "_", filename_pattern, ".tif"))
-      } else {
-        ind_filename <- file.path(PREDICTORS_DATA_PATH,
-                                  indicator_source,
-                                  paste0(filename_pattern, ".tif"))
-      }
- 
-      # Resample crop mask to the resolution of indicator.
-      ind_rast <- rast(ind_filename)
-      crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
-
-      # Crop rasters
-      sel_shapes <- get_shapes(region)
-      crop_mask <- crop(crop_mask, sel_shapes)
-      ind_rast <- crop(ind_rast, sel_shapes)
-
-      # TODO: filter invalid indicator values
-
-      # Extract indicator values for boundaries
-      ind_vals <- extract(ind_rast, sel_shapes, xy=TRUE)
-      ind_vals$adm_id <- sel_shapes$adm_id[ind_vals$ID]
-      ind_vals$ID <- NULL
-
-      # extract crop mask values
-      crop_mask_vals <- extract(crop_mask, sel_shapes, xy=TRUE)
-      crop_mask_vals$adm_id <- sel_shapes$adm_id[crop_mask_vals$ID]
-      crop_mask_vals$ID <- NULL
-      names(crop_mask_vals) <- c("crop_area_fraction", "x", "y", "adm_id")
-
-      result <- as.data.frame(cbind(ind_vals, crop_area_fraction=crop_mask_vals$crop_area_fraction))
-      result <- na.exclude(result)
-      colnames(result) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
-
-      if (is_categorical){
-        # aggregate area fraction by category
-        result <- aggregate(list(sum_weight=result$crop_area_fraction),
-                            by=list(adm_id=result$adm_id,
-                                    indicator=result$indicator),
-                            FUN=sum)
-        # order by sum_weight, largest first
-        result <- result[order(result$adm_id, -result$sum_weight),]
-        # keep only the indicator category with the largest sum_weight
-        result <- result[ !duplicated(result$adm_id), ]
-        result$sum_weight <- NULL
-      } else {
-        # aggregate
-        result$weighted_ind <- result$indicator * result$crop_area_fraction
-        result <- aggregate(list(sum_ind=result$weighted_ind,
-                                 sum_weight=result$crop_area_fraction),
-                            by=list(adm_id=result$adm_id), FUN=sum)
-        result$indicator <- result$sum_ind/result$sum_weight
-        result <- result[, c("adm_id", "indicator")]
-      }
-
-      result$crop_name <- crop
-      result <- result[, c("crop_name", "adm_id", "indicator")]
-
-      # clean up memory
-      rm(list=c("ind_rast", "ind_vals", "crop_mask_vals"))
-      gc()
-    } else {
+    if (is_time_series) {
       ####################
       # Time series data #
       ####################
+
       # NOTE: AgERA5 data is split by region.
       # So include region-specific directory in path.
       if (indicator_source == "AgERA5") {
@@ -376,20 +316,92 @@ process_indicators <- function(crop, region,
       # Resample crop mask to indicator rastor resolution.
       ind_rast <- rast(file_list[[1]])
       crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
-      crop_mask <- crop(crop_mask, sel_shapes)
-      resampled_filename <- file.path(AGML_ROOT, "crop_masks", "resampled_crop_mask.tif")
-      writeRaster(crop_mask, resampled_filename)
+      crop_mask <- crop(crop_mask, region_boundaries)
+      # NOTE: We are overwriting in every iteration (per indicator).
+      # This is fine because resampling is needed per indicator.
+      resampled_filename <- file.path(AGML_ROOT, "crop_masks",
+                                      "resampled_crop_mask.tif")
+      writeRaster(crop_mask, resampled_filename, overwrite=TRUE)
 
       rm(list=c("ind_rast", "crop_mask"))
       dfs <- pblapply(start_year:end_year, process_ts_year,
-                      region=region,
                       file_path=indicator_path,
                       filename_pattern=filename_pattern,
+                      indicator=indicator, 
                       crop_mask_file=resampled_filename,
+                      region_boundaries=region_boundaries, 
                       cl=num_cpus)
-  
+ 
       result <- rbindlist(dfs)
       rm(dfs)
+      gc()
+    } else {
+      ###############
+      # static data #
+      ###############
+
+      # NOTE for crop calendars, sos and eos are crop specific.
+      if (indicator_source == "ESA_WC_Crop_Calendars") {
+        ind_filename <- file.path(PREDICTORS_DATA_PATH,
+                                  indicator_source,
+                                  paste0(crop, "_", filename_pattern, ".tif"))
+      } else {
+        ind_filename <- file.path(PREDICTORS_DATA_PATH,
+                                  indicator_source,
+                                  paste0(filename_pattern, ".tif"))
+      }
+ 
+      # Resample crop mask to the resolution of indicator.
+      ind_rast <- rast(ind_filename)
+      crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
+
+      # Crop rasters
+      crop_mask <- crop(crop_mask, region_boundaries)
+      ind_rast <- crop(ind_rast, region_boundaries)
+
+      # TODO: filter invalid indicator values
+
+      # Extract indicator values for boundaries
+      ind_vals <- extract(ind_rast, region_boundaries, xy=TRUE)
+      ind_vals$adm_id <- region_boundaries$adm_id[ind_vals$ID]
+      ind_vals$ID <- NULL
+
+      # extract crop mask values
+      crop_mask_vals <- extract(crop_mask, region_boundaries, xy=TRUE)
+      crop_mask_vals$adm_id <- region_boundaries$adm_id[crop_mask_vals$ID]
+      crop_mask_vals$ID <- NULL
+      names(crop_mask_vals) <- c("crop_area_fraction", "x", "y", "adm_id")
+
+      result <- as.data.frame(cbind(ind_vals, crop_area_fraction=crop_mask_vals$crop_area_fraction))
+      result <- na.exclude(result)
+      colnames(result) <- c("indicator", "x",	"y", "adm_id",	"crop_area_fraction")
+
+      if (is_categorical) {
+        # aggregate crop area fraction by category
+        result <- aggregate(list(sum_weight=result$crop_area_fraction),
+                            by=list(adm_id=result$adm_id,
+                                    indicator=result$indicator),
+                            FUN=sum)
+        # order by sum_weight, largest first
+        result <- result[order(result$adm_id, -result$sum_weight),]        
+        # keep only the indicator category with the largest sum_weight
+        result <- result[ !duplicated(result$adm_id), ]
+        result$sum_weight <- NULL
+      } else {
+        # aggregate
+        result$weighted_ind <- result$indicator * result$crop_area_fraction
+        result <- aggregate(list(sum_ind=result$weighted_ind,
+                                 sum_weight=result$crop_area_fraction),
+                            by=list(adm_id=result$adm_id), FUN=sum)
+        result$indicator <- result$sum_ind/result$sum_weight
+        result <- result[, c("adm_id", "indicator")]
+      }
+
+      result$crop_name <- crop
+      result <- result[, c("crop_name", "adm_id", "indicator")]
+
+      # clean up memory
+      rm(list=c("ind_rast", "ind_vals", "crop_mask_vals"))
       gc()
     }
  
@@ -414,9 +426,9 @@ option_list <- list(
   make_option(c("-i", "--indicator"), type="character", default=NULL, 
               help="indicator", metavar="character"),
   make_option(c("-p", "--cpus"), type="integer", default=1, 
-              help="number of cpus", metavar="integer")
+              help="number of cpus", metavar="number")
 )
-
+ 
 opt_parser <- OptionParser(option_list=option_list)
 opt <- parse_args(opt_parser)
 
