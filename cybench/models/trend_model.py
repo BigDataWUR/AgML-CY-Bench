@@ -32,7 +32,7 @@ class TrendModel(BaseModel):
         Args:
           trend_x: a list of years.
           trend_y: a list of values (e.g. yields)
-          pred_x: year for which to predict trend
+
         Returns:
           A linear trend estimator
         """
@@ -61,6 +61,7 @@ class TrendModel(BaseModel):
         Args:
           dataset: Dataset
           **fit_params: Additional parameters.
+
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
@@ -101,10 +102,11 @@ class TrendModel(BaseModel):
 
         return self, {}
 
-    def predict_batch(self, X: list):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list):
+        """Run fitted model on a list of data items.
         Args:
           X: a list of data items, each of which is a dict
+
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
