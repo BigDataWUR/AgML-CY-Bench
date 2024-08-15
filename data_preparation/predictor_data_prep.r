@@ -201,6 +201,7 @@ process_ts_raster <- function(indicator_file, indicator,
   is_netcdf_file <- endsWith(indicator_file, ".nc")
   if (is_netcdf_file) {
     ind_rast <- rast(indicator_file, subds=1, win=ext(region_boundaries))
+    names(ind_rast) <- abjutils::file_sans_ext(basename(sources(ind_rast)))
   } else {
     ind_rast <- rast(indicator_file, win=ext(region_boundaries))
   }
@@ -242,10 +243,9 @@ process_ts_raster <- function(indicator_file, indicator,
 
   # Divide aggregates by weights. Added a tiny number to avoid division by Zero.
   aggregates[-ncol(aggregates)] <- aggregates[-ncol(aggregates)]/(sum_wts[-ncol(sum_wts)] + 1e-6)
-  aggregates <- melt(aggregates)
-          
+  aggregates <- reshape2::melt(aggregates)
   colnames(aggregates) <- c("adm_id", "ind_file", indicator)
-  aggregates$date <- str_sub(aggregates$ind_file, -8,-1)
+  aggregates$date <- stringr::str_sub(aggregates$ind_file, -8,-1)
   aggregates$crop_name <- crop
   aggregates <- aggregates[, c("crop_name", "adm_id", "date", indicator)]
   return(aggregates)
@@ -285,8 +285,9 @@ process_indicators <- function(crop, region,
     # print(paste(indicator, indicator_source, filename_pattern, is_time_series, is_categorical))
     region_boundaries <- get_shapes(region)
     crop_mask <- rast(crop_mask_file)
-    crop_mask[crop_mask > 100] <- NA
-    crop_mask[crop_mask < 0] <- NA
+    crop_mask[crop_mask > 100] <- 0
+    crop_mask[crop_mask < 0] <- 0
+    crop_mask[is.na(crop_mask)] <- 0
     result <- NULL
 
     if (is_time_series) {
@@ -413,10 +414,12 @@ process_indicators <- function(crop, region,
                    recursive=TRUE)
     }
     # print(head(result))
-    write.csv(result,
-              file.path(OUTPUT_PATH, crop, region, indicator,
-                        paste0(indicator, "_", region, ".csv")),
-              row.names=FALSE) 
+    if (!is.null(result)) {
+      write.csv(result,
+                file.path(OUTPUT_PATH, crop, region, indicator,
+                          paste0(indicator, "_", region, ".csv")),
+                row.names=FALSE)
+    }
   }
 }
 
