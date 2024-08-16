@@ -13,9 +13,7 @@ from cybench.config import (
 )
 
 from cybench.datasets.dataset import Dataset
-
 from cybench.evaluation.eval import evaluate_predictions
-
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge
@@ -35,32 +33,9 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
-_BASELINE_MODEL_INIT_KWARGS["LSTM"] = {
-    "hidden_size": 64,
-    "num_layers": 1,
-}
-
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "batch_size": 16,
-    "num_epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
-    "optim_fn": torch.optim.Adam,
-    "optim_kwargs": {"lr": 0.0001, "weight_decay": 0.00001},
-    "scheduler_fn": torch.optim.lr_scheduler.StepLR,
-    "scheduler_kwargs": {"step_size": 1, "gamma": 1},
-    "val_fraction": 0.1,
-    "val_split_by_year": True,
-    "do_early_stopping": True,
-    "optimize_hyperparameters": False,
-    "param_space": {
-        "optim_kwargs": {
-            "lr": [0.0001, 0.00001],
-            "weight_decay": [0.0001, 0.00001],
-        },
-    },
-    "do_kfold": False,
-    "kfolds": 5,
 }
 
 
@@ -84,6 +59,7 @@ def run_benchmark(
         baseline_models (list): A list of names of baseline models to run next to the provided model.
                                 If unspecified, a default list of baseline models will be used.
         dataset_name (str): The name of the dataset to load
+
     Returns:
         a dictionary containing the results of the benchmark
     """
@@ -162,6 +138,14 @@ def run_benchmark(
 def load_results(
     run_name: str,
 ) -> pd.DataFrame:
+    """
+    Load saved results for analysis or visualization.
+    Args:
+        run_name (str): The name of the run. Will be used to store log files and model results
+
+    Returns:
+        a pd.DataFrame containing the predictions of benchmark models
+    """
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
 
     files = [
@@ -184,6 +168,15 @@ def load_results(
 
 
 def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
+    """
+    Get prediction residuals (i.e., model predictions - labels).
+    Args:
+        run_name (str): The name of the run. Will be used to store log files and model results
+        model_names (dict): A mapping of model name (key) to a shorter name (value)
+
+    Returns:
+        a pd.DataFrame containing prediction residuals
+    """
     df_all = load_results(run_name)
     if df_all.empty:
         return df_all
@@ -200,6 +193,15 @@ def compute_metrics(
     run_name: str,
     model_names: list,
 ) -> pd.DataFrame:
+    """
+    Compute evaluation metrics on saved predictions.
+    Args:
+        run_name (str): The name of the run. Will be used to store log files and model results
+        model_names (list) : names of models
+
+    Returns:
+        a pd.DataFrame containing evaluation metrics
+    """
     df_all = load_results(run_name)
     if df_all.empty:
         return pd.DataFrame(columns=["model", "year"])

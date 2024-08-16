@@ -15,10 +15,16 @@ class TrendModel(BaseModel):
     """Default trend estimator.
 
     Trend is estimated using years as features.
+    Trend choices are linear or quadratic, but linear is recommended.
+    From @mmeronijrc: Small sample sizes and the use of quadratic or loess trend
+    can lead to strange results.
     """
 
     def __init__(self, trend="linear"):
         self._trend = trend
+        if trend not in ["linear", "quadratic"]:
+            raise Exception(f"Unsupported trend {trend}")
+
         self._trend_estimators = {}
 
     def _linear_trend_estimator(self, trend_x, trend_y):
@@ -68,17 +74,17 @@ class TrendModel(BaseModel):
             trend_x = loc_df[KEY_YEAR].values
             trend_y = loc_df[KEY_TARGET].values
 
-            result = trend_mk.original_test(trend_y)
+            trend_exists = False
             # NOTE Changing this condition may require an update to
             # test_trend_model in tests/models/test_model.py.
             # TODO: Find an appropriate place to define the threshold.
-            if (trend_x.shape[0] < 6) or not result.h:
-                self._trend_estimators[loc] = {
-                    "estimator": None,
-                    "mean": np.mean(trend_y),
-                }
-            else:
-                # NOTE: trend can be "linear" or "quadratic". We could implement LOESS.
+            # NOTE mannkendall test throws a division by zero error for samples < 2.
+            # So check number of samples before running the test.
+            if trend_y.shape[0] >= 6:
+                result = trend_mk.original_test(trend_y)
+                trend_exists = result.h
+
+            if trend_exists:
                 if self._trend == "quadratic":
                     trend_est = self._quadratic_trend_estimator(trend_x, trend_y)
                 else:
@@ -88,14 +94,19 @@ class TrendModel(BaseModel):
                     "estimator": trend_est,
                     "mean": None,
                 }
+            else:
+                # return the average
+                self._trend_estimators[loc] = {
+                    "estimator": None,
+                    "mean": np.mean(trend_y),
+                }
 
         return self, {}
 
-    def predict_batch(self, X: list, **predict_params):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list):
+        """Run fitted model on a list of data items.
         Args:
           X: a list of data items, each of which is a dict
-          **predict_params: Additional parameters.
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.

@@ -44,7 +44,7 @@ def test_average_yield_model():
         KEY_YEAR: sel_year,
     }
 
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test one more location
@@ -52,7 +52,7 @@ def test_average_yield_model():
     test_data[KEY_LOC] = sel_loc
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
     expected_pred = filtered_df[KEY_TARGET].mean()
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
     # test prediction for a non-existent item
@@ -62,7 +62,7 @@ def test_average_yield_model():
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
-    test_preds, _ = model.predict_item(test_data)
+    test_preds, _ = model.predict_items([test_data])
     assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
 
@@ -128,14 +128,14 @@ def test_trend_model():
                     KEY_LOC: sel_loc,
                     KEY_YEAR: test_year,
                 }
-                test_preds, _ = model.predict_item(test_data)
+                test_preds, _ = model.predict_items([test_data])
                 expected_pred = test_yields[KEY_TARGET].values[0]
                 assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
                 # quadratic trend ( trend = c + a x + b x^2)
                 model = TrendModel(trend="quadratic")
                 model.fit(train_dataset)
-                test_preds, _ = model.predict_item(test_data)
+                test_preds, _ = model.predict_items([test_data])
                 expected_pred = test_yields[KEY_TARGET].values[0]
                 assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
         else:
@@ -152,7 +152,7 @@ def test_trend_model():
                 KEY_LOC: sel_loc,
                 KEY_YEAR: test_year,
             }
-            test_preds, _ = model.predict_item(test_data)
+            test_preds, _ = model.predict_items([test_data])
             expected_pred = train_yields[KEY_TARGET].mean()
             assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
 
@@ -217,36 +217,50 @@ def test_sklearn_model():
 
 
 def test_nn_model():
-    train_dataset = Dataset.load("maize_ES")
-    test_dataset = Dataset.load("maize_ES")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    train_dataset = Dataset.load("maize_NL")
+    test_dataset = Dataset.load("maize_NL")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize model, assumes that all features are in np.ndarray format
     model = ExampleLSTM(
         hidden_size=64,
-        num_layers=2,
+        num_layers=1,
         output_size=1,
     )
     scheduler_fn = torch.optim.lr_scheduler.StepLR
-    scheduler_kwargs = {"step_size": 2, "gamma": 0.5}
 
     # Train model
     model.fit(
         train_dataset,
-        batch_size=3200,
-        num_epochs=2,
+        batch_size=16,
+        epochs=10,
+        param_space={
+            "lr": [0.0001, 0.00001],
+            "weight_decay": [0.0001, 0.00001],
+        },
         device=device,
-        optim_kwargs={"lr": 0.01},
         scheduler_fn=scheduler_fn,
-        scheduler_kwargs=scheduler_kwargs,
+        **{
+            "optimize_hyperparameters": True,
+            "validation_interval": 5,
+            "loss_kwargs": {
+                "reduction": "mean",
+            },
+            "sched_kwargs": {
+                "step_size": 2,
+                "gamma": 0.5,
+            },
+        },
     )
 
-    test_preds, _ = model.predict(test_dataset)
-    assert test_preds.shape[0] == len(test_dataset)
+    # Test predict_items()
+    num_test_items = len(test_dataset)
+    test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
+    test_preds, _ = model.predict_items(test_data)
+    assert test_preds.shape[0] == min(num_test_items, 16)
 
     # Check if evaluation results are within expected range
     evaluation_result = evaluate_model(model, test_dataset)
-    print(evaluation_result)
 
     min_expected_values = {
         "normalized_rmse": 0,

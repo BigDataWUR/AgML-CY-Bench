@@ -45,8 +45,8 @@ class AverageYieldModel(BaseModel):
 
         return self, {}
 
-    def predict_batch(self, X: list):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list):
+        """Run fitted model on a list of data items.
 
         Args:
           X: a list of data items, each of which is a dict
