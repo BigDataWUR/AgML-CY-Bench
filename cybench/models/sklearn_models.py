@@ -251,8 +251,8 @@ class BaseSklearnModel(BaseModel):
 
         return self._est.predict(X_test), {}
 
-    def predict_batch(self, X: list, **predict_params):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list, **predict_params):
+        """Run fitted model on a list of data items.
 
         Args:
           X: a list of data items, each of which is a dict
