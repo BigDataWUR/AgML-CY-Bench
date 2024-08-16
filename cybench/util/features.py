@@ -202,6 +202,10 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
     Returns:
       pd.DataFrame
     """
+    # If indicators are not in the dataframe
+    if (set(indicators).intersection(set(df.columns)) != set(indicators)):
+        return None
+
     # for a data source, dates should match across all indicators
     df["date"] = df.apply(lambda r: r[KEY_DATES][indicators[0]], axis=1)
 
