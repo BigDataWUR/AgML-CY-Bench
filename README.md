@@ -33,22 +33,24 @@ Anticipating crop yields is also important to ensure market transparency at the 
 e.g. [Agriculture Market Information System](https://www.amis-outlook.org/), [GEOGLAM Crop Monitor](https://www.cropmonitor.org/))
 and to plan response actions in food insecure countries at risk of food production shortfalls.
 
-We propose CY-Bench, a dataset and benchmark for subnational crop yield forecasting, with coverage of major crop growing
-countries of the world for maize and wheat. By subnational, we mean the administrative
-level where yield statistics are published. When statistics are available for multiple levels, we pick the highest
-resolution. By yield, we mean end-of-season yield statistics as published by national statistics offices or similar
-entities representing a group of countries. By forecasting, we mean prediction is made ahead of harvest. The task is
-also called in-season crop yield forecasting. In-season forecasting is done at a number of time points during the
-growing season from mid-season to before harvest. The first forecast is made in the middle of the season, i.e. (end of
-season - start of the season)/2,
-between mid-season and harvest and 2 weeks before harvest. These time points depend on the crop calendar for the
-selected crop and country (or region). Since yield statistics may not be available for the current season, we evaluate
-models using predictors and yield statistics for all available years. The models and forecasts can be used for food
-security planning or famine early warning. We compare models, algorithms and architectures by keeping other parts of the
-workflow as similar as possible. For example: the dataset includes same source for each type of predictor (e.g. weather
-variables, soil moisture, evapotranspiration, remote sensing biomass indicators, soil properties), and selected data are
-preprocessed using the same pipeline (use the crop mask, crop calendar; use the same boundary files and approach for
-spatial aggregation) and (for algorithms that require feature design) and same feature design protocol.
+We propose CY-Bench, a dataset and benchmark for subnational crop yield forecasting, with coverage of major crop
+growing countries and underrepresented countries of the world for maize and wheat. By subnational, we mean the 
+administrative level where yield statistics are published. When statistics are available for multiple levels, we
+pick the highest resolution. By yield, we mean end-of-season yield statistics as published by national statistics
+offices or similar entities representing a group of countries. By forecasting, we mean prediction is made ahead of
+harvest. The task is also called in-season crop yield forecasting. In-season forecasting is done at a number of 
+time points during the growing season from start of season (SOS) to end of season (EOS) or harvest. The first 
+forecast is made at `middle-of-season` (EOS - SOS)/2. Other options are `quarter-of-season` (EOS - SOS)/4
+and `n-day(s)` before harvest. The exact time point or time step when forecast is made depends on the crop calendar
+for the selected crop and country (or region). All time series inputs are truncated up to the forecast or
+inference time point, i.e. data from the remaining part of the season is not used. Since yield statistics may not 
+be available for the current season, we evaluate models using predictors and yield statistics for all available
+years. The models and forecasts can be used for food security planning or famine early warning. We compare models,
+algorithms and architectures by keeping other parts of the workflow as similar as possible. For example: the 
+dataset includes same source for each type of predictor (e.g. weather variables, soil moisture, evapotranspiration, 
+remote sensing biomass indicators, soil properties), and selected data are preprocessed using the same pipeline 
+(use the crop mask, crop calendar; use the same boundary files and approach for spatial aggregation) and (for 
+algorithms that require feature design) and same feature design protocol.
 
 #### Coverage for maize
 
