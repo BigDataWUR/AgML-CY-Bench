@@ -582,8 +582,8 @@ if __name__ == "__main__":
     """
     # 1. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with workshop data
-    # df_y, dfs_x = get_workshop_data()
-    # validate_agml_workshop_results(df_y, dfs_x)
+    df_y, dfs_x = get_workshop_data()
+    validate_agml_workshop_results(df_y, dfs_x)
 
     # 2. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with CY-Bench data
