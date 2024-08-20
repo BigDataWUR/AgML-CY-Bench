@@ -83,7 +83,7 @@ class LSTMModel(BaseModel, nn.Module):
             collate_fn=torch_dataset.collate_fn,
             shuffle=True,
             batch_size=batch_size,
-            drop_last=True
+            drop_last=True,
         )
         optimizer = torch.optim.Adam(
             self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
@@ -179,7 +179,7 @@ class LSTMModel(BaseModel, nn.Module):
                         collate_fn=torch_dataset.collate_fn,
                         shuffle=True,
                         batch_size=batch_size,
-                        drop_last=True
+                        drop_last=True,
                     )
                     optimizer = torch.optim.Adam(
                         self.parameters(), lr=lr, weight_decay=wt_decay
@@ -265,7 +265,7 @@ class LSTMModel(BaseModel, nn.Module):
             torch_dataset,
             collate_fn=torch_dataset.collate_fn,
             shuffle=False,
-            batch_size=16
+            batch_size=16,
         )
 
         with torch.no_grad():
@@ -461,7 +461,7 @@ def get_cybench_data():
             df_x["date"] = df_x.apply(
                 lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
-        elif (input == "fpar"):
+        elif input == "fpar":
             # fpar is already at dekadal resolution
             df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
 
@@ -529,13 +529,13 @@ def get_cybench_data_aligned_to_crop_season():
             df_x["date"] = df_x.apply(
                 lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
-        elif (input == "fpar"):
+        elif input == "fpar":
             df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
 
         # lead time = 6 dekads
         df_x = df_x[df_x["dekad"] <= 30]
         num_dekads = df_x.groupby([KEY_LOC, KEY_YEAR])["dekad"].count().min()
-        if (num_dekads < min_dekads):
+        if num_dekads < min_dekads:
             min_dekads = num_dekads
 
         dfs_x.append(df_x)
@@ -546,7 +546,7 @@ def get_cybench_data_aligned_to_crop_season():
     # get_cybench_data() does not seem to be have this issue because
     # data is not aligned to crop season.
     for i, df_x in enumerate(dfs_x):
-        if ("dekad" not in df_x.columns):
+        if "dekad" not in df_x.columns:
             continue
 
         df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "dekad"])

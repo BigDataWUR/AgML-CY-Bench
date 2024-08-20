@@ -20,9 +20,7 @@ def transform_ts_inputs_to_dekadal(batch, min_date, max_date):
         value_dekads -= 1
 
         # Aggregate timeseries to dekadal resolution
-        new_value = torch.full(
-            (value.shape[0], len(dekads)), 0.0, dtype=value.dtype
-        )
+        new_value = torch.full((value.shape[0], len(dekads)), 0.0, dtype=value.dtype)
         for d in dekads:
             mask = value_dekads == d
             if value[:, mask].shape[1] == 0:
@@ -33,7 +31,7 @@ def transform_ts_inputs_to_dekadal(batch, min_date, max_date):
                 new_value[:, d] = value[:, mask].max(dim=1).values
             elif key in ["tmin"]:  # Min aggregation
                 new_value[:, d] = value[:, mask].min(dim=1).values
-            elif (key in ["prec", "cwb"]):
+            elif key in ["prec", "cwb"]:
                 new_value[:, d] = torch.sum(value[:, mask], dim=1)
             else:  # for all other inputs
                 new_value[:, d] = torch.mean(value[:, mask], dim=1)

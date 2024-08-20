@@ -49,7 +49,7 @@ _BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs" : 50,
+    "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
@@ -145,7 +145,11 @@ def run_benchmark(
 
     df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
     df_metrics.reset_index(inplace=True)
-    print(df_metrics.groupby("model").agg({"normalized_rmse" : "mean", "mape" : "mean"}).head())
+    print(
+        df_metrics.groupby("model")
+        .agg({"normalized_rmse": "mean", "mape": "mean"})
+        .head()
+    )
 
     return {
         "df_metrics": df_metrics,
