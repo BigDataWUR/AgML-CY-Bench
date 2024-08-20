@@ -144,12 +144,6 @@ def run_benchmark(
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
     df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
-    df_metrics.reset_index(inplace=True)
-    print(
-        df_metrics.groupby("model")
-        .agg({"normalized_rmse": "mean", "mape": "mean"})
-        .head()
-    )
 
     return {
         "df_metrics": df_metrics,
