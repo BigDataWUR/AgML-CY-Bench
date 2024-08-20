@@ -19,7 +19,7 @@ from cybench.config import (
     KEY_TARGET,
     SOIL_PROPERTIES,
     METEO_INDICATORS,
-    SOIL_MOISTURE_INDICATORS,
+    RS_FPAR,
     STATIC_PREDICTORS,
     TIME_SERIES_PREDICTORS,
     CROP_CALENDAR_ENTRIES,
@@ -83,6 +83,7 @@ class LSTMModel(BaseModel, nn.Module):
             collate_fn=torch_dataset.collate_fn,
             shuffle=True,
             batch_size=batch_size,
+            drop_last=True
         )
         optimizer = torch.optim.Adam(
             self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
@@ -178,6 +179,7 @@ class LSTMModel(BaseModel, nn.Module):
                         collate_fn=torch_dataset.collate_fn,
                         shuffle=True,
                         batch_size=batch_size,
+                        drop_last=True
                     )
                     optimizer = torch.optim.Adam(
                         self.parameters(), lr=lr, weight_decay=wt_decay
@@ -263,7 +265,7 @@ class LSTMModel(BaseModel, nn.Module):
             torch_dataset,
             collate_fn=torch_dataset.collate_fn,
             shuffle=False,
-            batch_size=16,
+            batch_size=16
         )
 
         with torch.no_grad():
@@ -365,25 +367,30 @@ def get_workshop_data():
     df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y.set_index([KEY_LOC, KEY_YEAR], inplace=True)
 
-    dfs_x = []
-    for input in ["soil", "meteo", "fpar"]:
+    df_x_soil = pd.read_csv(
+        os.path.join(path_data_cn, "soil_maize_US.csv"),
+        header=0,
+    )
+    df_x_soil = df_x_soil[[KEY_LOC] + SOIL_PROPERTIES]
+    df_x_soil.set_index([KEY_LOC], inplace=True)
+
+    dfs_x = [df_x_soil]
+    for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
-        if input == "soil":
-            df_x = df_x[[KEY_LOC, "awc"]]
-            df_x.set_index([KEY_LOC], inplace=True)
+        # lead time = 6 dekads
+        df_x = df_x[df_x["dekad"] <= 30]
+        df_x["date"] = df_x.apply(
+            lambda r: date_from_dekad(r["dekad"], r["year"]), axis=1
+        )
+        df_x = df_x.drop(columns=["dekad"])
+        df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+        if input == "meteo":
+            df_x["cwb"] = df_x["prec"] = df_x["et0"]
+            df_x = df_x[METEO_INDICATORS]
         else:
-            # lead time = 6 dekads
-            df_x = df_x[df_x["dekad"] <= 30]
-            df_x["date"] = df_x.apply(
-                lambda r: date_from_dekad(r["dekad"], r["year"]), axis=1
-            )
-            df_x = df_x.drop(columns=["dekad"])
-            df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
-            if input == "meteo":
-                df_x["cwb"] = df_x["prec"] = df_x["et0"]
-                df_x = df_x[METEO_INDICATORS]
+            df_x = df_x[[RS_FPAR]]
 
         dfs_x.append(df_x)
 
@@ -431,6 +438,7 @@ def get_cybench_data():
         )
         df_x["date"] = df_x["date"].astype(str)
         df_x[KEY_YEAR] = df_x["date"].str[:4]
+        df_x[KEY_YEAR] = df_x[KEY_YEAR].astype(int)
         df_x["dekad"] = df_x.apply(lambda r: dekad_from_date(r["date"]), axis=1)
 
         # Aggregate time series data to dekadal resolution
@@ -450,20 +458,16 @@ def get_cybench_data():
                 )
                 .reset_index()
             )
-        elif input == "fpar":
-            df_x = (
-                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
-                .agg({input: "mean"})
-                .reset_index()
+            df_x["date"] = df_x.apply(
+                lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
+        elif (input == "fpar"):
+            # fpar is already at dekadal resolution
+            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
 
-        df_x["date"] = df_x.apply(
-            lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
-        )
         # lead time = 6 dekads
         df_x = df_x[df_x["dekad"] <= 30]
         df_x = df_x.drop(columns=["dekad"])
-        df_x[KEY_YEAR] = df_x[KEY_YEAR].astype(int)
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
 
         dfs_x.append(df_x)
@@ -493,6 +497,7 @@ def get_cybench_data_aligned_to_crop_season():
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
 
     dfs_x = [df_x_soil]
+    min_dekads = 36
     for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
@@ -507,7 +512,6 @@ def get_cybench_data_aligned_to_crop_season():
         # Aggregate time series data to dekadal resolution
         if input == "meteo":
             df_x["cwb"] = df_x["prec"] - df_x["et0"]
-            print(df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "dekad"]).head(40))
             df_x = (
                 df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
                 .agg(
@@ -522,23 +526,34 @@ def get_cybench_data_aligned_to_crop_season():
                 )
                 .reset_index()
             )
-        elif input == "fpar":
-            df_x = (
-                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
-                .agg({input: "mean"})
-                .reset_index()
+            df_x["date"] = df_x.apply(
+                lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
+        elif (input == "fpar"):
+            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
 
-        df_x["date"] = df_x.apply(
-            lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
-        )
         # lead time = 6 dekads
         df_x = df_x[df_x["dekad"] <= 30]
-        df_x = df_x.drop(columns=["dekad"])
-        print(df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"]).head(40))
-        df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+        num_dekads = df_x.groupby([KEY_LOC, KEY_YEAR])["dekad"].count().min()
+        if (num_dekads < min_dekads):
+            min_dekads = num_dekads
 
         dfs_x.append(df_x)
+
+    # Ensure same number of dekads.
+    # NOTE: Number of dekads can be different due to daily vs dekadal resolution
+    #       of original data and crop season alignment.
+    # get_cybench_data() does not seem to be have this issue because
+    # data is not aligned to crop season.
+    for i, df_x in enumerate(dfs_x):
+        if ("dekad" not in df_x.columns):
+            continue
+
+        df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "dekad"])
+        df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_dekads).reset_index()
+        df_x = df_x.drop(columns=["dekad", "index"])
+        df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+        dfs_x[i] = df_x
 
     return align_data(df_y, dfs_x)
 
@@ -592,7 +607,5 @@ if __name__ == "__main__":
 
     # 3. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with CY-Bench data aligned to crop season
-    # NOTE: Data alignment to crop season is not fully correct.
-    # Test again after fixing bugs.
-    # df_y, dfs_x = get_cybench_data_aligned_to_crop_season()
-    # validate_agml_workshop_results(df_y, dfs_x)
+    df_y, dfs_x = get_cybench_data_aligned_to_crop_season()
+    validate_agml_workshop_results(df_y, dfs_x)

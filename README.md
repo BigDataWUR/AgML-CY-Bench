@@ -179,16 +179,28 @@ production / harvest_area)
 
 ### Leaderboard
 
-| Crop, Country     | Lead time         | Average Yield NRMSE | Linear Trend NRMSE | Ridge (sklearn) NRMSE | Random Forest (sklearn) NRMSE | Average Yield MAPE | Linear Trend MAPE | Ridge (sklearn) MAPE | Random Forest (sklearn) MAPE |
-|-------------------|-------------------|--------|--------|--------|--------|---------|---------|---------|---------|
-| Maize, AO         | middle-of-season  | 41.272 | 35.346 | 45.959 | 44.240 | 137.177 | 132.131 | 235.828 | 208.672 |
-| Maize, AO         | quarter-of-season | 41.272 | 35.346 | 59.937 | 44.234 | 137.177 | 132.131 | 184.587 | 209.559 |
-| Maize, ES         | middle-of-season  | 15.573 | 11.911 | 24.285 | 19.230 | 14.464  | 11.236  | 25.299  | 19.124  |
-| Maize, ES         | quarter-of-season | 15.573 | 11.911 | 22.107 | 18.936 | 14.464  | 11.236  | 24.757  | 18.669  |
-| Maize, NL         | middle-of-season  | 15.315 | 15.510 | 18.111 | 16.109 | 13.888  | 14.045  | 16.252  | 14.635  |
-| Maize, NL         | quarter-of-season | 15.315 | 15.510 | 17.552 | 15.340 | 13.888  | 14.045  | 16.051  | 13.834  |
+#### Maize
 
-NOTE: Results indicate that access to more data from the crop growing season does not significantly improve performance. 
+| Country | Lead time | Naive (1) NRMSE | Trend (2) NRMSE | Ridge (3) NRMSE | RF (4) NRMSE | LSTM (5) NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
+|----|-------------------|--------|--------|--------|--------|--------|---------|---------|---------|---------|---------|
+| AO | middle-of-season  | 41.365 | 37.143 | 47.915 | 44.090 | 45.619 | 144.500 | 141.337 | 178.321 | 189.434 | 281.368 |
+| AO | quarter-of-season | 41.365 | 37.143 | 63.806 | 43.094 | 43.805 | 144.500 | 141.337 | 151.382 | 187.496 | 248.149 |
+| ES | middle-of-season  | 15.996 | 12.021 | 27.674 | 20.263 | 27.692 | 15.058  | 11.374  | 34.200  | 19.968  | 32.791 |
+| ES | quarter-of-season | 15.996 | 12.021 | 24.505 | 18.779 | 23.021 | 15.058  | 11.374  | 28.716  | 18.862  | 26.063 |
+| NL | middle-of-season  | 15.315 | 15.510 | 18.116 | 16.361 | 50.878 | 13.888  | 14.045  | 16.023  | 14.865  | 47.849 |
+| NL | quarter-of-season | 15.315 | 15.510 | 16.112 | 15.640 | 49.786 | 13.888  | 14.045  | 14.619  | 14.407  | 46.681 |
+
+#### Wheat
+
+| Country | Lead time | Naive NRMSE | Trend NRMSE | Ridge NRMSE | RF NRMSE | LSTM NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
+|----|-------------------|--------|--------|--------|--------|-|--------|---------|---------|----------|--|
+
+NOTES:
+1. Naive: Predicts average yield per admin region from the training set. If admin region is not present in the training set, it predicts the global average.
+2. Trend: Linear Trend model fits a line through the training labels. The test year can be in the middle of training years or on either side of them.
+3. Ridge: Ridge estimator from scikit-learn with feature selection (keeping 20, 25 or 30 features using Lasso as a selector) and optimization of `alpha` (or weight decay) hyperparameter.
+4. RF: RandomForestRegressor from scikit-learn without feature selection but optimization of one hyperparameter (`n_estimators` selected from 50, 100, 500).
+5. LSTM: One LSTM layer for time series inputs followed by concatenation with static inputs fed to a linear prediction layer. Number of epochs trained is 50.
 
 ### How to cite
 
