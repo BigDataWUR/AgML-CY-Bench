@@ -46,6 +46,7 @@ class TrendModel(BaseModel):
         Args:
           trend_x: a np.ndarray of years.
           trend_y: a np.ndarray of values (e.g. yields)
+
         Returns:
           A quadratic trend estimator (with an additive quadratic term)
         """
@@ -102,10 +103,12 @@ class TrendModel(BaseModel):
 
         return self, {}
 
-    def predict_items(self, X: list):
+    def predict_items(self, X: list, **predict_params):
         """Run fitted model on a list of data items.
+
         Args:
           X: a list of data items, each of which is a dict
+          **predict_params: Additional parameters
 
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
