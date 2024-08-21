@@ -201,7 +201,7 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
       pd.DataFrame
     """
     # If indicators are not in the dataframe
-    if (set(indicators).intersection(set(df.columns)) != set(indicators)):
+    if set(indicators).intersection(set(df.columns)) != set(indicators):
         return None
 
     # for a data source, dates should match across all indicators

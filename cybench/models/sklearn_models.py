@@ -159,7 +159,7 @@ class BaseSklearnModel(BaseModel):
             group_kfold = GroupKFold(n_splits=kfolds)
             # cv is here a list of tuples (train split, validation split)
             cv = group_kfold.split(X, y, groups)
-    
+
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
