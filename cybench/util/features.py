@@ -6,8 +6,6 @@ from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_DATES,
-    RS_FPAR,
-    RS_NDVI,
     GDD_BASE_TEMP,
     GDD_UPPER_LIMIT,
 )

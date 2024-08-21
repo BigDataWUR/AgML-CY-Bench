@@ -8,7 +8,6 @@ from comet_ml import Experiment
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.linear_model import Ridge
 from cybench.models.model import BaseModel
 from cybench.models.sklearn_models import SklearnRidge
 from cybench.models.trend_models import TrendModel

@@ -1,6 +1,5 @@
 import pickle
 import numpy as np
-import pandas as pd
 import logging
 from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import Ridge, Lasso
