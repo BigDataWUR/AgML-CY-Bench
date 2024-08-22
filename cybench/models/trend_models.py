@@ -1,6 +1,7 @@
 import pickle
 import numpy as np
 import pandas as pd
+from collections.abc import Iterable
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
 import pymannkendall as trend_mk
@@ -97,11 +98,11 @@ class TrendModel(BaseModel):
 
         return opt_trend_years
 
-    def _predict_trend(self, test_data: list):
+    def _predict_trend(self, test_data: Iterable):
         """Predict the trend for each data item in test data.
 
         Args:
-          test_data (list): each item in the list is a dict
+          test_data (Iterable): Dataset or a list of data items
 
         Returns:
           np.ndarray of predictions
@@ -159,6 +160,20 @@ class TrendModel(BaseModel):
             trend_predictions[i, 0] = trend
 
         return trend_predictions
+
+    def predict(self, dataset: Dataset, **predict_params):
+        """Run fitted model on a test dataset.
+
+        Args:
+          dataset: Dataset
+          **predict_params: Additional parameters
+
+        Returns:
+          A tuple containing a np.ndarray and a dict with additional information.
+        """
+        predictions = self._predict_trend(dataset)
+
+        return predictions.flatten(), {}
 
     def predict_items(self, X: list, **predict_params):
         """Run fitted model on a list of data items.
