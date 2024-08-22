@@ -157,11 +157,11 @@ def test_trend_model():
 
 def test_sklearn_model():
     # Test 1: Test with raw data
-    dataset_sw_nl = Dataset.load("wheat_NL")
+    dataset_wheat = Dataset.load("wheat_NL")
     all_years = list(range(2001, 2019))
     test_years = [2017, 2018]
     train_years = [yr for yr in all_years if yr not in test_years]
-    train_dataset, test_dataset = dataset_sw_nl.split_on_years(
+    train_dataset, test_dataset = dataset_wheat.split_on_years(
         (train_years, test_years)
     )
 
@@ -216,11 +216,12 @@ def test_sklearn_model():
 
 
 def test_sklearn_res_model():
-    dataset_sw_nl = Dataset.load("wheat_NL")
+    # wheat NL
+    dataset_wheat = Dataset.load("wheat_NL")
     all_years = list(range(2001, 2019))
     test_years = [2017, 2018]
     train_years = [yr for yr in all_years if yr not in test_years]
-    train_dataset, test_dataset = dataset_sw_nl.split_on_years(
+    train_dataset, test_dataset = dataset_wheat.split_on_years(
         (train_years, test_years)
     )
     ridge = SklearnRidge()
@@ -234,8 +235,32 @@ def test_sklearn_res_model():
 
     metrics_ridge = evaluate_predictions(targets, ridge_preds)
     metrics_ridge_res = evaluate_predictions(targets, ridge_res_preds)
-    print(metrics_ridge)
-    print(metrics_ridge_res)
+    print("wheat, NL")
+    print("SklearnRidge", metrics_ridge)
+    print("RidgeRes", metrics_ridge_res)
+
+    # maize NL
+    dataset_maize = Dataset.load("maize_NL")
+    all_years = list(range(2001, 2019))
+    test_years = [2017, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_dataset, test_dataset = dataset_maize.split_on_years(
+        (train_years, test_years)
+    )
+    ridge = SklearnRidge()
+    ridge_res = RidgeRes()
+    ridge.fit(train_dataset)
+    ridge_res.fit(train_dataset)
+
+    targets = test_dataset.targets()
+    ridge_preds, _ = ridge.predict(test_dataset)
+    ridge_res_preds, _ = ridge_res.predict(test_dataset)
+
+    metrics_ridge = evaluate_predictions(targets, ridge_preds)
+    metrics_ridge_res = evaluate_predictions(targets, ridge_res_preds)
+    print("maize, NL")
+    print("SklearnRidge", metrics_ridge)
+    print("RidgeRes", metrics_ridge_res)
 
 
 def test_nn_model():
@@ -301,3 +326,5 @@ def test_nn_model():
         assert not np.isnan(
             evaluation_result[metric]
         ), f"Value of metric '{metric}' is NaN"
+
+test_sklearn_res_model()
