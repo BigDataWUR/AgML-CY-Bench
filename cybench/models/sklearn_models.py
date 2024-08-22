@@ -72,7 +72,7 @@ class BaseSklearnModel(BaseModel):
         Args:
           dataset (Dataset): training dataset
           optimize_hyperparameters (bool): flag to optimize hyperparameters
-          select_features: flat to select features
+          select_features (bool): flat to select features
           **fit_params: Additional parameters.
 
         Returns:
@@ -181,7 +181,7 @@ class BaseSklearnModel(BaseModel):
 
         return est
 
-    def _design_features(self, crop, data_items: Iterable):
+    def _design_features(self, crop: str, data_items: Iterable):
         """Design features using data samples.
 
         Args:
