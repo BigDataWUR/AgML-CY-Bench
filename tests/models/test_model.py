@@ -2,15 +2,13 @@ import os
 import torch
 import pandas as pd
 import numpy as np
-from sklearn.linear_model import Ridge
 
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
-from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.sklearn_models import SklearnRidge, RidgeRes
 from cybench.models.nn_models import ExampleLSTM
-from cybench.evaluation.eval import evaluate_model
+from cybench.evaluation.eval import evaluate_predictions
 
 from cybench.config import PATH_DATA_DIR
 from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
@@ -201,7 +199,8 @@ def test_sklearn_model():
     assert test_preds.shape[0] == len(test_dataset)
 
     # TODO: Need alternative to hardcoding expected metrics.
-    evaluation_result = evaluate_model(model, test_dataset)
+    targets = test_dataset.targets()
+    evaluation_result = evaluate_predictions(targets, test_preds)
     expected_values = {
         "normalized_rmse": [10.0, 20.0],
         "mape": [0.10, 0.20],
@@ -214,6 +213,29 @@ def test_sklearn_model():
             round(evaluation_result[metric], 2) >= expected_value[0]
             and round(evaluation_result[metric], 2) <= expected_value[1]
         ), f"Value of metric '{metric}' does not match expected value"
+
+
+def test_sklearn_res_model():
+    dataset_sw_nl = Dataset.load("wheat_NL")
+    all_years = list(range(2001, 2019))
+    test_years = [2017, 2018]
+    train_years = [yr for yr in all_years if yr not in test_years]
+    train_dataset, test_dataset = dataset_sw_nl.split_on_years(
+        (train_years, test_years)
+    )
+    ridge = SklearnRidge()
+    ridge_res = RidgeRes()
+    ridge.fit(train_dataset)
+    ridge_res.fit(train_dataset)
+
+    targets = test_dataset.targets()
+    ridge_preds, _ = ridge.predict(test_dataset)
+    ridge_res_preds, _ = ridge_res.predict(test_dataset)
+
+    metrics_ridge = evaluate_predictions(targets, ridge_preds)
+    metrics_ridge_res = evaluate_predictions(targets, ridge_res_preds)
+    print(metrics_ridge)
+    print(metrics_ridge_res)
 
 
 def test_nn_model():
@@ -260,7 +282,9 @@ def test_nn_model():
     assert test_preds.shape[0] == min(num_test_items, 16)
 
     # Check if evaluation results are within expected range
-    evaluation_result = evaluate_model(model, test_dataset)
+    test_preds, _ = model.predict(test_dataset)
+    targets = test_dataset.targets()
+    evaluation_result = evaluate_predictions(targets, test_preds)
 
     min_expected_values = {
         "normalized_rmse": 0,

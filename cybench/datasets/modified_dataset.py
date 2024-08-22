@@ -1,14 +1,6 @@
 import pandas as pd
-import numpy as np
 
 from cybench.datasets.dataset import Dataset
-from cybench.config import (
-    KEY_LOC,
-    KEY_YEAR,
-    KEY_TARGET,
-    KEY_DATES,
-    DATASETS,
-)
 
 
 class ModifiedTargetsDataset(Dataset):
