@@ -83,7 +83,7 @@ class BaseSklearnModel(BaseModel):
             train_data = data_to_pandas(dataset)
             train_years = dataset.years
         else:
-            train_features = self._design_features(dataset)
+            train_features = self._design_features(dataset.crop, dataset)
             train_labels = data_to_pandas(
                 dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET]
             )
@@ -162,7 +162,7 @@ class BaseSklearnModel(BaseModel):
             group_kfold = GroupKFold(n_splits=kfolds)
             # cv is here a list of tuples (train split, validation split)
             cv = group_kfold.split(X, y, groups)
-    
+
         # Search for optimal value of hyperparameters
         grid_search = GridSearchCV(self._est, param_grid=param_space, cv=cv)
         grid_search.fit(X, y)
@@ -213,7 +213,8 @@ class BaseSklearnModel(BaseModel):
         ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
 
         soil_moisture_df = data_to_pandas(
-            data_items, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS
+            data_items,
+            data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS,
         )
         soil_moisture_df = unpack_time_series(
             soil_moisture_df, SOIL_MOISTURE_INDICATORS
@@ -264,7 +265,7 @@ class BaseSklearnModel(BaseModel):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        return self._predict(dataset, dataset.crop)
+        return self._predict(dataset.crop, dataset)
 
     def predict_items(self, X: list, crop=None, **predict_params):
         """Run fitted model on a list of data items.
@@ -278,7 +279,7 @@ class BaseSklearnModel(BaseModel):
           A tuple containing a np.ndarray and a dict with additional information.
         """
         assert crop is not None
-        return self._predict(X, crop)
+        return self._predict(crop, X)
 
     def save(self, model_name: str):
         """Save model, e.g. using pickle.
