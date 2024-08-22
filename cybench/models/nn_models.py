@@ -1,4 +1,3 @@
-import copy
 import random
 import torch
 import torch.nn as nn
@@ -381,7 +380,7 @@ class BaseNNModel(BaseModel, nn.Module):
         loss_kwargs: dict = {"reduction": "mean"},
         scheduler: torch.optim.lr_scheduler.LRScheduler = None,
     ):
-        """Run one epoch during trainig
+        """Run one epoch during training
 
         Args:
           tqdm_loader (tqdm): data loader with progress bar
