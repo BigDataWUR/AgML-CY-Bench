@@ -22,6 +22,7 @@ pytest = "^8.2.2"
 pyyaml = "^6.0.1"
 comet-ml = "^3.43.1"
 seaborn = "^0.13.2"
+pymannkendall = "^1.4.3"
 
 [build-system]
 requires = ["poetry-core"]
