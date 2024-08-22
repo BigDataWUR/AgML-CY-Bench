@@ -117,7 +117,7 @@ def download_agera5(cds, num_requests, start_year, end_year):
 
 
 # NOTE:
-# 1. Make sure you enough disk space when you run the full script.
+# 1. Make sure you have enough disk space when you run the full script.
 # 2. Some zip files seem to have errors. You may need to download them again.
 cds = cdsapi.Client(progress=False)
 download_agera5(cds, 16, 2001, 2023)
