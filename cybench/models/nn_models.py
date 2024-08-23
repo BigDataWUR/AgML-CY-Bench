@@ -717,7 +717,7 @@ class ExampleInceptionTime(BaseNNModel):
             x = transform(x, self._min_date, self._max_date)
 
         x_ts, x_static = separate_ts_static_inputs(x)
-        x_ts, _ = self._lstm(x_ts)
+        x_ts, _ = self._timeseries(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)
         return output
