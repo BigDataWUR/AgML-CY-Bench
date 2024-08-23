@@ -1,4 +1,5 @@
 import pandas as pd
+import pickle
 
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.modified_dataset import ModifiedTargetsDataset
@@ -105,23 +106,45 @@ class ResidualModel(BaseModel):
 
         return trend_preds + res_preds, {}
 
+    def save(self, model_name: str):
+        """Save model, e.g. using pickle.
+        Check here for options to save and load scikit-learn models:
+        https://scikit-learn.org/stable/model_persistence.html
+
+        Args:
+          model_name (str): Filename that will be used to save the model.
+        """
+        with open(model_name, "wb") as f:
+            pickle.dump(self, f)
+
+    def load(cls, model_name: str):
+        """Deserialize a saved model.
+
+        Args:
+          model_name (str): Filename that was used to save the model.
+
+        Returns:
+          The deserialized model.
+        """
+        with open(model_name, "rb") as f:
+            saved_model = pickle.load(f)
+
+        return saved_model
+
 
 class RidgeRes(ResidualModel):
     def __init__(self, feature_cols: list = None):
-        """Ridge model that predicts residuals from the trend.
-        """
+        """Ridge model that predicts residuals from the trend."""
         super().__init__(SklearnRidge(feature_cols=feature_cols))
 
 
 class RandomForestRes(ResidualModel):
     def __init__(self, feature_cols: list = None):
-        """RandomForest model that predicts residuals from the trend.
-        """
+        """RandomForest model that predicts residuals from the trend."""
         super().__init__(SklearnRandomForest(feature_cols=feature_cols))
 
 
 class LSTMRes(ResidualModel):
     def __init__(self, **kwargs):
-        """LSTM model that predicts residuals from the trend.
-        """
+        """LSTM model that predicts residuals from the trend."""
         super().__init__(ExampleLSTM(**kwargs))

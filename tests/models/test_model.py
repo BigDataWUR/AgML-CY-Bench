@@ -6,7 +6,8 @@ import numpy as np
 from cybench.datasets.dataset import Dataset
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
-from cybench.models.sklearn_models import SklearnRidge, RidgeRes
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.residual_models import RidgeRes
 from cybench.models.nn_models import ExampleLSTM
 from cybench.evaluation.eval import evaluate_predictions
 
@@ -326,5 +327,6 @@ def test_nn_model():
         assert not np.isnan(
             evaluation_result[metric]
         ), f"Value of metric '{metric}' is NaN"
+
 
 test_sklearn_res_model()
