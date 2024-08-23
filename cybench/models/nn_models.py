@@ -553,7 +553,7 @@ class BaseNNModel(BaseModel, nn.Module):
         return torch.load(model_name)
 
 
-class BaseLSTM(BaseNNModel):
+class BaselineLSTM(BaseNNModel):
     def __init__(
         self,
         hidden_size=64,
@@ -632,7 +632,7 @@ class BaseLSTM(BaseNNModel):
         return output
 
 
-class BaseInceptionTime(BaseNNModel):
+class BaselineInceptionTime(BaseNNModel):
     """InceptionTime model.
 
    Args:

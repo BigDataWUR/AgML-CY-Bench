@@ -9,7 +9,7 @@ from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge
-from cybench.models.nn_models import BaseLSTM
+from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import evaluate_model
 
 from cybench.config import PATH_DATA_DIR
@@ -67,10 +67,6 @@ def test_average_yield_model():
 
 
 def test_trend_model():
-    """
-    NOTE: quadratic trend will be the same as linear trend
-    for the dummy data.
-    """
     dummy_data = [
         ["US-01-001", 2000, 4.1],
         ["US-01-001", 2001, 4.2],
@@ -121,20 +117,12 @@ def test_trend_model():
                 test_yields = yield_loc_df[yield_loc_df[KEY_YEAR] == test_year]
                 train_dataset = Dataset("maize", train_yields, [])
 
-                # linear trend
-                model = TrendModel(trend="linear")
+                model = TrendModel()
                 model.fit(train_dataset)
                 test_data = {
                     KEY_LOC: sel_loc,
                     KEY_YEAR: test_year,
                 }
-                test_preds, _ = model.predict_items([test_data])
-                expected_pred = test_yields[KEY_TARGET].values[0]
-                assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
-
-                # quadratic trend ( trend = c + a x + b x^2)
-                model = TrendModel(trend="quadratic")
-                model.fit(train_dataset)
                 test_preds, _ = model.predict_items([test_data])
                 expected_pred = test_yields[KEY_TARGET].values[0]
                 assert np.round(test_preds[0], 2) == np.round(expected_pred, 2)
@@ -146,7 +134,7 @@ def test_trend_model():
             train_dataset = Dataset("maize", train_yields, [])
 
             # Expect the average due to insufficient data or no trend
-            model = TrendModel(trend="linear")
+            model = TrendModel()
             model.fit(train_dataset)
             test_data = {
                 KEY_LOC: sel_loc,
@@ -222,7 +210,7 @@ def test_nn_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize model, assumes that all features are in np.ndarray format
-    model = BaseLSTM(
+    model = BaselineLSTM(
         hidden_size=64,
         num_layers=1,
         output_size=1,
