@@ -3,10 +3,6 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
-from sklearn.linear_model import Ridge
-from sklearn.linear_model import Lasso
-from sklearn.feature_selection import SelectFromModel
-from sklearn.ensemble import RandomForestRegressor
 
 from cybench.config import (
     DATASETS,
@@ -19,33 +15,23 @@ from cybench.config import (
 from cybench.datasets.dataset import Dataset
 from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
-from cybench.models.trend_model import TrendModel
-from cybench.models.sklearn_model import SklearnModel
+from cybench.models.trend_models import TrendModel
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.sklearn_models import SklearnRandomForest
 from cybench.models.nn_models import ExampleLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
-    "SklearnRidge": SklearnModel,
-    "SklearnRF": SklearnModel,
+    "SklearnRidge": SklearnRidge,
+    "SklearnRF": SklearnRandomForest,
     "LSTM": ExampleLSTM,
 }
-
-sklearn_ridge = Ridge(alpha=0.5)
-lasso_selector = SelectFromModel(Lasso(), threshold="median")
-sklearn_rf = RandomForestRegressor(oob_score=True, n_estimators=100, min_samples_leaf=5)
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
-_BASELINE_MODEL_INIT_KWARGS["LinearTrend"] = {"trend": "linear"}
-_BASELINE_MODEL_INIT_KWARGS["SklearnRidge"] = {
-    "sklearn_est": sklearn_ridge,
-    "ft_selector": lasso_selector,
-}
-
-_BASELINE_MODEL_INIT_KWARGS["SklearnRF"] = {"sklearn_est": sklearn_rf}
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {

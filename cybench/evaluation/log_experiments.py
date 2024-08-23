@@ -5,11 +5,11 @@ import pandas as pd
 from comet_ml import Experiment
 
 from cybench.models.model import BaseModel
-from cybench.models.sklearn_model import SklearnModel
-from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.trend_models import TrendModel
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.nn_models import BaseNNModel
-from cybench.runs.run_benchmark import _compute_evaluation_results
+from cybench.runs.run_benchmark import compute_metrics
 
 from cybench.config import PATH_RESULTS_DIR
 
@@ -266,7 +266,7 @@ def log_benchmark_to_comet_post_hoc(
     path_results = os.path.join(PATH_RESULTS_DIR, run_name)
     assert os.listdir(path_results), f"Directory empty..."
 
-    results = _compute_evaluation_results(run_name)
+    results = compute_metrics(run_name, [model_name])
     results = {"df_metrics": results}
 
     log_benchmark_to_comet(
