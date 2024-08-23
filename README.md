@@ -33,22 +33,24 @@ Anticipating crop yields is also important to ensure market transparency at the 
 e.g. [Agriculture Market Information System](https://www.amis-outlook.org/), [GEOGLAM Crop Monitor](https://www.cropmonitor.org/))
 and to plan response actions in food insecure countries at risk of food production shortfalls.
 
-We propose CY-Bench, a dataset and benchmark for subnational crop yield forecasting, with coverage of major crop growing
-countries of the world for maize and wheat. By subnational, we mean the administrative
-level where yield statistics are published. When statistics are available for multiple levels, we pick the highest
-resolution. By yield, we mean end-of-season yield statistics as published by national statistics offices or similar
-entities representing a group of countries. By forecasting, we mean prediction is made ahead of harvest. The task is
-also called in-season crop yield forecasting. In-season forecasting is done at a number of time points during the
-growing season from mid-season to before harvest. The first forecast is made in the middle of the season, i.e. (end of
-season - start of the season)/2,
-between mid-season and harvest and 2 weeks before harvest. These time points depend on the crop calendar for the
-selected crop and country (or region). Since yield statistics may not be available for the current season, we evaluate
-models using predictors and yield statistics for all available years. The models and forecasts can be used for food
-security planning or famine early warning. We compare models, algorithms and architectures by keeping other parts of the
-workflow as similar as possible. For example: the dataset includes same source for each type of predictor (e.g. weather
-variables, soil moisture, evapotranspiration, remote sensing biomass indicators, soil properties), and selected data are
-preprocessed using the same pipeline (use the crop mask, crop calendar; use the same boundary files and approach for
-spatial aggregation) and (for algorithms that require feature design) and same feature design protocol.
+We propose CY-Bench, a dataset and benchmark for subnational crop yield forecasting, with coverage of major crop
+growing countries and underrepresented countries of the world for maize and wheat. By subnational, we mean the 
+administrative level where yield statistics are published. When statistics are available for multiple levels, we
+pick the highest resolution. By yield, we mean end-of-season yield statistics as published by national statistics
+offices or similar entities representing a group of countries. By forecasting, we mean prediction is made ahead of
+harvest. The task is also called in-season crop yield forecasting. In-season forecasting is done at a number of 
+time points during the growing season from start of season (SOS) to end of season (EOS) or harvest. The first 
+forecast is made at `middle-of-season` (EOS - SOS)/2. Other options are `quarter-of-season` (EOS - SOS)/4
+and `n-day(s)` before harvest. The exact time point or time step when forecast is made depends on the crop calendar
+for the selected crop and country (or region). All time series inputs are truncated up to the forecast or
+inference time point, i.e. data from the remaining part of the season is not used. Since yield statistics may not 
+be available for the current season, we evaluate models using predictors and yield statistics for all available
+years. The models and forecasts can be used for food security planning or famine early warning. We compare models,
+algorithms and architectures by keeping other parts of the workflow as similar as possible. For example: the 
+dataset includes same source for each type of predictor (e.g. weather variables, soil moisture, evapotranspiration, 
+remote sensing biomass indicators, soil properties), and selected data are preprocessed using the same pipeline 
+(use the crop mask, crop calendar; use the same boundary files and approach for spatial aggregation) and (for 
+algorithms that require feature design) and same feature design protocol.
 
 #### Coverage for maize
 
@@ -177,16 +179,30 @@ production / harvest_area)
 
 ### Leaderboard
 
-| Crop, Country     | Lead time         | Average Yield NRMSE | Linear Trend NRMSE | Ridge (sklearn) NRMSE | Random Forest (sklearn) NRMSE | Average Yield MAPE | Linear Trend MAPE | Ridge (sklearn) MAPE | Random Forest (sklearn) MAPE |
-|-------------------|-------------------|--------|--------|--------|--------|---------|---------|---------|---------|
-| Maize, AO         | middle-of-season  | 41.272 | 35.346 | 45.959 | 44.240 | 137.177 | 132.131 | 235.828 | 208.672 |
-| Maize, AO         | quarter-of-season | 41.272 | 35.346 | 59.937 | 44.234 | 137.177 | 132.131 | 184.587 | 209.559 |
-| Maize, ES         | middle-of-season  | 15.573 | 11.911 | 24.285 | 19.230 | 14.464  | 11.236  | 25.299  | 19.124  |
-| Maize, ES         | quarter-of-season | 15.573 | 11.911 | 22.107 | 18.936 | 14.464  | 11.236  | 24.757  | 18.669  |
-| Maize, NL         | middle-of-season  | 15.315 | 15.510 | 18.111 | 16.109 | 13.888  | 14.045  | 16.252  | 14.635  |
-| Maize, NL         | quarter-of-season | 15.315 | 15.510 | 17.552 | 15.340 | 13.888  | 14.045  | 16.051  | 13.834  |
+#### Maize
 
-NOTE: Results indicate that access to more data from the crop growing season does not significantly improve performance. 
+| Country | Lead time | Naive (1) NRMSE | Trend (2) NRMSE | Ridge (3) NRMSE | RF (4) NRMSE | LSTM (5) NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
+|----|-------------------|--------|--------|--------|--------|--------|---------|---------|---------|---------|---------|
+| AO | middle-of-season  | 41.365 | 37.143 | 47.915 | 44.090 | 45.619 | 144.500 | 141.337 | 178.321 | 189.434 | 281.368 |
+| AO | quarter-of-season | 41.365 | 37.143 | 63.806 | 43.094 | 43.805 | 144.500 | 141.337 | 151.382 | 187.496 | 248.149 |
+| ES | middle-of-season  | 15.996 | 12.021 | 27.674 | 20.263 | 27.692 | 15.058  | 11.374  | 34.200  | 19.968  | 32.791 |
+| ES | quarter-of-season | 15.996 | 12.021 | 24.505 | 18.779 | 23.021 | 15.058  | 11.374  | 28.716  | 18.862  | 26.063 |
+| NL | middle-of-season  | 15.315 | 15.510 | 18.116 | 16.361 | 50.878 | 13.888  | 14.045  | 16.023  | 14.865  | 47.849 |
+| NL | quarter-of-season | 15.315 | 15.510 | 16.112 | 15.640 | 49.786 | 13.888  | 14.045  | 14.619  | 14.407  | 46.681 |
+
+#### Wheat
+
+| Country | Lead time  | Naive NRMSE | Trend NRMSE | Ridge NRMSE | RF NRMSE | LSTM NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
+|----|-------------------|--------|--------|--------|--------|-|--------|---------|---------|----------|--|
+| NL | middle-of-season  | 7.556 | 7.796 | 56.841 | 8.529 | 18.261 | 6.686  | 6.935  | 56.102  | 7.591  | 16.190 |
+| NL | quarter-of-season | 7.556 | 7.796 | 66.091 | 8.705 | 18.916 | 6.686  | 6.935  | 65.531  | 7.813  | 16.670 |
+
+NOTES:
+1. Naive: Predicts average yield per admin region from the training set. If admin region is not present in the training set, it predicts the global average.
+2. Trend: Linear Trend model fits a line through the training labels. The test year can be in the middle of training years or on either side of them.
+3. Ridge: Ridge estimator from scikit-learn with feature selection (keeping 20, 25 or 30 features using Lasso as a selector) and optimization of `alpha` (or weight decay) hyperparameter.
+4. RF: RandomForestRegressor from scikit-learn without feature selection but optimization of one hyperparameter (`n_estimators` selected from 50, 100, 500).
+5. LSTM: One LSTM layer for time series inputs followed by concatenation with static inputs fed to a linear prediction layer. Number of epochs trained is 50.
 
 ### How to cite
 
