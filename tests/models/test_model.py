@@ -327,6 +327,3 @@ def test_nn_model():
         assert not np.isnan(
             evaluation_result[metric]
         ), f"Value of metric '{metric}' is NaN"
-
-
-test_sklearn_res_model()
