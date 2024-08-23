@@ -6,6 +6,7 @@ import numpy as np
 import logging
 
 from sklearn.model_selection import ParameterGrid
+from tsai.models.InceptionTime import InceptionTime
 
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
@@ -19,6 +20,21 @@ from cybench.config import (
     TIME_SERIES_PREDICTORS,
     ALL_PREDICTORS,
 )
+
+
+def separate_ts_static_inputs(batch: dict) -> tuple:
+    """Stack time series and static inputs separately.
+
+    Args:
+      batch (dict): batched inputs
+
+    Returns:
+      A tuple of torch tensors for time series and static inputs
+    """
+    ts = torch.cat([batch[k].unsqueeze(2) for k in TIME_SERIES_PREDICTORS], dim=2)
+    static = torch.cat([batch[k].unsqueeze(1) for k in STATIC_PREDICTORS], dim=1)
+
+    return ts, static
 
 
 class BaseNNModel(BaseModel, nn.Module):
@@ -605,25 +621,102 @@ class ExampleLSTM(BaseNNModel):
             **fit_params,
         )
 
-    def _separate_ts_static_inputs(self, batch: dict) -> tuple:
-        """Stack time series and static inputs separately.
+    def forward(self, x):
+        for transform in self._transforms:
+            x = transform(x, self._min_date, self._max_date)
+
+        x_ts, x_static = separate_ts_static_inputs(x)
+        x_ts, _ = self._lstm(x_ts)
+        x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
+        output = self._fc(x)
+        return output
+
+
+class ExampleInceptionTime(BaseNNModel):
+    """InceptionTime model.
+
+   Args:
+        hidden_size (int): The number of features InceptionTime outputs
+        num_layers (int): The number of InceptionBlocks. Defaults to 6.
+        num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
+        output_size (int): The number of output classes. Defaults to 1.
+        transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
+        **kwargs: Additional keyword arguments passed to the base class.
+    """
+
+    def __init__(
+        self,
+        hidden_size=64,
+        num_layers=6,
+        num_features=32,
+        output_size=1,
+        transforms=[
+            transform_ts_inputs_to_dekadal,
+        ],
+        **kwargs,
+    ):
+        # Add all arguments to init_args to enable model reconstruction in fit method
+        n_ts_inputs = len(TIME_SERIES_PREDICTORS)
+        n_static_inputs = len(STATIC_PREDICTORS)
+        kwargs["hidden_size"] = hidden_size
+        kwargs["num_layers"] = num_layers
+        kwargs["output_size"] = output_size
+
+        super().__init__(**kwargs)
+        self._timeseries = InceptionTime(c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers)
+        self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
+        self._transforms = transforms
+
+    def fit(
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters: bool = False,
+        param_space: dict = {},
+        kfolds: int = 1,
+        epochs: int = 10,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        seed: int = 42,
+        **fit_params,
+    ):
+        """Fit or train the model.
 
         Args:
-          batch (dict): batched inputs
+          dataset (Dataset): Training dataset.
+          optimize_hyperparameters (bool): Flag to tune hyperparameters.
+          param_space (dict): Each entry is a hyperparameter name and list or range of values.
+          kfolds (int): k in k-fold cv.
+          epochs (int): Number of epochs to train.
+          seed (float): seed for random number generator.
+          **fit_params: Additional parameters.
 
         Returns:
-          A tuple of torch tensors for time series and static inputs
+          A tuple containing the fitted model and a dict with additional information.
         """
-        ts = torch.cat([batch[k].unsqueeze(2) for k in TIME_SERIES_PREDICTORS], dim=2)
-        static = torch.cat([batch[k].unsqueeze(1) for k in STATIC_PREDICTORS], dim=1)
+        if ("scheduler_fn" in fit_params) and (fit_params["scheduler_fn"] is not None):
+            fit_params["sched_kwargs"] = {"step_size": 2, "gamma": 0.5}
 
-        return ts, static
+        if optimize_hyperparameters and not param_space:
+            param_space = {
+                "lr": [0.0001, 0.00001],
+                "weight_decay": [0.0001, 0.00001],
+            }
+
+        super().fit(
+            dataset,
+            optimize_hyperparameters=optimize_hyperparameters,
+            param_space=param_space,
+            kfolds=kfolds,
+            epochs=epochs,
+            device=device,
+            seed=seed,
+            **fit_params,
+        )
 
     def forward(self, x):
         for transform in self._transforms:
             x = transform(x, self._min_date, self._max_date)
 
-        x_ts, x_static = self._separate_ts_static_inputs(x)
+        x_ts, x_static = separate_ts_static_inputs(x)
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
         output = self._fc(x)
