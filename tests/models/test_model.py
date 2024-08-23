@@ -9,7 +9,7 @@ from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.nn_models import BaseLSTM
 from cybench.evaluation.eval import evaluate_model
 
 from cybench.config import PATH_DATA_DIR
@@ -222,7 +222,7 @@ def test_nn_model():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     # Initialize model, assumes that all features are in np.ndarray format
-    model = ExampleLSTM(
+    model = BaseLSTM(
         hidden_size=64,
         num_layers=1,
         output_size=1,

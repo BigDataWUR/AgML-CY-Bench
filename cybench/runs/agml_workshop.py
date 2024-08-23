@@ -8,7 +8,7 @@ from torch import nn
 
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.models.model import BaseModel
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.nn_models import BaseLSTM
 from cybench.evaluation.eval import normalized_rmse, evaluate_predictions
 
 from cybench.config import (
@@ -339,11 +339,11 @@ if __name__ == "__main__":
         NOTE: These should match the definitions of STATIC_PREDICTORS
               and TIME_SERIES_PREDICTORS.
         NOTE: All time series inputs are at the same (dekadal) resolution.
-              This means `ExampleLSTM` does not need to aggregate time series data.
+              This means `BaseLSTM` does not need to aggregate time series data.
 
         epochs=10
         lr=0.0001
-        weight_decay=0.0001. Since `ExampleLSTM` uses weight_decay=0.00001, the same value
+        weight_decay=0.0001. Since `BaseLSTM` uses weight_decay=0.00001, the same value
         is now used for the workshop `LSTMModel` implementation above.
     """
     path_data_cn = os.path.join(PATH_DATA_DIR, "workshop-data")
@@ -394,11 +394,11 @@ if __name__ == "__main__":
         if model_name == "workshop_lstm":
             lstm_model = LSTMModel()
         else:
-            # NOTE: config.py requires these updates to test with ExampleLSTM.
+            # NOTE: config.py requires these updates to test with BaseLSTM.
             # 1. SOIL_PROPERTIES = ["awc"]
             # 2. TIME_SERIES_PREDICTORS = METEO_INDICATORS + [RS_FPAR]
             # The workshop data does not include other inputs from the benchmark.
-            lstm_model = ExampleLSTM(transforms=[])
+            lstm_model = BaseLSTM(transforms=[])
 
         lstm_model.fit(train_dataset, epochs=10)
         test_preds, _ = lstm_model.predict(test_dataset)
