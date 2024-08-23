@@ -11,10 +11,7 @@ from sklearn.model_selection import GridSearchCV, GroupKFold
 from sklearn.pipeline import Pipeline
 
 from cybench.models.model import BaseModel
-from cybench.models.trend_models import TrendModel
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.modified_dataset import ModifiedTargetsDataset
-from cybench.evaluation.eval import evaluate_predictions
 from cybench.util.data import data_to_pandas
 from cybench.util.features import unpack_time_series, design_features
 
@@ -373,94 +370,3 @@ class SklearnRandomForest(BaseSklearnModel):
         }
 
         super().fit(train_dataset, **fit_params)
-
-
-class RidgeRes(SklearnRidge):
-    def __init__(self, feature_cols: list = None):
-        """Ridge model that predicts residuals from the trend.
-
-        It leverages `TrendModel` to estimate the trend.
-        Then it detrends targets and predicts the residuals.
-        During inference, residual predictions are added to trend to
-        produce the target predictions.
-        """
-        self._trend_model = TrendModel()
-        super().__init__(feature_cols=feature_cols)
-
-    def fit(self, dataset: Dataset, **fit_params):
-        """Fit or train the model.
-
-        Args:
-          train_dataset (Dataset): training dataset
-          **fit_params: Additional parameters.
-
-        Returns:
-          A tuple containing the fitted model and a dict with additional information.
-        """
-        train_df = data_to_pandas(dataset, data_cols=[KEY_LOC, KEY_YEAR, KEY_TARGET])
-
-        train_residuals = []
-        for item in dataset:
-            trend_train_df = train_df[
-                (train_df[KEY_LOC] == item[KEY_LOC])
-                & (train_df[KEY_YEAR] != item[KEY_YEAR])
-            ].copy()
-            # only one year of training data for this location
-            if trend_train_df.empty:
-                trend_pred = train_df[KEY_TARGET].mean()
-            else:
-                trend_train_df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
-                trend_train_dataset = Dataset(dataset.crop, data_target=trend_train_df)
-                self._trend_model.fit(trend_train_dataset)
-                trend_pred, _ = self._trend_model.predict_items([item])
-                if not isinstance(trend_pred, float):
-                    trend_pred = trend_pred[0]
-
-            res_row = {
-                KEY_LOC: item[KEY_LOC],
-                KEY_YEAR: item[KEY_YEAR],
-                KEY_TARGET: trend_pred - item[KEY_TARGET],
-            }
-            train_residuals.append(res_row)
-
-        residuals_df = pd.DataFrame(train_residuals)
-        residuals_df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
-        residuals_dataset = ModifiedTargetsDataset(
-            dataset, modified_targets=residuals_df
-        )
-        super().fit(residuals_dataset, **fit_params)
-
-        # Fit the trend model on the entire training data
-        self._trend_model.fit(dataset)
-
-    def predict(self, dataset: Dataset, **predict_params):
-        """Run fitted model on batched data items.
-
-        Args:
-          dataset (Dataset): test dataset
-          **predict_params: Additional parameters.
-
-        Returns:
-          A tuple containing a np.ndarray and a dict with additional information.
-        """
-        res_preds, _ = super().predict(dataset)
-        trend_preds, _ = self._trend_model.predict(dataset)
-
-        return trend_preds + res_preds, {}
-
-    def predict_items(self, X: list, crop=None, **predict_params):
-        """Run fitted model on a list of data items.
-
-        Args:
-          X (list): a list of data items, each of which is a dict
-          crop (str): crop name
-          **predict_params: Additional parameters.
-
-        Returns:
-          A tuple containing a np.ndarray and a dict with additional information.
-        """
-        assert crop is not None
-        res_preds, _ = super().predict_items(crop, X)
-        trend_preds, _ = self._trend_model.predict(X)
-
-        return trend_preds + res_preds, {}
