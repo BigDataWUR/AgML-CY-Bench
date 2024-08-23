@@ -11,7 +11,7 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get install pandoc
-          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy pandocfilters torch tqdm statsmodels comet_ml matplotlib seaborn
+          pip install sphinx sphinx_rtd_theme scikit-learn pandas numpy pandocfilters torch tqdm statsmodels comet_ml matplotlib seaborn tsai
       - name: Convert README.rst
         run: |
           pandoc -f gfm -t rst --wrap=none  README.md -o doc/README.rst --filter doc/path_adjust_filter.py
