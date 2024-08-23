@@ -660,6 +660,7 @@ class ExampleInceptionTime(BaseNNModel):
         n_static_inputs = len(STATIC_PREDICTORS)
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
+        kwargs["num_features"] = num_features
         kwargs["output_size"] = output_size
 
         super().__init__(**kwargs)
@@ -717,7 +718,8 @@ class ExampleInceptionTime(BaseNNModel):
             x = transform(x, self._min_date, self._max_date)
 
         x_ts, x_static = separate_ts_static_inputs(x)
-        x_ts, _ = self._timeseries(x_ts)
-        x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
+        x_ts = x_ts.permute(0, 2, 1)
+        x_ts = self._timeseries(x_ts)
+        x = torch.cat([x_ts, x_static], dim=1)
         output = self._fc(x)
         return output
