@@ -1,7 +1,6 @@
 import numpy as np
-from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error
+from sklearn.metrics import mean_squared_error, mean_absolute_percentage_error, r2_score
 
-from cybench.config import KEY_TARGET
 from cybench.models.model import BaseModel
 from cybench.datasets.dataset import Dataset
 
@@ -99,3 +98,19 @@ def mape(y_true: np.ndarray, y_pred: np.ndarray):
     """
 
     return mean_absolute_percentage_error(y_true, y_pred)
+
+
+@metric
+def r2(y_true: np.ndarray, y_pred: np.ndarray):
+    """
+    Calculate coefficient of determination (R2).
+
+    Args:
+    - y_true (numpy.ndarray): True values.
+    - y_pred (numpy.ndarray): Predicted values.
+
+    Returns:
+    - float: r2.
+    """
+
+    return r2_score(y_true, y_pred)
