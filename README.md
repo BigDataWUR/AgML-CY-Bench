@@ -192,8 +192,10 @@ production / harvest_area)
 
 #### Wheat
 
-| Country | Lead time | Naive NRMSE | Trend NRMSE | Ridge NRMSE | RF NRMSE | LSTM NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
+| Country | Lead time  | Naive NRMSE | Trend NRMSE | Ridge NRMSE | RF NRMSE | LSTM NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
 |----|-------------------|--------|--------|--------|--------|-|--------|---------|---------|----------|--|
+| NL | middle-of-season  | 7.556 | 7.796 | 56.841 | 8.529 | 18.261 | 6.686  | 6.935  | 56.102  | 7.591  | 16.190 |
+| NL | quarter-of-season | 7.556 | 7.796 | 66.091 | 8.705 | 18.916 | 6.686  | 6.935  | 65.531  | 7.813  | 16.670 |
 
 NOTES:
 1. Naive: Predicts average yield per admin region from the training set. If admin region is not present in the training set, it predicts the global average.
