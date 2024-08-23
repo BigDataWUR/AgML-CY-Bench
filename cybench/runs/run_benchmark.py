@@ -18,7 +18,7 @@ from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge
 from cybench.models.sklearn_models import SklearnRandomForest
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
@@ -26,7 +26,8 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnRidge,
     "SklearnRF": SklearnRandomForest,
-    "LSTM": ExampleLSTM,
+    "LSTM": BaselineLSTM,
+    "InceptionTime": BaselineInceptionTime,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
