@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pandas as pd
 
@@ -36,7 +35,7 @@ def dekad_from_date(date_str: str):
       date_str: date string in YYYYmmdd format
 
     Returns:
-      Dekad number, e.g. "YYYY0101" to "YYYY010" -> 1,
+      Dekad number, e.g. "YYYY0101" to "YYYY0110" -> 1,
                          "YYYY0111" to "YYYY0120" -> 2,
                          "YYYY0121" to "YYYY0131" -> 3
     """
