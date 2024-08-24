@@ -84,8 +84,8 @@ class ResidualModel(BaseModel):
         Returns:
           A tuple containing a np.ndarray and a dict with additional information.
         """
-        res_preds, _ = self._baseline_model.predict(dataset)
-        trend_preds, _ = self._trend_model.predict(dataset)
+        res_preds, _ = self._baseline_model.predict(dataset, **predict_params)
+        trend_preds, _ = self._trend_model.predict(dataset, **predict_params)
 
         return trend_preds + res_preds, {}
 
@@ -101,8 +101,8 @@ class ResidualModel(BaseModel):
           A tuple containing a np.ndarray and a dict with additional information.
         """
         assert crop is not None
-        res_preds, _ = self._baseline_model.predict_items(crop, X)
-        trend_preds, _ = self._trend_model.predict(X)
+        res_preds, _ = self._baseline_model.predict_items(X, crop=crop, **predict_params)
+        trend_preds, _ = self._trend_model.predict_items(X, **predict_params)
 
         return trend_preds + res_preds, {}
 
