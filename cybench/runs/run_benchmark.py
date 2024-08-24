@@ -16,8 +16,8 @@ from cybench.datasets.dataset import Dataset
 from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
-from cybench.models.sklearn_models import SklearnRidge
-from cybench.models.sklearn_models import SklearnRandomForest
+from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
+from cybench.models.residual_models import RidgeRes, RandomForestRes, LSTMRes
 from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
 
 
@@ -25,8 +25,11 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnRidge,
+    "RidgeRes": RidgeRes,
     "SklearnRF": SklearnRandomForest,
+    "RFRes": RandomForestRes,
     "LSTM": BaselineLSTM,
+    "LSTMRes": LSTMRes,
     "InceptionTime": BaselineInceptionTime,
 }
 
@@ -36,6 +39,14 @@ _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+_BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+_BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
     "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }

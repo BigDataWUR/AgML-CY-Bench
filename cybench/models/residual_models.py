@@ -7,7 +7,7 @@ from cybench.datasets.modified_dataset import ModifiedTargetsDataset
 from cybench.models.model import BaseModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.nn_models import BaselineLSTM
 from cybench.util.data import data_to_pandas
 
 from cybench.config import (
@@ -148,4 +148,4 @@ class RandomForestRes(ResidualModel):
 class LSTMRes(ResidualModel):
     def __init__(self, **kwargs):
         """LSTM model that predicts residuals from the trend."""
-        super().__init__(ExampleLSTM(**kwargs))
+        super().__init__(BaselineLSTM(**kwargs))
