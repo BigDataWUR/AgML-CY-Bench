@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import pickle
 
@@ -87,7 +88,7 @@ class ResidualModel(BaseModel):
         res_preds, _ = self._baseline_model.predict(dataset, **predict_params)
         trend_preds, _ = self._trend_model.predict(dataset, **predict_params)
 
-        return trend_preds + res_preds, {}
+        return np.add(trend_preds, res_preds), {}
 
     def predict_items(self, X: list, crop=None, **predict_params):
         """Run fitted model on a list of data items.
@@ -104,7 +105,7 @@ class ResidualModel(BaseModel):
         res_preds, _ = self._baseline_model.predict_items(X, crop=crop, **predict_params)
         trend_preds, _ = self._trend_model.predict_items(X, **predict_params)
 
-        return trend_preds + res_preds, {}
+        return np.add(trend_preds, res_preds), {}
 
     def save(self, model_name: str):
         """Save model, e.g. using pickle.
