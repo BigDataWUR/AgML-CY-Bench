@@ -582,7 +582,6 @@ def validate_agml_workshop_results(df_y, dfs_x):
             # The workshop data does not include other inputs from the benchmark.
             lstm_model = BaselineLSTM(transforms=[])
 
-
         lstm_model.fit(train_dataset, epochs=10)
         test_preds, _ = lstm_model.predict(test_dataset)
         model_output[model_name] = test_preds

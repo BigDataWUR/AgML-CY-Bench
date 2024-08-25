@@ -88,7 +88,6 @@ class TrendModel(BaseModel):
                 trend_x = window_years[-i:]
 
             trend_y = train_labels[np.in1d(train_labels[:, 0], trend_x)][:, 1]
-            # print(sel_yr, trend_x, trend_y)
             result = trend_mk.original_test(trend_y)
 
             # select based on p-value, lower the better
@@ -114,48 +113,55 @@ class TrendModel(BaseModel):
 
             sel_train_df = self._train_df[self._train_df[KEY_LOC] == loc]
             train_labels = sel_train_df[[KEY_YEAR, KEY_TARGET]].values
-            # trend_values = np.zeros(train_labels.shape)
             train_years = sorted(sel_train_df[KEY_YEAR].unique())
 
-            # if location not in training data
+            # Case 1: no training data for location
             if sel_train_df.empty:
                 trend = self._train_df[KEY_TARGET].mean()
-
-            lt_test_yr = [yr for yr in train_years if yr < test_year]
-            gt_test_yr = [yr for yr in train_years if yr > test_year]
-
-            # Case 1: Not enough years to estimate trend
-            if (len(lt_test_yr) < self.MIN_TREND_WINDOW_SIZE) and (
-                len(gt_test_yr) < self.MIN_TREND_WINDOW_SIZE
-            ):
-                trend = sel_train_df[KEY_TARGET].mean()
             else:
-                trend = None
-                # Case 2: Estimate trend using years before
-                window_years = self._find_optimal_trend_window(
-                    train_labels, lt_test_yr, extend_forward=False
-                )
-                if window_years is not None:
-                    window_values = train_labels[
-                        np.in1d(train_labels[:, 0], window_years)
-                    ][:, 1]
-                    trend = self._estimate_trend(window_years, window_values, test_year)
-                else:
-                    # Case 3: Estimate trend using years after
-                    window_years = self._find_optimal_trend_window(
-                        train_labels, gt_test_yr, extend_forward=True
-                    )
-                    if window_years is not None:
-                        window_values = train_labels[
-                            np.in1d(train_labels[:, 0], window_years)
-                        ][:, 1]
-                        trend = self._estimate_trend(
-                            window_years, window_values, test_year
-                        )
+                lt_test_yr = [yr for yr in train_years if yr < test_year]
+                gt_test_yr = [yr for yr in train_years if yr > test_year]
 
-                # Case 4: No significant trend exists
-                if trend is None:
+                # Case 2: Not enough years to estimate trend
+                if (len(lt_test_yr) < self.MIN_TREND_WINDOW_SIZE) and (
+                    len(gt_test_yr) < self.MIN_TREND_WINDOW_SIZE
+                ):
                     trend = sel_train_df[KEY_TARGET].mean()
+                else:
+                    trend = None
+                    # Case 3: Estimate trend using years before
+                    if len(lt_test_yr) >= self.MIN_TREND_WINDOW_SIZE:
+                        window_years = self._find_optimal_trend_window(
+                            train_labels, lt_test_yr, extend_forward=False
+                        )
+                        if window_years is not None:
+                            window_values = train_labels[
+                                np.isin(train_labels[:, 0], window_years)
+                            ][:, 1]
+                            assert len(window_years) == len(window_values)
+                            trend = self._estimate_trend(
+                                window_years, window_values, test_year
+                            )
+
+                    # Case 4: Estimate trend using years after
+                    if (trend is None) and (
+                        len(gt_test_yr) >= self.MIN_TREND_WINDOW_SIZE
+                    ):
+                        window_years = self._find_optimal_trend_window(
+                            train_labels, gt_test_yr, extend_forward=True
+                        )
+                        if window_years is not None:
+                            window_values = train_labels[
+                                np.isin(train_labels[:, 0], window_years)
+                            ][:, 1]
+                            assert len(window_years) == len(window_values)
+                            trend = self._estimate_trend(
+                                window_years, window_values, test_year
+                            )
+
+                    # Case 5: No significant trend exists
+                    if trend is None:
+                        trend = sel_train_df[KEY_TARGET].mean()
 
             trend_predictions[i, 0] = trend
 

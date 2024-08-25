@@ -17,8 +17,14 @@ from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.residual_models import RidgeRes, RandomForestRes, LSTMRes
 from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
+
+from cybench.models.residual_models import (
+    RidgeRes,
+    RandomForestRes,
+    LSTMRes,
+    InceptionTimeRes,
+)
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
@@ -31,6 +37,7 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LSTM": BaselineLSTM,
     "LSTMRes": LSTMRes,
     "InceptionTime": BaselineInceptionTime,
+    "InceptionTimeRes": InceptionTimeRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())

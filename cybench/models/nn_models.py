@@ -635,13 +635,13 @@ class BaselineLSTM(BaseNNModel):
 class BaselineInceptionTime(BaseNNModel):
     """InceptionTime model.
 
-   Args:
-        hidden_size (int): The number of features InceptionTime outputs
-        num_layers (int): The number of InceptionBlocks. Defaults to 6.
-        num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
-        output_size (int): The number of output classes. Defaults to 1.
-        transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
-        **kwargs: Additional keyword arguments passed to the base class.
+    Args:
+         hidden_size (int): The number of features InceptionTime outputs
+         num_layers (int): The number of InceptionBlocks. Defaults to 6.
+         num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
+         output_size (int): The number of output classes. Defaults to 1.
+         transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
+         **kwargs: Additional keyword arguments passed to the base class.
     """
 
     def __init__(
@@ -664,7 +664,9 @@ class BaselineInceptionTime(BaseNNModel):
         kwargs["output_size"] = output_size
 
         super().__init__(**kwargs)
-        self._timeseries = InceptionTime(c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers)
+        self._timeseries = InceptionTime(
+            c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers
+        )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
 

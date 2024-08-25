@@ -7,7 +7,7 @@ from cybench.datasets.modified_dataset import ModifiedTargetsDataset
 from cybench.models.model import BaseModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import BaselineLSTM
+from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
 from cybench.util.data import data_to_pandas
 
 from cybench.config import (
@@ -102,7 +102,9 @@ class ResidualModel(BaseModel):
           A tuple containing a np.ndarray and a dict with additional information.
         """
         assert crop is not None
-        res_preds, _ = self._baseline_model.predict_items(X, crop=crop, **predict_params)
+        res_preds, _ = self._baseline_model.predict_items(
+            X, crop=crop, **predict_params
+        )
         trend_preds, _ = self._trend_model.predict_items(X, **predict_params)
 
         return np.add(trend_preds, res_preds), {}
@@ -149,3 +151,8 @@ class LSTMRes(ResidualModel):
     def __init__(self, **kwargs):
         """LSTM model that predicts residuals from the trend."""
         super().__init__(BaselineLSTM(**kwargs))
+
+class InceptionTimeRes(ResidualModel):
+    def __init__(self, **kwargs):
+        """InceptionTime model that predicts residuals from the trend."""
+        super().__init__(BaselineInceptionTime(**kwargs))
