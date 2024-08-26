@@ -1,6 +1,5 @@
 import pickle
 import numpy as np
-import pandas as pd
 import logging
 from collections.abc import Iterable
 from sklearn.preprocessing import StandardScaler

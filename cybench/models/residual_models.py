@@ -75,6 +75,8 @@ class ResidualModel(BaseModel):
         # Fit the trend model on the entire training data
         self._trend_model.fit(dataset)
 
+        return self, {}
+
     def predict(self, dataset: Dataset, **predict_params):
         """Run fitted model on batched data items.
 

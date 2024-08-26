@@ -114,6 +114,7 @@ class TrendModel(BaseModel):
             sel_train_df = self._train_df[self._train_df[KEY_LOC] == loc]
             train_labels = sel_train_df[[KEY_YEAR, KEY_TARGET]].values
             train_years = sorted(sel_train_df[KEY_YEAR].unique())
+            assert test_year not in train_years
 
             # Case 1: no training data for location
             if sel_train_df.empty:
