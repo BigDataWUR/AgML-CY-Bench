@@ -1,6 +1,5 @@
 import pickle
 import numpy as np
-import pandas as pd
 from collections.abc import Iterable
 from statsmodels.regression.linear_model import OLS
 from statsmodels.tools.tools import add_constant
