@@ -61,7 +61,7 @@ class ResidualModel(BaseModel):
             res_row = {
                 KEY_LOC: item[KEY_LOC],
                 KEY_YEAR: item[KEY_YEAR],
-                KEY_TARGET: trend_pred - item[KEY_TARGET],
+                KEY_TARGET: item[KEY_TARGET] - trend_pred,
             }
             train_residuals.append(res_row)
 
