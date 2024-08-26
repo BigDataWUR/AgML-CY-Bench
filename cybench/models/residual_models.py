@@ -152,6 +152,7 @@ class LSTMRes(ResidualModel):
         """LSTM model that predicts residuals from the trend."""
         super().__init__(BaselineLSTM(**kwargs))
 
+
 class InceptionTimeRes(ResidualModel):
     def __init__(self, **kwargs):
         """InceptionTime model that predicts residuals from the trend."""

@@ -345,6 +345,7 @@ class BaseNNModel(BaseModel, nn.Module):
         Returns:
           A list of training losses (one value per epoch).
         """
+        self.to(device)
         self._min_date = dataset.min_date
         self._max_date = dataset.max_date
 
@@ -524,7 +525,7 @@ class BaseNNModel(BaseModel, nn.Module):
         with torch.no_grad():
             predictions = None
             for batch in test_loader:
-                batch_preds = self._forward_pass(batch, device)
+                batch_preds = self._forward_pass(batch, device).cpu().numpy()
                 if predictions is None:
                     predictions = batch_preds
                 else:

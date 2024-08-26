@@ -57,6 +57,10 @@ _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
     "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
+_BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
 
 
 def run_benchmark(
