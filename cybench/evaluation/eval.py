@@ -15,7 +15,7 @@ def metric(func):
 
 
 def get_default_metrics():
-    return ("normalized_rmse", "mape")
+    return ("normalized_rmse", "mape", "r2")
 
 
 def evaluate_model(model: BaseModel, dataset: Dataset, metrics=get_default_metrics()):
