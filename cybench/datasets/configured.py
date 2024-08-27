@@ -127,12 +127,15 @@ def load_dfs(
     return df_y, dfs_x
 
 
-def load_dfs_crop(crop) -> tuple:
+def load_dfs_crop(crop: str, countries: list = None) -> tuple:
     assert crop in DATASETS
 
     df_y = None
     dfs_x = None
-    for cn in DATASETS[crop]:
+    if countries is None:
+        countries = DATASETS[crop]
+
+    for cn in countries:
         if not os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
             continue
 

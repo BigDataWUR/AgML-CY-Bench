@@ -98,6 +98,8 @@ DATASETS = {
     ],
 }
 
+# key used for 2-letter country code
+KEY_COUNTRY = "country_code"
 # Key used for the location index
 KEY_LOC = "adm_id"
 # Key used for the year index
