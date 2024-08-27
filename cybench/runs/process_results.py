@@ -15,7 +15,7 @@ tables = {}
 for crop in crops:
     tables[crop] = {}
     crop_df = df_results[df_results.index.get_level_values('crop').isin([crop])]
-    crop_df = crop_df.groupby(["model", "crop", "country"]).agg({"normalized_rmse": "mean", "mape": "mean"})
+    crop_df = crop_df.groupby(["model", "crop", "country"]).agg({metric: 'mean' for metric in metrics})
     for metric in metrics:
         tables[crop][metric] = crop_df.reset_index().pivot_table(index=["crop", "country"], columns='model',
                                                                  values=metric)
@@ -24,7 +24,7 @@ for crop in crops:
 # Function to format rows with the minimum value in bold
 def format_row(row):
     min_value = row.min()
-    return ' '.join([f"**{value:.3f}**" if value == min_value else f"{value:.3f}" for value in row])
+    return ' '.join([f"**{value:.2f}**" if value == min_value else f"{value:.2f}" for value in row])
 
 
 # Construct the Markdown table
