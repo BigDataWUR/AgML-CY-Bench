@@ -87,7 +87,7 @@ class Dataset:
     def load(dataset_name: str) -> "Dataset":
         from cybench.datasets.configured import load_dfs_crop
 
-        crop_countries = dataset_name.split("_") 
+        crop_countries = dataset_name.split("_")
         crop = crop_countries[0]
         assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
@@ -97,7 +97,9 @@ class Dataset:
             country_codes = crop_countries[1:]
 
         for cn in country_codes:
-            assert cn in DATASETS[crop], Exception(f'Unrecognized dataset name "{dataset_name}"')
+            assert cn in DATASETS[crop], Exception(
+                f'Unrecognized dataset name "{dataset_name}"'
+            )
 
         df_y, dfs_x = load_dfs_crop(crop, country_codes)
         return Dataset(

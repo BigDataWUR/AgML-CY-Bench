@@ -44,6 +44,7 @@ def test_split():
     assert ds1.years == even_years
     assert ds2.years == odd_years
 
+
 def test_load():
     ds1 = Dataset.load("maize_NL")
     ds2 = Dataset.load("maize_ES")

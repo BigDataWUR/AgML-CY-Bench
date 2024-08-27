@@ -132,7 +132,7 @@ def load_dfs_crop(crop: str, countries: list = None) -> tuple:
 
     df_y = None
     dfs_x = None
-    if (countries is None):
+    if countries is None:
         countries = DATASETS[crop]
 
     for cn in countries:
