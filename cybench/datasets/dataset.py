@@ -84,21 +84,20 @@ class Dataset:
         self._allow_incomplete = False
 
     @staticmethod
-    def load(name: str) -> "Dataset":
+    def load(dataset_name: str) -> "Dataset":
         from cybench.datasets.configured import load_dfs_crop
 
-        crop_country = name.split("_") 
-        crop = crop_country[0]
+        crop_countries = dataset_name.split("_") 
+        crop = crop_countries[0]
         assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
-        country_codes = []
-        if len(crop_country) < 2:
+        if len(crop_countries) < 2:
             country_codes = DATASETS[crop]
         else:
-            country_codes = crop_country[1:]
+            country_codes = crop_countries[1:]
 
         for cn in country_codes:
-            assert cn in DATASETS[crop], Exception(f'Unrecognized dataset name "{name}"')
+            assert cn in DATASETS[crop], Exception(f'Unrecognized dataset name "{dataset_name}"')
 
         df_y, dfs_x = load_dfs_crop(crop, country_codes)
         return Dataset(

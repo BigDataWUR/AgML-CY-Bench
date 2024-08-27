@@ -127,12 +127,12 @@ def load_dfs(
     return df_y, dfs_x
 
 
-def load_dfs_crop(crop: str, countries: list = []) -> tuple:
+def load_dfs_crop(crop: str, countries: list = None) -> tuple:
     assert crop in DATASETS
 
     df_y = None
     dfs_x = None
-    if (not countries):
+    if (countries is None):
         countries = DATASETS[crop]
 
     for cn in countries:
