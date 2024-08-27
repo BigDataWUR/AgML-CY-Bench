@@ -1,6 +1,7 @@
 import pandas as pd
 
-filename = 'path_to/results.csv'
+filename = '/path-to-results.csv'
+outputfilename = 'output_tables.md'
 
 df_results = pd.read_csv(filename)
 df_results[['crop', 'country']] = df_results['crop_cn'].str.split('_', expand=True)
@@ -23,7 +24,7 @@ for crop in crops:
 # Function to format rows with the minimum value in bold
 def format_row(row):
     min_value = row.min()
-    return ' '.join([f"**{value:.6f}**" if value == min_value else f"{value:.6f}" for value in row])
+    return ' '.join([f"**{value:.3f}**" if value == min_value else f"{value:.3f}" for value in row])
 
 
 # Construct the Markdown table
@@ -44,12 +45,15 @@ def df_to_markdown(df, formatted_df):
     return '\n'.join(table)
 
 
-# Iterate over crops
-for crop, error_measures in tables.items():
-    for error_measure, values in error_measures.items():
-        df = tables[crop][error_measure]
-        # Apply the formatting function to each row
-        df_formatted = df.apply(format_row, axis=1)
-        # Create and print the Markdown table
-        markdown_table = df_to_markdown(df, df_formatted)
-        print(markdown_table)
+# Open a file to write Markdown content
+with open(outputfilename, 'w') as file:
+
+    for crop, error_measures in tables.items():
+        for error_measure, values in error_measures.items():
+            df = tables[crop][error_measure]
+            # Apply the formatting function to each row
+            df_formatted = df.apply(format_row, axis=1)
+            # Create the Markdown table
+            markdown_table = df_to_markdown(df, df_formatted)
+            file.write(f"## {crop} {error_measure}\n\n")
+            file.write(markdown_table + "\n\n")
