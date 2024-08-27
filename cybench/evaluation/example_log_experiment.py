@@ -8,17 +8,16 @@ from comet_ml import Experiment
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.linear_model import Ridge
 from cybench.models.model import BaseModel
-from cybench.models.sklearn_model import SklearnModel
-from cybench.models.trend_model import TrendModel
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.trend_models import TrendModel
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.nn_models import BaseNNModel
 
 from cybench.runs.run_benchmark import run_benchmark
 from cybench.datasets.dataset import Dataset
 from cybench.datasets.dataset_torch import TorchDataset
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import evaluate_model
 from cybench.evaluation.log_experiments import (
     comet_wrapper,
@@ -40,7 +39,7 @@ def example_for_logging_torch_model(comet_experiment=None):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Initialize model, assumes that all features are in np.ndarray format
-    model = ExampleLSTM(
+    model = BaselineLSTM(
         hidden_size=64,
         num_layers=2,
         output_size=1,
@@ -71,7 +70,7 @@ def example_for_logging_torch_model(comet_experiment=None):
         params=fit_kwargs | optim_kwargs | scheduler_kwargs,
         comet_experiment=comet_experiment,
         model=model,
-        name=f"ExampleLSTM-Model",
+        name=f"BaselineLSTM-Model",
     )
 
 
@@ -96,14 +95,11 @@ def example_for_logging_sklearn_model(comet_experiment=None, end=False):
     test_dataset = Dataset(test_yields, [test_features])
 
     # Model
-    ridge = Ridge(alpha=0.5)
-    model = SklearnModel(
-        ridge,
+    model = SklearnRidge(
         feature_cols=feature_cols,
     )
     fit_params = {
         "optimize_hyperparameters": True,
-        "param_space": {"estimator__alpha": [0.01, 0.1, 0.0, 1.0, 5.0, 10.0]},
     }
     model.fit(train_dataset, **fit_params)
 
@@ -139,7 +135,7 @@ def example_run_benchmark(comet_experiment=None):
     results = run_benchmark(
         run_name,
         model_name,
-        ExampleLSTM,
+        BaselineLSTM,
         model_init_kwargs=model_init_kwargs,
         model_fit_kwargs=model_fit_kwargs,
     )

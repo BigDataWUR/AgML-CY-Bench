@@ -153,8 +153,8 @@ GDD_UPPER_LIMIT = {
 
 # Lead time for forecasting
 # Choices: "middle-of-season", "quarter-of-season",
-# "n-day(s)" with n is an integer
-FORECAST_LEAD_TIME = "quarter-of-season"
+# "n-day(s)" where n is an integer
+FORECAST_LEAD_TIME = "middle-of-season"
 
 
 # Logging
