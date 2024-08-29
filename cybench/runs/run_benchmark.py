@@ -48,19 +48,19 @@ _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
@@ -213,7 +213,7 @@ def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
 
 def compute_metrics(
     run_name: str,
-    model_names: list,
+    model_names: list = None,
 ) -> pd.DataFrame:
     """
     Compute evaluation metrics on saved predictions.
@@ -236,6 +236,13 @@ def compute_metrics(
         for yr in all_years:
             df_yr = df_cn[df_cn[KEY_YEAR] == yr]
             y_true = df_yr[KEY_TARGET].values
+            if model_names is None:
+                model_names = [
+                    c
+                    for c in df_yr.columns
+                    if c not in [KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET]
+                ]
+
             for model_name in model_names:
                 metrics = evaluate_predictions(y_true, df_yr[model_name].values)
                 metrics_row = {
