@@ -130,32 +130,40 @@ def load_dfs(
 def load_dfs_crop(crop: str, countries: list = None) -> tuple:
     assert crop in DATASETS
 
-    df_y = None
-    dfs_x = None
     if countries is None:
         countries = DATASETS[crop]
 
+    df_y = pd.DataFrame()
+    dfs_x = tuple()
     for cn in countries:
         if not os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
             continue
 
         df_y_cn, dfs_x_cn = load_dfs(crop, cn)
-
-        if df_y is None:
-            df_y = df_y_cn
+        df_y = pd.concat([df_y, df_y_cn], axis=0)
+        if len(dfs_x) == 0:
             dfs_x = dfs_x_cn
         else:
-            df_y = pd.concat(
-                [
-                    df_y,
-                    df_y_cn,
-                ],
-                axis=0,
-            )
-
             dfs_x = tuple(
                 pd.concat([df_x, df_x_cn], axis=0)
                 for df_x, df_x_cn in zip(dfs_x, dfs_x_cn)
             )
 
-    return df_y, dfs_x
+    new_dfs_x = tuple()
+    # keep the same number of time steps for time series data
+    # NOTE: At this point, each df_x contains data for all selected countries.
+    for df_x in dfs_x:
+        # If index is [KEY_LOC, KEY_YEAR, "date"]
+        if "date" in df_x.index.names:
+            index_names = df_x.index.names
+            column_names = list(df_x.columns)
+            df_x.reset_index(inplace=True)
+            min_time_steps = df_x.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+            df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
+            df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_time_steps).reset_index()
+            df_x.set_index(index_names, inplace=True)
+            df_x = df_x[column_names]
+
+        new_dfs_x += (df_x,)
+
+    return df_y, new_dfs_x
