@@ -141,7 +141,7 @@ def load_dfs_crop(crop: str, countries: list = None) -> tuple:
 
         df_y_cn, dfs_x_cn = load_dfs(crop, cn)
         df_y = pd.concat([df_y, df_y_cn], axis=0)
-        if (len(dfs_x) == 0):
+        if len(dfs_x) == 0:
             dfs_x = dfs_x_cn
         else:
             dfs_x = tuple(
