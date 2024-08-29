@@ -19,13 +19,14 @@ from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
+from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
 
 from cybench.models.residual_models import (
     RidgeRes,
     RandomForestRes,
     LSTMRes,
     InceptionTimeRes,
+    TransformerRes
 )
 
 
@@ -40,6 +41,8 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LSTMRes": LSTMRes,
     "InceptionTime": BaselineInceptionTime,
     "InceptionTimeRes": InceptionTimeRes,
+    "Transformer": BaselineTransformer,
+    "TransformerRes": TransformerRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
@@ -60,6 +63,16 @@ _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["Transformer"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["TransformerRes"] = {
     "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
