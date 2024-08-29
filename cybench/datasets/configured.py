@@ -150,9 +150,11 @@ def load_dfs_crop(crop: str, countries: list = None) -> tuple:
             )
 
     new_dfs_x = tuple()
-    # keep the same number of time steps for time series data 
+    # keep the same number of time steps for time series data
+    # NOTE: At this point, each df_x contains data for all selected countries.
     for df_x in dfs_x:
-        if len(df_x.index.names) == 3:
+        # If index is [KEY_LOC, KEY_YEAR, "date"]
+        if "date" in df_x.index.names:
             index_names = df_x.index.names
             column_names = list(df_x.columns)
             df_x.reset_index(inplace=True)
