@@ -20,6 +20,7 @@ from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
 from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
+from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
     RidgeRes,
@@ -144,6 +145,13 @@ def run_benchmark(
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
+        seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
+
+        models_init_kwargs["Transformer"] = dict()
+        models_init_kwargs["TransformerRes"] = dict()
+        models_init_kwargs["Transformer"]["seq_len"] = seq_len
+        models_init_kwargs["TransformerRes"]["seq_len"] = seq_len
+
         labels = test_dataset.targets()
 
         model_output = {
@@ -153,6 +161,7 @@ def run_benchmark(
         }
 
         for model_name, model_constructor in model_constructors.items():
+
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
