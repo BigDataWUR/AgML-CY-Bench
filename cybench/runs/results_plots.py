@@ -1,6 +1,7 @@
 # @author: Hilmy, Dilli
 
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
@@ -130,7 +131,9 @@ def box_plots_residuals(
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey="none"
     )
-    # axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
+
     font = {
         "color": "black",
         "size": 18,
@@ -162,8 +165,9 @@ def box_plots_residuals(
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_residuals_{crop}.jpg"))
@@ -180,11 +184,13 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey=True
     )
-    # axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
 
     # Plot boxplots for each country
     for i, country in enumerate(countries):
-        ax = axes[i]
+        ax = axes if (num_countries == 1) else axes[i]
+
         sns.boxplot(
             x="model",
             y=metric,
@@ -206,8 +212,9 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
         ax.xaxis.grid(False)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_{metric}_{crop}.jpg"))
@@ -219,7 +226,8 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_rows = 2
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 5 * num_rows), sharey=True)
-    # axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
 
     num_years = len(all_years)
     sel_years = [all_years[: int(num_years / 2)], all_years[int(num_years / 2) :]]
@@ -249,8 +257,9 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
             ax.get_legend().remove()
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_{metric}_{crop}_{country}.jpg"))
@@ -264,7 +273,9 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
     num_years = len(all_years)
     num_cols = int(num_years / 2) + 1
     fig, axes = plt.subplots(2, num_cols, figsize=(5 * num_cols, 12), sharey="none")
-    # axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
+
     font = {
         "color": "black",
         "size": 18,
@@ -308,8 +319,9 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_residuals_{crop}_{country}.jpg"))
@@ -355,7 +367,7 @@ if __name__ == "__main__":
         if model_name not in model_short_names:
             model_short_names[model_name] = model_name
 
-    df_residuals = results_to_residuals()
+    df_residuals = results_to_residuals(model_names=model_short_names)
     residual_labels = {}
     for model_sname in model_short_names.values():
         residual_labels[model_sname + "_res"] = model_sname

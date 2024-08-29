@@ -186,6 +186,9 @@ def load_results(
         df = pd.read_csv(path)
         df_all = pd.concat([df_all, df], axis=0)
 
+    if (KEY_COUNTRY not in df_all.columns):
+        df_all[KEY_COUNTRY] = df_all[KEY_LOC].str[:2]
+
     return df_all
 
 
