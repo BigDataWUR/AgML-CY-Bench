@@ -11,6 +11,10 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where data is stored
+PATH_TESTDATA_DIR = os.path.join(CONFIG_DIR, "data_test")
+os.makedirs(PATH_TESTDATA_DIR, exist_ok=True)
+
 # Path to folder where output is stored
 PATH_OUTPUT_DIR = os.path.join(CONFIG_DIR, "output")
 os.makedirs(PATH_OUTPUT_DIR, exist_ok=True)

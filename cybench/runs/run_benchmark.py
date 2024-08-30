@@ -20,6 +20,7 @@ from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
 from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
+from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
     RidgeRes,
@@ -31,18 +32,7 @@ from cybench.models.residual_models import (
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
-    "AverageYieldModel": AverageYieldModel,
-    "LinearTrend": TrendModel,
-    "SklearnRidge": SklearnRidge,
-    "RidgeRes": RidgeRes,
-    "SklearnRF": SklearnRandomForest,
-    "RFRes": RandomForestRes,
-    "LSTM": BaselineLSTM,
-    "LSTMRes": LSTMRes,
-    "InceptionTime": BaselineInceptionTime,
-    "InceptionTimeRes": InceptionTimeRes,
     "Transformer": BaselineTransformer,
-    "TransformerRes": TransformerRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
@@ -144,6 +134,13 @@ def run_benchmark(
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
+        seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
+
+        models_init_kwargs["Transformer"] = dict()
+        models_init_kwargs["TransformerRes"] = dict()
+        models_init_kwargs["Transformer"]["seq_len"] = seq_len
+        models_init_kwargs["TransformerRes"]["seq_len"] = seq_len
+
         labels = test_dataset.targets()
 
         model_output = {
@@ -153,6 +150,7 @@ def run_benchmark(
         }
 
         for model_name, model_constructor in model_constructors.items():
+
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
@@ -289,3 +287,8 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
+#run_benchmark(run_name="wheat_FR", dataset_name="wheat_FR")
+df_metrics = compute_metrics(run_name="wheat_US", model_names=["Transformer"])
+df_metrics.reset_index(inplace=True)
+print(df_metrics.groupby("model").agg({"normalized_rmse": "mean", "mape": "mean", "r2": "mean"}))

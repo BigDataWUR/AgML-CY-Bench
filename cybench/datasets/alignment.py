@@ -31,12 +31,13 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     # Merge with crop calendar
     crop_cal_cols = [KEY_LOC, "sos", "eos"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
+
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
+    df = df.astype({KEY_LOC: "category"})
+
     df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
-    # The next new year starts right after this year's harvest.
-    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df["new_year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
     # Fix sos_date for seasons crossing calendar year
     df["sos_date"] = np.where(
@@ -96,6 +97,10 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
     df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
+
+    filtered_df = df[(df[KEY_LOC] == "ES707") & (df[KEY_YEAR] == 2023)]
+    print(filtered_df)
+
     df = df[df["date"] <= df["cutoff_date"]]
 
     # Keep the same number of time steps for all locations and years.
@@ -112,15 +117,19 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     #    spinup_days (ts_length) and lead time (cutoff_days).
     # We take the min of 1 and 2 to meet both criteria.
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+
+    # print(df.groupby([KEY_LOC, KEY_YEAR])["date"].count().to_string())
+    print(f"time steps: {num_time_steps}")
     num_time_steps = min(num_time_steps, (df["ts_length"] - df["cutoff_days"]).max())
+    print(f"time steps: {num_time_steps}")
     # sort by date to make sure tail works correctly
     df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-    df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
 
-    # NOTE: pandas adds "-" to date
-    df["date"] = df["date"].astype(str)
-    df["date"] = df["date"].str.replace("-", "")
+    df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
+    print(df)
     df = df[select_cols]
+
+    print(df)
 
     return df
 
