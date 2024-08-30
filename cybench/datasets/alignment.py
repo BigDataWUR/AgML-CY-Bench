@@ -90,8 +90,12 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     # drop years with not enough data for a season
     # NOTE: It's necessary to make sure years with incomplete data
     # don't influence ensuring same number of time steps. See below.
-    df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("min")
-    df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
+    df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
+        "min"
+    )
+    df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
+        "max"
+    )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
 
     # Determine cutoff days based on lead time.
@@ -116,19 +120,19 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     # num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
 
     # Perform groupby and count
-    counts = df.groupby([KEY_LOC, KEY_YEAR])["date"].count()
-
-    # Filter out zero counts
-    non_zero_counts = counts[counts > 0]
-
-    # Get the minimum number of time steps with non-zero counts
-    num_time_steps = non_zero_counts.min()
+    num_time_steps = (
+        df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].count().min()
+    )
 
     num_time_steps = min(num_time_steps, (df["ts_length"] - df["cutoff_days"]).max())
     # sort by date to make sure tail works correctly
     df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
 
-    df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
+    df = (
+        df.groupby([KEY_LOC, KEY_YEAR], observed=True)
+        .tail(num_time_steps)
+        .reset_index()
+    )
     df = df[select_cols]
 
     return df

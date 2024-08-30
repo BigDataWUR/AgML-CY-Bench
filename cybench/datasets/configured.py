@@ -101,15 +101,12 @@ def load_dfs(
         header=0,
     )
     df_x_meteo = optimize_datatypes(df_x_meteo)
-
-    print("meteo")
     df_x_meteo = _preprocess_time_series_data(
         df_x_meteo, ts_index_cols, METEO_INDICATORS, df_crop_cal, lead_time
     )
     df_x_meteo = df_x_meteo.set_index(ts_index_cols)
 
     # fpar
-    print("fpar")
     df_x_fpar = pd.read_csv(
         os.path.join(path_data_cn, "_".join([RS_FPAR, crop, country_code]) + ".csv"),
         header=0,
@@ -121,7 +118,6 @@ def load_dfs(
     df_x_fpar = df_x_fpar.set_index(ts_index_cols)
 
     # ndvi
-    print("ndvi")
     df_x_ndvi = pd.read_csv(
         os.path.join(path_data_cn, "_".join([RS_NDVI, crop, country_code]) + ".csv"),
         header=0,
@@ -156,12 +152,6 @@ def load_dfs(
     df_x_soil = df_x_soil.set_index([KEY_LOC])
 
     dfs_x = (df_x_soil, df_x_meteo, df_x_fpar, df_x_ndvi, df_x_soil_moisture)
-    print(f"df_x_soil: {len(df_x_soil)}")
-    print(f"df_x_meteo: {len(df_x_meteo)}")
-    print(f"df_x_fpar: {len(df_x_fpar)}")
-    print(f"df_x_ndvi: {len(df_x_ndvi)}")
-    print(f"df_x_soil_moisture: {len(df_x_soil_moisture)}")
-
     df_y, dfs_x = align_data(df_y, dfs_x)
 
     return df_y, dfs_x
@@ -198,12 +188,17 @@ def load_dfs_crop(crop: str, countries: list = None) -> tuple:
             index_names = df_x.index.names
             column_names = list(df_x.columns)
             df_x.reset_index(inplace=True)
-            min_time_steps = df_x.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+            min_time_steps = (
+                df_x.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].count().min()
+            )
             df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-            df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_time_steps).reset_index()
+            df_x = (
+                df_x.groupby([KEY_LOC, KEY_YEAR], observed=True)
+                .tail(min_time_steps)
+                .reset_index()
+            )
             df_x.set_index(index_names, inplace=True)
             df_x = df_x[column_names]
-
         new_dfs_x += (df_x,)
 
     return df_y, new_dfs_x

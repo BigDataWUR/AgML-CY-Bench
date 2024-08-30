@@ -68,10 +68,6 @@ class Dataset:
         self._min_date = None
         self._max_date = None
         for df in self._dfs_x:
-            print(f"df: {df}")
-            print("\nData Types of Each Level:")
-            for level_name in df.index.names:
-                print(f"{level_name}: {df.index.get_level_values(level_name).dtype}")
             df.sort_index(inplace=True)
             if len(df.index.names) == 3:
                 df_min_date = min(df.index.get_level_values(2))
