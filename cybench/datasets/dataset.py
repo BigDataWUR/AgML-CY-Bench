@@ -91,6 +91,7 @@ class Dataset:
         crop = crop_countries[0]
         assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
+        # only crop is specified
         if len(crop_countries) < 2:
             country_codes = DATASETS[crop]
         else:
@@ -105,7 +106,7 @@ class Dataset:
         return Dataset(
             crop,
             df_y,
-            list(dfs_x),
+            list(dfs_x.values()),
         )
 
     @property

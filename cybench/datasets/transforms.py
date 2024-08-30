@@ -7,15 +7,14 @@ from cybench.config import (
 
 
 def transform_ts_inputs_to_dekadal(batch, min_date, max_date):
-    min_dekad = dekad_from_date(min_date)
-    max_dekad = dekad_from_date(max_date)
+    min_dekad = dekad_from_date(str(min_date))
+    max_dekad = dekad_from_date(str(max_date))
     dekads = list(range(0, max_dekad - min_dekad + 1))
     for key in TIME_SERIES_PREDICTORS:
         value = batch[key]
         # Transform dates to dekads
-        date_strs = [str(date) for date in batch[KEY_DATES][key]]
         value_dekads = torch.tensor(
-            [dekad_from_date(date) for date in date_strs], device=value.device
+            [dekad_from_date(str(date)) for date in batch[KEY_DATES][key]], device=value.device
         )
         value_dekads -= 1
 

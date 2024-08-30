@@ -125,7 +125,7 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     return df
 
 
-def align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
+def align_data(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
     # Data Alignment
     # - Filter the label data based on presence within all feature data sets
     # - Filter feature data based on label data
@@ -133,7 +133,7 @@ def align_data(df_y: pd.DataFrame, dfs_x: tuple) -> tuple:
     # Filter label data
 
     index_y_selection = set(df_y.index.values)
-    for df_x in dfs_x:
+    for df_x in dfs_x.values():
         if len(df_x.index.names) == 1:
             index_y_selection = {
                 (loc_id, year)
