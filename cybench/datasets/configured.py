@@ -133,7 +133,6 @@ def load_dfs(
     )
 
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
-    return
 
     # soil moisture
     df_x_soil_moisture = pd.read_csv(
@@ -157,12 +156,11 @@ def load_dfs(
     df_x_soil = df_x_soil.set_index([KEY_LOC])
 
     dfs_x = (df_x_soil, df_x_meteo, df_x_fpar, df_x_ndvi, df_x_soil_moisture)
-
-    # for df in [df_x_soil, df_x_meteo, df_x_fpar, df_x_ndvi, df_x_soil_moisture]:
-    #     print("\nData Types of Each Level:")
-    #     for level_name in df.index.names:
-    #         print(f"{level_name}: {df.index.get_level_values(level_name).dtype}")
-    # print("done")
+    print(f"df_x_soil: {len(df_x_soil)}")
+    print(f"df_x_meteo: {len(df_x_meteo)}")
+    print(f"df_x_fpar: {len(df_x_fpar)}")
+    print(f"df_x_ndvi: {len(df_x_ndvi)}")
+    print(f"df_x_soil_moisture: {len(df_x_soil_moisture)}")
 
     df_y, dfs_x = align_data(df_y, dfs_x)
 

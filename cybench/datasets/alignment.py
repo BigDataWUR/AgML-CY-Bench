@@ -98,9 +98,6 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     df = _add_cutoff_days(df, lead_time)
     df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
 
-    filtered_df = df[(df[KEY_LOC] == "ES707") & (df[KEY_YEAR] == 2023)]
-    print(filtered_df)
-
     df = df[df["date"] <= df["cutoff_date"]]
 
     # Keep the same number of time steps for all locations and years.
@@ -116,20 +113,23 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     #    This is the maximum number of time steps after accounting for
     #    spinup_days (ts_length) and lead time (cutoff_days).
     # We take the min of 1 and 2 to meet both criteria.
-    num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+    # num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
 
-    # print(df.groupby([KEY_LOC, KEY_YEAR])["date"].count().to_string())
-    print(f"time steps: {num_time_steps}")
+    # Perform groupby and count
+    counts = df.groupby([KEY_LOC, KEY_YEAR])["date"].count()
+
+    # Filter out zero counts
+    non_zero_counts = counts[counts > 0]
+
+    # Get the minimum number of time steps with non-zero counts
+    num_time_steps = non_zero_counts.min()
+
     num_time_steps = min(num_time_steps, (df["ts_length"] - df["cutoff_days"]).max())
-    print(f"time steps: {num_time_steps}")
     # sort by date to make sure tail works correctly
     df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
 
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
-    print(df)
     df = df[select_cols]
-
-    print(df)
 
     return df
 
