@@ -163,5 +163,5 @@ class InceptionTimeRes(ResidualModel):
 
 class TransformerRes(ResidualModel):
     def __init__(self, **kwargs):
-        """InceptionTime model that predicts residuals from the trend."""
+        """Transformer model that predicts residuals from the trend."""
         super().__init__(BaselineTransformer(**kwargs))
