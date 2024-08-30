@@ -145,8 +145,8 @@ def run_benchmark(
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
+        # TODO: put into generic function
         seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
-
         models_init_kwargs["Transformer"] = dict()
         models_init_kwargs["TransformerRes"] = dict()
         models_init_kwargs["Transformer"]["seq_len"] = seq_len
