@@ -147,10 +147,9 @@ def run_benchmark(
 
         # TODO: put into generic function
         seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
-        models_init_kwargs["Transformer"] = dict()
-        models_init_kwargs["TransformerRes"] = dict()
-        models_init_kwargs["Transformer"]["seq_len"] = seq_len
-        models_init_kwargs["TransformerRes"]["seq_len"] = seq_len
+        models_init_kwargs["Transformer"] = {"seq_len": seq_len}
+        models_init_kwargs["TransformerRes"] = {"seq_len": seq_len}
+
 
         labels = test_dataset.targets()
 
