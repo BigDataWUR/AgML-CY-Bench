@@ -11,6 +11,9 @@ AgERA5_params = {
     "Mean_Temperature": ("2m_temperature", "24_hour_mean"),
     "Solar_Radiation_Flux": ("solar_radiation_flux", None),
     "Precipitation_Flux": ("precipitation_flux", None),
+    # NOTE: Not used. Uncomment if required.
+    # 'Wind_Speed': {'10m_wind_speed': '24_hour_mean'},
+    # 'Vapour_Pressure': {'vapour_pressure': '24_hour_mean'},
 }
 
 
