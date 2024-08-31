@@ -110,7 +110,7 @@ def download_agera5(cds, num_requests, start_year, end_year):
     # Another NOTE: CDS api seems to be changing.
     # From Sept 2024, this script may not work.
     # Check https://confluence.ecmwf.int/x/uINmFw
-    assert num_requests <= 16, Exception("Number of requests is to large")
+    assert num_requests <= 16, Exception("Suggested number of requests is <= 16")
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         tasks = [
             executor.submit(download_agera5_year, cds, year, parameter)
