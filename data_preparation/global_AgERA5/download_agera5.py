@@ -15,7 +15,7 @@ AgERA5_params = {
 
 
 # @author: Abdelrahman Saleh
-def get_agera5_params(sel_param, start_year, end_year, area=None):
+def get_agera5_params(sel_param, year, area=None):
     if sel_param in AgERA5_params:
         var, stat = AgERA5_params[sel_param]
 
@@ -24,7 +24,7 @@ def get_agera5_params(sel_param, start_year, end_year, area=None):
             "version": "1_1",
             "format": "zip",
             "variable": var,
-            "year": [str(year) for year in range(start_year, end_year + 1)],
+            "year": str(year),
             "month": [
                 "01",
                 "02",
@@ -82,13 +82,13 @@ def get_agera5_params(sel_param, start_year, end_year, area=None):
 
         return retrieve_params
     else:
-        return None
+        raise Exception(f"parameter '{sel_param}' is not supported")
 
 
 def download_agera5_year(cds, year, sel_param):
     download_path = os.path.join("/path/to/downloads", sel_param)
     os.makedirs(download_path, exist_ok=True)
-    retrieve_params = get_agera5_params(sel_param, year, year)
+    retrieve_params = get_agera5_params(sel_param, year)
     cds.retrieve(
         "sis-agrometeorological-indicators",
         retrieve_params,
@@ -101,10 +101,13 @@ def download_agera5(cds, num_requests, start_year, end_year):
     # Example contents of .cdsapirc:
     # url: https://cds.climate.copernicus.eu/api/v2
     # key: {cdsapi.uid}:{cdsapi.api_key}
+    if (not os.path.exists(os.path.join(os.environ["HOME"], ".cdsapirc"))):
+        raise Exception(".cdsapirc not found in $HOME")
 
     # Another NOTE: CDS api seems to be changing.
     # From Sept 2024, this script may not work.
     # Check https://confluence.ecmwf.int/x/uINmFw
+    assert num_requests <= 16, Exception("Number of requests is to large")
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         tasks = [
             executor.submit(download_agera5_year, cds, year, parameter)
