@@ -93,6 +93,10 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
 
+    # TODO: Separate crop season alignment and trimming by lead time
+    # It's useful to save data after crop season alignment.
+    # Later trim aligned data based on lead time.
+
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
     df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
@@ -152,8 +156,24 @@ def align_data(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
     # Filter the labels
     df_y = df_y.loc[list(index_y_selection)]
 
-    # Filter feature data
-    # TODO
-    index_y_location_selection = set([loc_id for loc_id, _ in index_y_selection])
+    # TODO: Filter input data by index_y_locations and index_y_years
+    index_y_locations = set([loc_id for loc_id, _ in index_y_selection])
+    index_y_years = set([year for _, year in index_y_selection])
+
+    for df_x in dfs_x.values():
+        if len(df_x.index.names) == 1:
+            index_y_selection = {
+                (loc_id, year)
+                for loc_id, year in index_y_selection
+                if loc_id in df_x.index.values
+            }
+
+        if len(df_x.index.names) == 2:
+            index_y_selection = index_y_selection.intersection(set(df_x.index.values))
+
+        if len(df_x.index.names) == 3:
+            index_y_selection = index_y_selection.intersection(
+                set([(loc_id, year) for loc_id, year, _ in df_x.index.values])
+            )
 
     return df_y, dfs_x
