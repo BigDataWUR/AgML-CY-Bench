@@ -72,11 +72,21 @@ class TorchDataset(torch.utils.data.Dataset):
         feature_names.remove(KEY_YEAR)
         feature_names.remove(KEY_DATES)
 
+        import numpy as np
+
+        test_feature = list(feature_names)[0]
+        first_sample_rad = samples[0][KEY_DATES][test_feature]
+        for sample in samples[1:]:
+            if not np.array_equal(first_sample_rad, sample["dates"][test_feature]):
+                raise AssertionError(f"Mismatch in dates of {test_feature}")
+
         batched_samples = {
             KEY_TARGET: batch_tensors(*[sample[KEY_TARGET] for sample in samples]),
             KEY_LOC: [sample[KEY_LOC] for sample in samples],
             KEY_YEAR: [sample[KEY_YEAR] for sample in samples],
-            KEY_DATES: samples[0][KEY_DATES],
+            KEY_DATES: samples[0][
+                KEY_DATES
+            ],  # Why only first element? Seems to assume that dates are identical across samples
             **{
                 key: batch_tensors(*[sample[key] for sample in samples])
                 for key in feature_names
