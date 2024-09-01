@@ -199,7 +199,7 @@ class Dataset:
         for i in range(len(self)):
             yield self[i]
 
-    def _get_feature_data(self, loc_id: int, year: int) -> dict:
+    def _get_feature_data(self, loc_id: str, year: int) -> dict:
         """
         Helper function for obtaining feature data corresponding to some index
         :param loc_id: location index value
@@ -256,8 +256,6 @@ class Dataset:
                 # Data in temporal dimension is assumed to be sorted
                 # Obtain the values contained in the filtered dataframe
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
-                dates = {key: df_loc.index.values for key in df_loc.columns}
-
                 dates = {key: df_loc.index.values for key in df_loc.columns}
 
                 data = {

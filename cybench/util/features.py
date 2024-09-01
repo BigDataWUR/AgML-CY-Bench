@@ -19,6 +19,8 @@ def fortnight_from_date(timestamp: pd.Timestamp):
     Returns:
       Fortnight number, "YYYY0101" to "YYYY0115" -> 1.
     """
+    if isinstance(timestamp, np.datetime64):
+        timestamp = pd.Timestamp(timestamp)
     month = timestamp.month
     day_of_month = timestamp.day
     fortnight_number = (int(month) - 1) * 2
@@ -38,6 +40,9 @@ def dekad_from_date(date: pd.Timestamp):
       Dekad number, e.g. "YYYY0101" to "YYYY0110" -> 1,
                          "YYYY0111" to "YYYY0120" -> 2,
     """
+
+    if isinstance(date, np.datetime64):
+        date = pd.Timestamp(date)
 
     month = date.month
     day_of_month = date.day
@@ -65,7 +70,7 @@ def _add_period(df: pd.DataFrame, period_length: str):
     # NOTE expects data column in string format
     # add a period column based on time step
     if period_length == "month":
-        df["period"] = df["date"].month
+        df["period"] = df["date"].apply(lambda x: pd.Timestamp(x).month)
     elif period_length == "fortnight":
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
     elif period_length == "dekad":
