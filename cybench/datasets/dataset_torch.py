@@ -75,9 +75,9 @@ class TorchDataset(torch.utils.data.Dataset):
         import numpy as np
 
         test_feature = list(feature_names)[0]
-        first_sample_rad = samples[0][KEY_DATES][test_feature]
+        first_sample = samples[0][KEY_DATES][test_feature]
         for sample in samples[1:]:
-            if not np.array_equal(first_sample_rad, sample["dates"][test_feature]):
+            if not np.array_equal(first_sample, sample["dates"][test_feature]):
                 raise AssertionError(f"Mismatch in dates of {test_feature}")
 
         batched_samples = {
