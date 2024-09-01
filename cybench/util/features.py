@@ -75,7 +75,7 @@ def _add_period(df: pd.DataFrame, period_length: str):
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
     elif period_length == "dekad":
         df["period"] = df.apply(lambda r: dekad_from_date(r["date"]), axis=1)
-
+    df["period"] = df["period"].astype(str)
     return df
 
 
