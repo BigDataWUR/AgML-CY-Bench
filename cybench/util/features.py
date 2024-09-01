@@ -75,7 +75,7 @@ def _add_period(df: pd.DataFrame, period_length: str):
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
     elif period_length == "dekad":
         df["period"] = df.apply(lambda r: dekad_from_date(r["date"]), axis=1)
-    df["period"] = df["period"].astype(str)
+
     return df
 
 
@@ -111,7 +111,7 @@ def _aggregate_by_period(
     )
 
     # combine names of two column levels
-    ft_df.columns = [first + second for first, second in ft_df.columns]
+    ft_df.columns = [first + str(second) for first, second in ft_df.columns]
 
     return ft_df
 
@@ -186,7 +186,7 @@ def _count_threshold(
 
     # rename period cols
     period_cols = df["period"].unique()
-    rename_cols = {p: ft_name + "p" + p for p in period_cols}
+    rename_cols = {p: ft_name + "p" + str(p) for p in period_cols}
     ft_df = ft_df.rename(columns=rename_cols)
 
     return ft_df
