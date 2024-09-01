@@ -34,9 +34,19 @@ from cybench.models.residual_models import (
     TransformerRes,
 )
 
-
 _BASELINE_MODEL_CONSTRUCTORS = {
+    "AverageYieldModel": AverageYieldModel,
+    "LinearTrend": TrendModel,
+    "SklearnRidge": SklearnRidge,
+    "RidgeRes": RidgeRes,
+    "SklearnRF": SklearnRandomForest,
+    "RFRes": RandomForestRes,
+    "LSTM": BaselineLSTM,
+    "LSTMRes": LSTMRes,
+    "InceptionTime": BaselineInceptionTime,
+    "InceptionTimeRes": InceptionTimeRes,
     "Transformer": BaselineTransformer,
+    "TransformerRes": TransformerRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
@@ -293,13 +303,3 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
-
-
-# run_benchmark(run_name="wheat_FR", dataset_name="wheat_FR")
-df_metrics = compute_metrics(run_name="wheat_US", model_names=["Transformer"])
-df_metrics.reset_index(inplace=True)
-print(
-    df_metrics.groupby("model").agg(
-        {"normalized_rmse": "mean", "mape": "mean", "r2": "mean"}
-    )
-)

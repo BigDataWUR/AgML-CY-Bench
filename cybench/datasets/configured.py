@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-from datetime import date, timedelta
 
 
 from cybench.config import (
@@ -45,10 +44,10 @@ def get_dtype_mappings():
 def optimize_datatypes(
     df: pd.DataFrame, column_mappings: dict = get_dtype_mappings()
 ) -> pd.DataFrame:
-    valid_mappings = {
+    dtype_mappings = {
         col: dtype for col, dtype in column_mappings.items() if col in df.columns
     }
-    df = df.astype(valid_mappings)
+    df = df.astype(dtype_mappings)
 
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
@@ -65,7 +64,6 @@ def load_dfs(
         os.path.join(path_data_cn, "_".join(["yield", crop, country_code]) + ".csv"),
         header=0,
     )
-
     df_y = df_y.rename(columns={"harvest_year": KEY_YEAR})
     df_y[KEY_YEAR] = pd.to_datetime(df_y[KEY_YEAR], format="%Y").dt.year
     df_y = optimize_datatypes(df_y)
@@ -93,7 +91,6 @@ def load_dfs(
     # Time series data
     # NOTE: All time series data have to be rotated by crop calendar.
     # Set index to ts_index_cols after rotation.
-
     ts_index_cols = [KEY_LOC, KEY_YEAR, "date"]
     # meteo
     df_x_meteo = pd.read_csv(
@@ -123,11 +120,9 @@ def load_dfs(
         header=0,
     )
     df_x_ndvi = optimize_datatypes(df_x_ndvi)
-
     df_x_ndvi = _preprocess_time_series_data(
         df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
     )
-
     df_x_ndvi = df_x_ndvi.set_index(ts_index_cols)
 
     # soil moisture
@@ -138,7 +133,6 @@ def load_dfs(
         header=0,
     )
     df_x_soil_moisture = optimize_datatypes(df_x_soil_moisture)
-
     df_x_soil_moisture = _preprocess_time_series_data(
         df_x_soil_moisture,
         ts_index_cols,
