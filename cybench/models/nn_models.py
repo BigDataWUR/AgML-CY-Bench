@@ -8,6 +8,7 @@ import logging
 from sklearn.model_selection import ParameterGrid
 from tsai.models.InceptionTime import InceptionTime
 from tsai.models.TransformerModel import TransformerModel
+from tsai.models.TST import TST
 
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
@@ -745,12 +746,13 @@ class BaselineTransformer(BaseNNModel):
 
     def __init__(
         self,
+        seq_len,
         hidden_size=64,
         d_model=64,
         n_head=1,
-        d_ffn=128,
+        d_ff=256,
         output_size=1,
-        num_layers=1,
+        num_layers=3,
         transforms=[
             transform_ts_inputs_to_dekadal,
         ],
@@ -762,14 +764,15 @@ class BaselineTransformer(BaseNNModel):
         kwargs["hidden_size"] = hidden_size
         kwargs["d_model"] = d_model
         kwargs["n_head"] = n_head
-        kwargs["d_ffn"] = d_ffn
+        kwargs["d_ff"] = d_ff
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
+        kwargs["seq_len"] = seq_len
 
         super().__init__(**kwargs)
-        self._timeseries = TransformerModel(
-            c_in=n_ts_inputs, c_out=hidden_size, n_layers=num_layers, d_model=d_model, n_head=n_head,
-            d_ffn=d_ffn
+        self._timeseries = TST(
+            c_in=n_ts_inputs, c_out=hidden_size, seq_len=seq_len, n_layers=num_layers, d_model=d_model, n_heads=n_head,
+            d_ff=d_ff
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
