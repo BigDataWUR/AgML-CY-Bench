@@ -13,7 +13,7 @@ def transform_ts_inputs_to_dekadal(batch, min_date, max_date):
     for key in TIME_SERIES_PREDICTORS:
         value = batch[key]
         # Transform dates to dekads
-        date_strs = [str(date) for date in batch[KEY_DATES][key]]
+        date_strs = [date for date in batch[KEY_DATES][key]]
         value_dekads = torch.tensor(
             [dekad_from_date(date) for date in date_strs], device=value.device
         )

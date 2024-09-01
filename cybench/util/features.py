@@ -10,17 +10,17 @@ from cybench.config import (
 )
 
 
-def fortnight_from_date(date_str: str):
+def fortnight_from_date(timestamp: pd.Timestamp):
     """Get the fortnight number from date.
 
     Args:
-      date_str: date string in YYYYmmdd format
+     timestamp: pd.Timestamp object representing the date.
 
     Returns:
       Fortnight number, "YYYY0101" to "YYYY0115" -> 1.
     """
-    month = date_str[4:6]
-    day_of_month = int(date_str[6:])
+    month = timestamp.month
+    day_of_month = timestamp.day
     fortnight_number = (int(month) - 1) * 2
     if day_of_month <= 15:
         return fortnight_number + 1
@@ -28,20 +28,19 @@ def fortnight_from_date(date_str: str):
         return fortnight_number + 2
 
 
-def dekad_from_date(date_str: str):
-    """Get the dekad number from date.
+def dekad_from_date(date: pd.Timestamp):
+    """Get the dekad number from a pd.Timestamp object.
 
     Args:
-      date_str: date string in YYYYmmdd format
+      timestamp: pd.Timestamp object representing the date.
 
     Returns:
       Dekad number, e.g. "YYYY0101" to "YYYY0110" -> 1,
                          "YYYY0111" to "YYYY0120" -> 2,
-                         "YYYY0121" to "YYYY0131" -> 3
     """
-    date_str = date_str.replace("-", "").replace("/", "")
-    month = int(date_str[4:6])
-    day_of_month = int(date_str[6:])
+
+    month = date.month
+    day_of_month = date.day
     dekad = (month - 1) * 3
     if day_of_month <= 10:
         dekad += 1
@@ -66,7 +65,7 @@ def _add_period(df: pd.DataFrame, period_length: str):
     # NOTE expects data column in string format
     # add a period column based on time step
     if period_length == "month":
-        df["period"] = df["date"].str[4:6]
+        df["period"] = df["date"].month
     elif period_length == "fortnight":
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
     elif period_length == "dekad":
@@ -192,7 +191,7 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
     """Unpack time series from lists into separate rows by date.
 
     Args:
-      df : pd.DataFrame
+      df: pd.DataFrame
 
       indicators: list of indicators to unpack
 
@@ -208,10 +207,7 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
 
     # explode time series columns and dates
     df = df.explode(indicators + ["date"]).drop(columns=[KEY_DATES])
-    df = df.astype({"date": str})
-    # pandas tends to format date as "YYYY-mm-dd", remove the hyphens
-    df["date"] = df["date"].str.replace("-", "")
-
+    assert pd.api.types.is_datetime64_ns_dtype(df["date"])
     return df
 
 

@@ -135,7 +135,7 @@ class Dataset:
 
     def targets(self) -> np.array:
         """
-        Obtain an numpy array of targets or labels
+        Obtain a numpy array of targets or labels
         """
         return self._df_y[KEY_TARGET].values
 
@@ -143,11 +143,11 @@ class Dataset:
         return self._df_y.index.values
 
     @property
-    def min_date(self) -> str:
+    def min_date(self) -> pd.Timestamp:
         return self._min_date
 
     @property
-    def max_date(self) -> str:
+    def max_date(self) -> pd.Timestamp:
         return self._max_date
 
     def __getitem__(self, index) -> dict:
