@@ -104,11 +104,11 @@ def download_agera5(cds, num_requests, start_year, end_year):
     # Example contents of .cdsapirc:
     # url: https://cds.climate.copernicus.eu/api/v2
     # key: {cdsapi.uid}:{cdsapi.api_key}
-    if (not os.path.exists(os.path.join(os.environ["HOME"], ".cdsapirc"))):
+    if not os.path.exists(os.path.join(os.environ["HOME"], ".cdsapirc")):
         raise Exception(".cdsapirc not found in $HOME")
 
-    # Another NOTE: CDS api seems to be changing.
-    # From Sept 2024, this script may not work.
+    # NOTE: CDS api seems to be changing.
+    # From Sept 2024, this script may need an update.
     # Check https://confluence.ecmwf.int/x/uINmFw
     assert num_requests <= 16, Exception("Suggested number of requests is <= 16")
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
@@ -127,3 +127,15 @@ def download_agera5(cds, num_requests, start_year, end_year):
 # 2. Some zip files seem to have errors. You may need to download them again.
 cds = cdsapi.Client(progress=False)
 download_agera5(cds, 16, 2001, 2023)
+
+# NOTE:
+# After downloading data, you need 2 more steps before you can
+# use `../predictor_data_prep.r` to mask and aggregate AgERA5 data to admin regions.
+# 1. Data will be downloaded to folders named "Maximum_Temperature",
+#    "Minimum_Temperature", etc. Run the `rename_agera5_files.py` in each folder.
+# 2. Rename folder names as follows:
+#    "Maximum_Temperature" -> tmax
+#    "Minimum_Temperature" -> tmin
+#    "Mean_Temperature" -> tavg
+#    "Precipitation_Flux" -> prec
+#    "Solar_Radiation_Flux" -> rad

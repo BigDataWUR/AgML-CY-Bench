@@ -14,12 +14,15 @@ start_year = int(sys.argv[2])
 end_year = int(sys.argv[3])
 
 # rename files in the current directory
+# NOTE: CDS api seems to be changing.
+# From Sept 2024, this script may need an update.
+# Check https://confluence.ecmwf.int/x/uINmFw.
 for yr in list(range(start_year, end_year + 1)):
-    files = [ f for f in os.listdir(".") if f.endswith(".nc") and str(yr) in f]
+    files = [f for f in os.listdir(".") if f.endswith(".nc") and str(yr) in f]
     for f in files:
         try:
             agera5_date_index = f.index("AgERA5_" + str(yr))
-            date_str = f[agera5_date_index + 7:agera5_date_index+15]
+            date_str = f[agera5_date_index + 7 : agera5_date_index + 15]
             _, extension = os.path.splitext(f)
             new_name = "_".join(["AgERA5", indicator, date_str]) + extension
             os.rename(f, new_name)
