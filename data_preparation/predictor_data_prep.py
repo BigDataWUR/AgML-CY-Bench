@@ -908,8 +908,10 @@ def process_file(
         aggr = "mode"
 
     if is_time_series:
+        date_str = fname[-8:]
         col_names = ["crop_name", "adm_id", "date", indicator_name]
     else:
+        date_str = None
         col_names = ["crop_name", "adm_id", indicator_name]
 
     df = pd.DataFrame(columns=col_names)
