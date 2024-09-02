@@ -1,10 +1,5 @@
 import pandas as pd
-
-
-import pandas as pd
 import numpy as np
-from datetime import timedelta
-from datetime import date
 
 from cybench.config import KEY_LOC, KEY_YEAR
 
@@ -89,8 +84,12 @@ def align_to_crop_season(df, crop_cal_df, spinup_days):
     # drop years with not enough data for a season
     # NOTE: It's necessary to make sure years with incomplete data
     # don't influence ensuring same number of time steps. See below.
-    df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("min")
-    df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
+    df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
+        "min"
+    )
+    df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
+        "max"
+    )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
 
     return df[select_cols + ["season_length", "end_of_year"]]
@@ -126,11 +125,17 @@ def trim_to_lead_time(df, lead_time, spinup_days):
     #    This is the maximum number of time steps after accounting for
     #    spinup_days and lead time (cutoff_days).
     # We take the min of 1 and 2 to meet both criteria.
-    num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
+    num_time_steps = (
+        df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].count().min()
+    )
     num_time_steps = min(df["season_length"].max() + spinup_days, num_time_steps)
     # sort by date to make sure tail works correctly
     df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-    df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
+    df = (
+        df.groupby([KEY_LOC, KEY_YEAR], observed=True)
+        .tail(num_time_steps)
+        .reset_index()
+    )
 
     # NOTE: pandas adds "-" to date
     df["date"] = df["date"].astype(str)
