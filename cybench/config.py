@@ -163,6 +163,8 @@ GDD_UPPER_LIMIT = {
 # "n-day(s)" where n is an integer
 FORECAST_LEAD_TIME = "middle-of-season"
 
+# Buffer period before the start of season
+SPINUP_DAYS = 90
 
 # Logging
 PATH_LOGS_DIR = os.path.join(PATH_OUTPUT_DIR, "logs")

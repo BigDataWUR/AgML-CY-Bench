@@ -16,9 +16,14 @@ from cybench.config import (
     SOIL_MOISTURE_INDICATORS,
     CROP_CALENDAR_ENTRIES,
     FORECAST_LEAD_TIME,
+    SPINUP_DAYS,
 )
 
-from cybench.datasets.alignment import align_data, trim_to_lead_time
+from cybench.datasets.alignment import (
+    align_to_crop_season,
+    trim_to_lead_time,
+    align_inputs_and_labels,
+)
 
 
 def _add_year(df: pd.DataFrame) -> pd.DataFrame:
@@ -29,18 +34,16 @@ def _add_year(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal, lead_time):
+def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal):
     df = _add_year(df)
     df = df[index_cols + select_cols]
     df = df.dropna(axis=0)
-    df = trim_to_lead_time(df, df_crop_cal, lead_time)
+    df = align_to_crop_season(df, df_crop_cal, SPINUP_DAYS)
 
     return df
 
 
-def load_dfs(
-    crop: str, country_code: str, lead_time: str = FORECAST_LEAD_TIME
-) -> tuple:
+def load_dfs(crop: str, country_code: str) -> tuple:
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -80,7 +83,7 @@ def load_dfs(
         header=0,
     )
     df_x_meteo = _preprocess_time_series_data(
-        df_x_meteo, ts_index_cols, METEO_INDICATORS, df_crop_cal, lead_time
+        df_x_meteo, ts_index_cols, METEO_INDICATORS, df_crop_cal
     )
     df_x_meteo.set_index(ts_index_cols, inplace=True)
 
@@ -90,7 +93,7 @@ def load_dfs(
         header=0,
     )
     df_x_fpar = _preprocess_time_series_data(
-        df_x_fpar, ts_index_cols, [RS_FPAR], df_crop_cal, lead_time
+        df_x_fpar, ts_index_cols, [RS_FPAR], df_crop_cal
     )
     df_x_fpar.set_index(ts_index_cols, inplace=True)
 
@@ -100,7 +103,7 @@ def load_dfs(
         header=0,
     )
     df_x_ndvi = _preprocess_time_series_data(
-        df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal, lead_time
+        df_x_ndvi, ts_index_cols, [RS_NDVI], df_crop_cal
     )
     df_x_ndvi.set_index(ts_index_cols, inplace=True)
 
@@ -116,7 +119,6 @@ def load_dfs(
         ts_index_cols,
         SOIL_MOISTURE_INDICATORS,
         df_crop_cal,
-        lead_time,
     )
     df_x_soil_moisture.set_index(ts_index_cols, inplace=True)
 
@@ -127,8 +129,8 @@ def load_dfs(
         RS_NDVI: df_x_ndvi,
         "soil_moisture": df_x_soil_moisture,
     }
+    df_y, dfs_x = align_inputs_and_labels(df_y, dfs_x)
 
-    df_y, dfs_x = align_data(df_y, dfs_x)
     return df_y, dfs_x
 
 
@@ -191,7 +193,9 @@ def load_aligned_dfs(crop: str, country_code: str) -> tuple:
     return df_y, dfs_x
 
 
-def load_dfs_crop(crop: str, countries: list = None) -> dict:
+def load_dfs_crop(
+    crop: str, countries: list = None, lead_time: str = FORECAST_LEAD_TIME
+) -> dict:
     assert crop in DATASETS
 
     if countries is None:
@@ -225,22 +229,10 @@ def load_dfs_crop(crop: str, countries: list = None) -> dict:
             for x, df_x_cn in dfs_x_cn.items():
                 dfs_x[x] = pd.concat([dfs_x[x], df_x_cn], axis=0)
 
-    # keep the same number of time steps for time series data
-    # NOTE: At this point, each df_x contains data for all selected countries.
-    if len(countries) > 1:
-        for x in dfs_x:
-            df_x = dfs_x[x]
-            # If index is [KEY_LOC, KEY_YEAR, "date"]
-            if "date" in df_x.index.names:
-                index_names = df_x.index.names
-                column_names = list(df_x.columns)
-                df_x.reset_index(inplace=True)
-                min_time_steps = df_x.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
-                df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-                df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_time_steps).reset_index()
-                df_x.set_index(index_names, inplace=True)
-                df_x = df_x[column_names]
-
-            dfs_x[x] = df_x
+    # Trim to lead time and ensure same number of time steps
+    # for time series data.
+    for x in dfs_x:
+        if "date" in dfs_x[x].index.names:
+            dfs_x[x] = trim_to_lead_time(dfs_x[x], lead_time, SPINUP_DAYS)
 
     return df_y, dfs_x

@@ -25,7 +25,7 @@ def _add_cutoff_days(df, lead_time):
     return df
 
 
-def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
+def align_to_crop_season(df, crop_cal_df, spinup_days):
     select_cols = list(df.columns)
 
     # Merge with crop calendar
@@ -93,12 +93,23 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR])["date"].transform("max")
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
 
-    # TODO: Separate crop season alignment and trimming by lead time
-    # It's useful to save data after crop season alignment.
-    # Later trim aligned data based on lead time.
+    return df[select_cols + ["season_length", "end_of_year"]]
+
+
+def trim_to_lead_time(df, lead_time, spinup_days):
+    # NOTE: df should have the columns returned by `align_to_crop_season` above.
+    index_names = df.index.names
+    df.reset_index(inplace=True)
+    assert "season_length" in df.columns
+    assert "end_of_year" in df.columns
+    select_cols = [c for c in df.columns if c not in ["season_length", "end_of_year"]]
 
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
+    # NOTE: We need to do pd.to_datetime because pandas reads dates as str.
+    # Also note that pandas seems to write dates in "%Y-%m-%d" format.
+    df["end_of_year"] = pd.to_datetime(df["end_of_year"], format="%Y-%m-%d")
+    df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d")
     df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
     df = df[df["date"] <= df["cutoff_date"]]
 
@@ -116,7 +127,7 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     #    spinup_days (ts_length) and lead time (cutoff_days).
     # We take the min of 1 and 2 to meet both criteria.
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
-    num_time_steps = min(num_time_steps, (df["ts_length"] - df["cutoff_days"]).max())
+    num_time_steps = min(df["season_length"].max() + spinup_days, num_time_steps)
     # sort by date to make sure tail works correctly
     df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
     df = df.groupby([KEY_LOC, KEY_YEAR]).tail(num_time_steps).reset_index()
@@ -125,17 +136,16 @@ def trim_to_lead_time(df, crop_cal_df, lead_time, spinup_days=90):
     df["date"] = df["date"].astype(str)
     df["date"] = df["date"].str.replace("-", "")
     df = df[select_cols]
+    df.set_index(index_names, inplace=True)
 
     return df
 
 
-def align_data(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
-    # Data Alignment
+def align_inputs_and_labels(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
     # - Filter the label data based on presence within all feature data sets
     # - Filter feature data based on label data
 
-    # Filter label data
-
+    # Identify common locations and years
     index_y_selection = set(df_y.index.values)
     for df_x in dfs_x.values():
         if len(df_x.index.names) == 1:
@@ -156,24 +166,27 @@ def align_data(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
     # Filter the labels
     df_y = df_y.loc[list(index_y_selection)]
 
-    # TODO: Filter input data by index_y_locations and index_y_years
+    # Filter input data by index_y_locations and index_y_years
     index_y_locations = set([loc_id for loc_id, _ in index_y_selection])
     index_y_years = set([year for _, year in index_y_selection])
 
-    for df_x in dfs_x.values():
+    for x in dfs_x:
+        df_x = dfs_x[x]
         if len(df_x.index.names) == 1:
-            index_y_selection = {
-                (loc_id, year)
-                for loc_id, year in index_y_selection
-                if loc_id in df_x.index.values
-            }
+            df_x = df_x.loc[list(index_y_locations)]
 
         if len(df_x.index.names) == 2:
-            index_y_selection = index_y_selection.intersection(set(df_x.index.values))
+            df_x = df_x.loc[list(index_y_selection)]
 
         if len(df_x.index.names) == 3:
-            index_y_selection = index_y_selection.intersection(
-                set([(loc_id, year) for loc_id, year, _ in df_x.index.values])
-            )
+            index_names = df_x.index.names
+            df_x.reset_index(inplace=True)
+            df_x = df_x[
+                (df_x[KEY_YEAR] >= min(index_y_years))
+                & (df_x[KEY_YEAR] <= max(index_y_years))
+            ]
+            df_x.set_index(index_names, inplace=True)
+
+        dfs_x[x] = df_x
 
     return df_y, dfs_x
