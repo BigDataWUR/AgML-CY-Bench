@@ -27,6 +27,14 @@ from cybench.datasets.alignment import (
 
 
 def _add_year(df: pd.DataFrame) -> pd.DataFrame:
+    """Add a year column.
+
+    Args:
+        df (pd.DataFrame): time series data
+
+    Returns:
+        the same DataFrame with year column added
+    """
     df["date"] = df["date"].astype(str)
     df[KEY_YEAR] = df["date"].str[:4]
     df[KEY_YEAR] = df[KEY_YEAR].astype(int)
@@ -35,6 +43,17 @@ def _add_year(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal):
+    """Preprocess time series data and align to crop season.
+
+    Args:
+        df (pd.DataFrame): time series data
+        index_cols (list): index columns
+        select_cols (list): time series data columns
+        crop_cal_df (pd.DataFrame): crop calendar data
+
+    Returns:
+        the same DataFrame preprocessed and aligned to crop season
+    """
     df = _add_year(df)
     df = df[index_cols + select_cols]
     df = df.dropna(axis=0)
@@ -44,6 +63,16 @@ def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal):
 
 
 def load_dfs(crop: str, country_code: str) -> tuple:
+    """Load data from CSV files for crop and country.
+    Expects CSV files in PATH_DATA_DIR/<crop>/<country_code>/.
+
+    Args:
+        crop (str): crop name
+        country_code (str): 2-letter country code
+
+    Returns:
+        a tuple (target DataFrame, dict of input DataFrames)
+    """
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
 
     # targets
@@ -135,6 +164,18 @@ def load_dfs(crop: str, country_code: str) -> tuple:
 
 
 def load_aligned_dfs(crop: str, country_code: str) -> tuple:
+    """Load aligned data (the output of `load_dfs`).
+    NOTE: Time series data is expected to be aligned to crop season.
+    Label data is expected to contain indices present in all input data.
+    All data have been saved with expected indices.
+
+    Args:
+        crop (str): crop name
+        country_code (str): 2-letter country code
+
+    Returns:
+        a tuple (target DataFrame, dict of input DataFrames)
+    """
     path_data_cn = os.path.join(PATH_ALIGNED_DATA_DIR, crop, country_code)
     # targets
     df_y = pd.read_csv(
@@ -196,6 +237,18 @@ def load_aligned_dfs(crop: str, country_code: str) -> tuple:
 def load_dfs_crop(
     crop: str, countries: list = None, lead_time: str = FORECAST_LEAD_TIME
 ) -> dict:
+    """
+    Load data for crop and one or more countries. If `countries` is None,
+    data for all countries is CY-Bench is loaded.
+
+    Args:
+        crop (str): crop name
+        country_code (list): list of 2-letter country codes
+        lead_time (str): lead time option
+
+    Returns:
+        a tuple (target DataFrame, dict of input DataFrames)
+    """
     assert crop in DATASETS
 
     if countries is None:
@@ -214,7 +267,9 @@ def load_dfs_crop(
                 cn_data_dir = os.path.join(PATH_ALIGNED_DATA_DIR, crop, cn)
                 os.makedirs(cn_data_dir, exist_ok=True)
                 df_y_cn.to_csv(
-                    os.path.join(cn_data_dir, "_".join([KEY_TARGET, crop, cn]) + ".csv"),
+                    os.path.join(
+                        cn_data_dir, "_".join([KEY_TARGET, crop, cn]) + ".csv"
+                    ),
                 )
                 for x, df_x in dfs_x_cn.items():
                     df_x.to_csv(
