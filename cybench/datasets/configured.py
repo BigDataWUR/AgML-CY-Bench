@@ -205,22 +205,23 @@ def load_dfs_crop(
     dfs_x = {}
     for cn in countries:
         # load aligned data if exists
-        if os.path.exists(os.path.join(PATH_ALIGNED_DATA_DIR, crop, cn)):
+        try:
             df_y_cn, dfs_x_cn = load_aligned_dfs(crop, cn)
-        elif os.path.exists(os.path.join(PATH_DATA_DIR, crop, cn)):
-            df_y_cn, dfs_x_cn = load_dfs(crop, cn)
-            # save aligned data
-            cn_data_dir = os.path.join(PATH_ALIGNED_DATA_DIR, crop, cn)
-            os.makedirs(cn_data_dir, exist_ok=True)
-            df_y_cn.to_csv(
-                os.path.join(cn_data_dir, "_".join([KEY_TARGET, crop, cn]) + ".csv"),
-            )
-            for x, df_x in dfs_x_cn.items():
-                df_x.to_csv(
-                    os.path.join(cn_data_dir, "_".join([x, crop, cn]) + ".csv"),
+        except FileNotFoundError:
+            try:
+                df_y_cn, dfs_x_cn = load_dfs(crop, cn)
+                # save aligned data
+                cn_data_dir = os.path.join(PATH_ALIGNED_DATA_DIR, crop, cn)
+                os.makedirs(cn_data_dir, exist_ok=True)
+                df_y_cn.to_csv(
+                    os.path.join(cn_data_dir, "_".join([KEY_TARGET, crop, cn]) + ".csv"),
                 )
-        else:
-            continue
+                for x, df_x in dfs_x_cn.items():
+                    df_x.to_csv(
+                        os.path.join(cn_data_dir, "_".join([x, crop, cn]) + ".csv"),
+                    )
+            except FileNotFoundError:
+                continue
 
         df_y = pd.concat([df_y, df_y_cn], axis=0)
         if len(dfs_x) == 0:
