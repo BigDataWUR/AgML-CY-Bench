@@ -133,6 +133,8 @@ predictors = {
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 class UnableToExtractStats(Exception):
     pass
 
@@ -140,6 +142,8 @@ class UnableToExtractStats(Exception):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def read_masked(
     ds,
     mask,
@@ -254,6 +258,8 @@ def read_masked(
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def round_window(window):
     """
     Outputs a copy of the window rounded to the nearest whole pixel.
@@ -272,6 +278,8 @@ def round_window(window):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def get_common_bounds_and_shape(geom, ds_list):
     """
     Returns a unified read window, bounds and resolution, for a given geometry on all raster datasets in a list.
@@ -328,6 +336,8 @@ def get_common_bounds_and_shape(geom, ds_list):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def arr_stats(arr, weights=None, output=("min", "max", "sum", "mean", "count", "mode")):
     """
     Extracts statistics from input array (arr).
@@ -459,6 +469,8 @@ def arr_stats(arr, weights=None, output=("min", "max", "sum", "mean", "count", "
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def arr_classes_count(arr, cls_def, weights=None, border_include="min"):
     """
     Counts the number of array values in a class (bin) defined by min and max value.
@@ -502,6 +514,8 @@ def arr_classes_count(arr, cls_def, weights=None, border_include="min"):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def arr_unpack(arr, scale=1, offset=0, nodata=None):
     """
     Converts the values in the array to native format by applying scale,
@@ -527,6 +541,8 @@ def arr_unpack(arr, scale=1, offset=0, nodata=None):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def apply_nodata(arr, nodata):
     """
     Masks the array with nodata definition.
@@ -548,6 +564,8 @@ def apply_nodata(arr, nodata):
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+
+
 def geom_extract(
     geometry,
     indicator,
@@ -746,6 +764,8 @@ def geom_extract(
 """
 @author: Dilli R. Paudel
 """
+
+
 def get_time_series_files(data_path, year=2000):
     files = []
     for f in os.listdir(data_path):
@@ -761,52 +781,84 @@ def get_time_series_files(data_path, year=2000):
 """
 @author: Dilli R. Paudel
 """
+
+
 def get_shapes(region="US"):
     sel_shapes = pd.DataFrame()
-    if (region == "EU"):
-        geo_df = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_EU.zip"))
+    if region == "EU":
+        geo_df = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_EU.zip")
+        )
         for cn in EU_COUNTRIES:
-            cn_shapes = geo_df[(geo_df[EU_COUNTRY_CODE_KEY] == cn) &
-                               (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[cn])]
+            cn_shapes = geo_df[
+                (geo_df[EU_COUNTRY_CODE_KEY] == cn)
+                & (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[cn])
+            ]
             sel_shapes = pd.concat([sel_shapes, cn_shapes], axis=0)
 
         sel_shapes["adm_id"] = sel_shapes["NUTS_ID"]
-    elif (region in EU_COUNTRIES):
-        geo_df = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_EU.zip"))
-        sel_shapes = geo_df[(geo_df[EU_COUNTRY_CODE_KEY] == cn) &
-                            (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[cn])]
+    elif region in EU_COUNTRIES:
+        geo_df = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_EU.zip")
+        )
+        sel_shapes = geo_df[
+            (geo_df[EU_COUNTRY_CODE_KEY] == cn)
+            & (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[cn])
+        ]
         sel_shapes["adm_id"] = sel_shapes["NUTS_ID"]
 
-    elif (region == "AR"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_AR.zip"))
+    elif region == "AR":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_AR.zip")
+        )
         sel_shapes["adm_id"] = sel_shapes["ADM2_PCODE"]
-    elif (region == "AU"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_AU.zip"))
+    elif region == "AU":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_AU.zip")
+        )
         sel_shapes["adm_id"] = "AU" + "-" + sel_shapes["AAGIS"]
-    elif (region == "BR"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_BR.zip"))
+    elif region == "BR":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_BR.zip")
+        )
         sel_shapes["adm_id"] = sel_shapes["ADM2_PCODE"]
-    elif (region == "CN"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_CN.zip"))
+    elif region == "CN":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_CN.zip")
+        )
         sel_shapes["adm_id"] = sel_shapes["ADM1_PCODE"]
     # FEWSNET countries: Already have adm_id
-    elif (region == "FEWSNET"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_FEWSNET.zip"))
-    elif (region in FEWSNET_COUNTRIES):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_FEWSNET.zip"))
+    elif region == "FEWSNET":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_FEWSNET.zip")
+        )
+    elif region in FEWSNET_COUNTRIES:
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_FEWSNET.zip")
+        )
         sel_shapes = sel_shapes[sel_shapes["adm_id"].str[:2] == region]
     # IN: Already has adm_id
-    elif (region == "IN"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_IN.zip"))
+    elif region == "IN":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_IN.zip")
+        )
     # ML: Already has adm_id
-    elif (region == "ML"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_ML.zip"))
+    elif region == "ML":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_ML.zip")
+        )
     # MX: Already has adm_id
-    elif (region == "MX"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_MX.zip"))
-    elif (region == "US"):
-        sel_shapes = gpd.read_file(os.path.join(AGML_ROOT, "shapefiles", "shapefiles_US.zip"))
-        sel_shapes["adm_id"] = "US" + "-" + sel_shapes["STATEFP"] + "-" + sel_shapes["COUNTYFP"]    
+    elif region == "MX":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_MX.zip")
+        )
+    elif region == "US":
+        sel_shapes = gpd.read_file(
+            os.path.join(AGML_ROOT, "shapefiles", "shapefiles_US.zip")
+        )
+        sel_shapes["adm_id"] = (
+            "US" + "-" + sel_shapes["STATEFP"] + "-" + sel_shapes["COUNTYFP"]
+        )
 
     sel_shapes = sel_shapes.to_crs(4326)
     return sel_shapes
@@ -815,6 +867,8 @@ def get_shapes(region="US"):
 """
 @author: Guanyuan Shuai
 """
+
+
 def process_file(
     file,
     indicator_dir,
@@ -885,9 +939,12 @@ def process_file(
 
     return df
 
+
 """
 @author: Guanyuan Shuai
 """
+
+
 def prepare_predictors(crop, region):
     geo_df = get_shapes(region=region)
     geo_df = geo_df[["adm_id", "geometry"]]
@@ -939,7 +996,9 @@ def prepare_predictors(crop, region):
 
                         results_df = pd.concat(dfs, axis=0)
                         out_csv = "_".join([ind, crop, region, yr]) + ".csv"
-                        results_df.to_csv(os.path.join(output_path, out_csv), index=False)
+                        results_df.to_csv(
+                            os.path.join(output_path, out_csv), index=False
+                        )
 
                     m, s = divmod((time.time() - start_time), 60)
                     h, m = divmod(m, 60)
@@ -977,9 +1036,9 @@ def prepare_predictors(crop, region):
 
 for crop in crops:
     sel_regions = []
-    if (crop == "maize"):
+    if crop == "maize":
         sel_regions = ["AR", "BR", "CN", "EU", "FEWSNET", "IN", "ML", "MX", "US"]
-    elif (crop == "wheat"):
+    elif crop == "wheat":
         sel_regions = ["AR", "AU", "BR", "CN", "EU", "FEWSNET", "IN", "US"]
 
     for cn in sel_regions:
