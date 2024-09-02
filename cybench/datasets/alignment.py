@@ -56,7 +56,7 @@ def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_day
 
     # Fix sos_date for data that are in a different year than sos_date.
     # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
-    # We want the data from 20020101 to 20020615 to have the sos_date date of
+    # We want the data from 20020101 to 20020615 to have the sos_date of
     # 20011124.
     df["sos_date"] = np.where(
         (df["date"] <= df["eos_date"]) & (df["sos"] > df["eos"]),
@@ -67,12 +67,10 @@ def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_day
     )
 
     # Fix eos_date for data that are after the current season's eos_date.
-    # Say eos_date for maize, NL is "20010728" (July 28).
-    # All data after 20010728 belong to the season that ends in 2002.
-    # We change the eos_date for those data to be next year's eos_date.
+    # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
+    # the season that ends in 2002. We change the eos_date for those data to be
+    # next year's eos_date.
     # NOTE: This works only for static crop calendar.
-    # For a non-static crop calendar, we would need the eos_date
-    # for the same location and the next year.
     df["eos_date"] = np.where(
         (df["date"] > df["eos_date"]),
         # select eos_date for the next year
@@ -115,7 +113,7 @@ def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_day
         365,
     )
 
-    # drop years with not enough data for a season
+    # Drop years with not enough data for a season
     # NOTE: It's necessary to make sure years with incomplete data
     # don't influence ensuring same number of time steps.
     # See `trim_to_lead_time` below.
