@@ -294,16 +294,7 @@ process_indicators <- function(crop, region,
       ####################
       # Time series data #
       ####################
-
-      # NOTE: AgERA5 data is split by region.
-      # So include region-specific directory in path.
-      if (indicator_source == "AgERA5") {
-        indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source,
-                                   paste(region, indicator_source, sep="_"), indicator)
-      } else {
-        indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
-      }
-
+      indicator_path = file.path(PREDICTORS_DATA_PATH, indicator_source, indicator)
       found_raster_file <- FALSE
       while(!found_raster_file) {
         file_list <- list.files(path=indicator_path,
