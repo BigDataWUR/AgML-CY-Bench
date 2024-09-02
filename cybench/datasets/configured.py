@@ -239,11 +239,11 @@ def load_dfs_crop(
 ) -> dict:
     """
     Load data for crop and one or more countries. If `countries` is None,
-    data for all countries is CY-Bench is loaded.
+    data for all countries in CY-Bench is loaded.
 
     Args:
         crop (str): crop name
-        country_code (list): list of 2-letter country codes
+        countries (list): list of 2-letter country codes
         lead_time (str): lead time option
 
     Returns:
