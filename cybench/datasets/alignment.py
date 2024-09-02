@@ -115,16 +115,16 @@ def trim_to_lead_time(df, lead_time, spinup_days):
 
     # Keep the same number of time steps for all locations and years.
     # It's necessary because models will stack time series data in a batch.
-    # NOTE: We don't want more than (ts_length - cutoff_days) days of data.
-    #   We could do avg of ts_length, but max is safer.
+    # NOTE: We don't want more than (season_length + spinup_days - cutoff_days).
+    #   We could do avg of season_length, but max is safer.
     #   It doesn't hurt to have more data in the front.
     #   Using less may hurt performance.
     # More NOTEs:
     # 1. We take min of date by (loc, year) so that all data points have
     #   num_time_steps.
-    # 2. Then we look at max of (ts_length - cutoff_days).
+    # 2. Then we look at max of (season_length + spinup_days - cutoff_days).
     #    This is the maximum number of time steps after accounting for
-    #    spinup_days (ts_length) and lead time (cutoff_days).
+    #    spinup_days and lead time (cutoff_days).
     # We take the min of 1 and 2 to meet both criteria.
     num_time_steps = df.groupby([KEY_LOC, KEY_YEAR])["date"].count().min()
     num_time_steps = min(df["season_length"].max() + spinup_days, num_time_steps)
