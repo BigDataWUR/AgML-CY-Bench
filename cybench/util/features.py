@@ -1,11 +1,16 @@
-import os
 import numpy as np
 import pandas as pd
 
-from cybench.config import KEY_LOC, KEY_YEAR, KEY_DATES, GDD_BASE_TEMP, GDD_UPPER_LIMIT
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_DATES,
+    GDD_BASE_TEMP,
+    GDD_UPPER_LIMIT,
+)
 
 
-def fortnight_from_date(date_str):
+def fortnight_from_date(date_str: str):
     """Get the fortnight number from date.
 
     Args:
@@ -23,14 +28,14 @@ def fortnight_from_date(date_str):
         return fortnight_number + 2
 
 
-def dekad_from_date(date_str):
+def dekad_from_date(date_str: str):
     """Get the dekad number from date.
 
     Args:
       date_str: date string in YYYYmmdd format
 
     Returns:
-      Dekad number, e.g. "YYYY0101" to "YYYY010" -> 1,
+      Dekad number, e.g. "YYYY0101" to "YYYY0110" -> 1,
                          "YYYY0111" to "YYYY0120" -> 2,
                          "YYYY0121" to "YYYY0131" -> 3
     """
@@ -48,12 +53,11 @@ def dekad_from_date(date_str):
     return dekad
 
 
-def _add_period(df, period_length):
+def _add_period(df: pd.DataFrame, period_length: str):
     """Add a period column.
 
     Args:
       df : pd.DataFrame
-
       period_length: string, which can be "month", "fortnight" or "dekad"
 
     Returns:
@@ -73,19 +77,17 @@ def _add_period(df, period_length):
 
 # Period can be a month or fortnight (biweekly or two weeks)
 # Period sum of TAVG, TMIN, TMAX, PREC
-def _aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
+def _aggregate_by_period(
+    df: pd.DataFrame, index_cols: list, period_col: str, aggrs: dict, ft_cols: dict
+):
     """Aggregate data into features by period.
 
     Args:
       df : pd.DataFrame
-
       index_cols: list of indices, which are location and year
-
       period_col: string, column added by add_period()
-
       aggrs: dict containing columns to aggregate (keys) and corresponding
              aggregation function (values)
-
       ft_cols: dict for renaming columns to feature columns
 
     Returns:
@@ -134,27 +136,22 @@ def _aggregate_by_period(df, index_cols, period_col, aggrs, ft_cols):
 
 
 def _count_threshold(
-    df,
-    index_cols,
-    period_col,
-    indicator,
-    threshold_exceed=True,
-    threshold=0.0,
-    ft_name=None,
+    df: pd.DataFrame,
+    index_cols: list,
+    period_col: str,
+    indicator: str,
+    threshold_exceed: bool = True,
+    threshold: float = 0.0,
+    ft_name: str = None,
 ):
     """Aggregate data into features by period.
 
     Args:
       df : pd.DataFrame
-
       index_cols: list of indices, which are location and year
-
       period_col: string, column added by add_period()
-
       indicator: string, indicator column to aggregate
-
       threshold_exceed: boolean
-
       threshold: float
 
       ft_name: string name for aggregated indicator
@@ -191,7 +188,7 @@ def _count_threshold(
     return ft_df
 
 
-def unpack_time_series(df, indicators):
+def unpack_time_series(df: pd.DataFrame, indicators: list):
     """Unpack time series from lists into separate rows by date.
 
     Args:
@@ -202,6 +199,10 @@ def unpack_time_series(df, indicators):
     Returns:
       pd.DataFrame
     """
+    # If indicators are not in the dataframe
+    if set(indicators).intersection(set(df.columns)) != set(indicators):
+        return None
+
     # for a data source, dates should match across all indicators
     df["date"] = df.apply(lambda r: r[KEY_DATES][indicators[0]], axis=1)
 
@@ -215,14 +216,21 @@ def unpack_time_series(df, indicators):
 
 
 # LOC, YEAR, DATE => cumsum by month
-def growing_degree_days(df, tbase):
+def growing_degree_days(df: pd.DataFrame, tbase: float):
     # Base temp would be 0 for winter wheat and 10 for corn.
     gdd = np.maximum(0, df["tavg"] - tbase)
 
     return gdd.sum()
 
 
-def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df):
+def design_features(
+    crop: str,
+    weather_df: pd.DataFrame,
+    soil_df: pd.DataFrame,
+    fpar_df: pd.DataFrame = None,
+    ndvi_df: pd.DataFrame = None,
+    soil_moisture_df: pd.DataFrame = None,
+):
     """Design features based domain expertise.
 
     Args:
@@ -257,9 +265,15 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
     weather_df = _add_period(weather_df, period_length)
-    fpar_df = _add_period(fpar_df, period_length)
-    ndvi_df = _add_period(ndvi_df, period_length)
-    soil_moisture_df = _add_period(soil_moisture_df, period_length)
+
+    if fpar_df is not None:
+        fpar_df = _add_period(fpar_df, period_length)
+
+    if ndvi_df is not None:
+        ndvi_df = _add_period(ndvi_df, period_length)
+
+    if soil_moisture_df is not None:
+        soil_moisture_df = _add_period(soil_moisture_df, period_length)
 
     # cumlative sums
     weather_df = weather_df.sort_values(by=index_cols + ["period"])
@@ -278,13 +292,15 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
     weather_df["cum_cwb"] = weather_df.groupby(index_cols)["cwb"].cumsum()
     weather_df["cum_prec"] = weather_df.groupby(index_cols)["prec"].cumsum()
 
-    fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
-    fpar_df["fpar"] = fpar_df["fpar"].astype(float)
-    fpar_df["cum_fpar"] = fpar_df.groupby(index_cols)["fpar"].cumsum()
+    if fpar_df is not None:
+        fpar_df = fpar_df.sort_values(by=index_cols + ["date"])
+        fpar_df["fpar"] = fpar_df["fpar"].astype(float)
+        fpar_df["cum_fpar"] = fpar_df.groupby(index_cols)["fpar"].cumsum()
 
-    ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
-    ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
-    ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
+    if ndvi_df is not None:
+        ndvi_df = ndvi_df.sort_values(by=index_cols + ["date"])
+        ndvi_df["ndvi"] = ndvi_df["ndvi"].astype(float)
+        ndvi_df["cum_ndvi"] = ndvi_df.groupby(index_cols)["ndvi"].cumsum()
 
     # Aggregate by period
     avg_weather_cols = ["tmin", "tmax", "tavg", "prec", "rad", "cum_cwb"]
@@ -331,20 +347,31 @@ def design_features(crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_d
         weather_fts = weather_fts.merge(ind_fts, on=index_cols, how="left")
         weather_fts = weather_fts.fillna(0.0)
 
-    fpar_fts = _aggregate_by_period(
-        fpar_df, index_cols, "period", {"cum_fpar": "max"}, {"cum_fpar": "max_cum_fpar"}
-    )
-    ndvi_fts = _aggregate_by_period(
-        ndvi_df, index_cols, "period", {"cum_ndvi": "max"}, {"cum_ndvi": "max_cum_ndvi"}
-    )
-
-    soil_moisture_fts = _aggregate_by_period(
-        soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
-    )
-
     all_fts = soil_features.merge(weather_fts, on=[KEY_LOC])
-    all_fts = all_fts.merge(fpar_fts, on=index_cols)
-    all_fts = all_fts.merge(ndvi_fts, on=index_cols)
-    all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
+    if fpar_df is not None:
+        fpar_fts = _aggregate_by_period(
+            fpar_df,
+            index_cols,
+            "period",
+            {"cum_fpar": "max"},
+            {"cum_fpar": "max_cum_fpar"},
+        )
+        all_fts = all_fts.merge(fpar_fts, on=index_cols)
+
+    if ndvi_df is not None:
+        ndvi_fts = _aggregate_by_period(
+            ndvi_df,
+            index_cols,
+            "period",
+            {"cum_ndvi": "max"},
+            {"cum_ndvi": "max_cum_ndvi"},
+        )
+        all_fts = all_fts.merge(ndvi_fts, on=index_cols)
+
+    if soil_moisture_df is not None:
+        soil_moisture_fts = _aggregate_by_period(
+            soil_moisture_df, index_cols, "period", {"ssm": "mean"}, {"ssm": "mean_ssm"}
+        )
+        all_fts = all_fts.merge(soil_moisture_fts, on=index_cols)
 
     return all_fts

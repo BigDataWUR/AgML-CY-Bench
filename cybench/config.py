@@ -11,8 +11,12 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where output is stored
+PATH_OUTPUT_DIR = os.path.join(CONFIG_DIR, "output")
+os.makedirs(PATH_OUTPUT_DIR, exist_ok=True)
+
 # Path to folder where benchmark results
-PATH_RESULTS_DIR = os.path.join(CONFIG_DIR, "output", "runs")
+PATH_RESULTS_DIR = os.path.join(PATH_OUTPUT_DIR, "runs")
 os.makedirs(PATH_RESULTS_DIR, exist_ok=True)
 
 
@@ -94,6 +98,8 @@ DATASETS = {
     ],
 }
 
+# key used for 2-letter country code
+KEY_COUNTRY = "country_code"
 # Key used for the location index
 KEY_LOC = "adm_id"
 # Key used for the year index
@@ -125,6 +131,9 @@ TIME_SERIES_PREDICTORS = (
     METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
 )
 
+# All predictors. Add more when available
+ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
+
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
 
@@ -143,13 +152,13 @@ GDD_UPPER_LIMIT = {
 
 
 # Lead time for forecasting
-# NOTE: can be: "mid-season", "quarter-of-season",
-# "n-days" with n is an integer
-FORECAST_LEAD_TIME = "mid-season"
+# Choices: "middle-of-season", "quarter-of-season",
+# "n-day(s)" where n is an integer
+FORECAST_LEAD_TIME = "middle-of-season"
 
 
 # Logging
-PATH_LOGS_DIR = os.path.join(CONFIG_DIR, "output", "logs")
+PATH_LOGS_DIR = os.path.join(PATH_OUTPUT_DIR, "logs")
 os.makedirs(PATH_LOGS_DIR, exist_ok=True)
 
 LOG_FILE = datetime.now().strftime("agml_cybench_%H_%M_%d_%m_%Y.log")

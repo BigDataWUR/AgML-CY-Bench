@@ -15,7 +15,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
 
-          pip install flake8 pytest pytest-cov scikit-learn pandas numpy torch tqdm statsmodels
+          pip install flake8 pytest pytest-cov scikit-learn pandas numpy torch tqdm statsmodels pymannkendall tsai
 
           git clone https://github.com/BigDataWUR/sample_data.git ${GITHUB_WORKSPACE}/cybench/data
       - name: Lint with flake8

@@ -31,7 +31,8 @@ class AverageYieldModel(BaseModel):
         Returns:
           A tuple containing the fitted model and a dict with additional information.
         """
-        self._train_df = data_to_pandas(dataset)
+        sel_cols = [KEY_LOC, KEY_YEAR, KEY_TARGET]
+        self._train_df = data_to_pandas(dataset, data_cols=sel_cols)
         # check group by columns are in the dataframe
         assert set(self._group_by).intersection(set(self._train_df.columns)) == set(
             self._group_by
@@ -44,8 +45,8 @@ class AverageYieldModel(BaseModel):
 
         return self, {}
 
-    def predict_batch(self, X: list):
-        """Run fitted model on batched data items.
+    def predict_items(self, X: list):
+        """Run fitted model on a list of data items.
 
         Args:
           X: a list of data items, each of which is a dict

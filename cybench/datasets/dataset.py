@@ -84,38 +84,29 @@ class Dataset:
         self._allow_incomplete = False
 
     @staticmethod
-    def load(name: str) -> "Dataset":
-        crop_country = name.split("_")
-        if len(crop_country) > 2:
-            raise Exception(f'Unrecognized dataset name "{name}"')
+    def load(dataset_name: str) -> "Dataset":
+        from cybench.datasets.configured import load_dfs_crop
 
-        crop = crop_country[0]
-        country_code = None
-        if len(crop_country) == 2:
-            country_code = crop_country[1]
+        crop_countries = dataset_name.split("_")
+        crop = crop_countries[0]
+        assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
-        assert crop in DATASETS
-        if country_code is None:
-            from cybench.datasets.configured import load_dfs_crop
-
-            df_y, dfs_x = load_dfs_crop(crop)
-            return Dataset(
-                crop,
-                df_y,
-                list(dfs_x),
-            )
+        if len(crop_countries) < 2:
+            country_codes = DATASETS[crop]
         else:
-            if country_code not in DATASETS[crop]:
-                raise Exception(f'Unrecognized dataset name "{name}"')
+            country_codes = crop_countries[1:]
 
-            from cybench.datasets.configured import load_dfs
-
-            df_y, dfs_x = load_dfs(crop, country_code)
-            return Dataset(
-                crop,
-                df_y,
-                list(dfs_x),
+        for cn in country_codes:
+            assert cn in DATASETS[crop], Exception(
+                f'Unrecognized dataset name "{dataset_name}"'
             )
+
+        df_y, dfs_x = load_dfs_crop(crop, country_codes)
+        return Dataset(
+            crop,
+            df_y,
+            list(dfs_x),
+        )
 
     @property
     def crop(self):
@@ -279,6 +270,24 @@ class Dataset:
                 }
 
         return data
+
+    def get_normalization_params(self, normalization="standard"):
+        """
+        Compute normalization parameters for input data.
+        :param normalization: normalization method, default standard or z-score
+        :return: a dict containing normalization parameters (e.g. mean and std)
+        """
+        norm_params = {}
+        for df in self._dfs_x:
+            for c in df.columns:
+                if normalization == "standard":
+                    norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
+                elif normalization == "min-max":
+                    norm_params[c] = {"min": df[c].min(), "max": df[c].max()}
+                else:
+                    raise Exception(f"Unsupported normalization {normalization}")
+
+        return norm_params
 
     @staticmethod
     def _empty_df_target() -> pd.DataFrame:

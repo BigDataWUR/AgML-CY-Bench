@@ -2,7 +2,6 @@ from cybench.datasets.dataset import Dataset
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.transforms import (
     transform_ts_inputs_to_dekadal,
-    transform_stack_ts_static_inputs,
 )
 
 from cybench.config import TIME_SERIES_PREDICTORS
@@ -15,7 +14,7 @@ def test_transforms():
     train_dataset = TorchDataset(train_dataset)
     batch = [train_dataset[i] for i in range(16)]
     batch = TorchDataset.collate_fn(batch).copy()
-    transforms = [transform_ts_inputs_to_dekadal, transform_stack_ts_static_inputs]
+    transforms = [transform_ts_inputs_to_dekadal]
     for i, transform in enumerate(transforms):
         batch = transform(batch, min_date, max_date)
         # check time series transfomations

@@ -13,8 +13,8 @@ from cybench.datasets.dataset import Dataset
 from cybench.evaluation.eval import evaluate_model, evaluate_predictions
 
 from cybench.models.naive_models import AverageYieldModel
-from cybench.models.sklearn_model import SklearnModel
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.sklearn_models import SklearnRidge
+from cybench.models.nn_models import BaselineLSTM
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {

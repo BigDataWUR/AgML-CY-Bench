@@ -2,7 +2,7 @@ from cybench.datasets.configured import load_dfs_crop
 
 
 def test_load_dfs_crop():
-    df_y, dfs_x = load_dfs_crop("maize")
+    df_y, dfs_x = load_dfs_crop("maize", ["NL", "ES"])
 
     # Sort indices for fast lookup
     df_y.sort_index(inplace=True)
@@ -15,6 +15,3 @@ def test_load_dfs_crop():
                 assert i[0] in df_x.index
             else:
                 assert i in df_x.index
-
-
-test_load_dfs_crop()
