@@ -321,10 +321,10 @@ process_indicators <- function(crop, region,
       ind_rast <- rast(file_list[[1]])
       crop_mask <- resample(crop_mask, ind_rast, method="bilinear")
       crop_mask <- crop(crop_mask, region_boundaries)
-      # NOTE: We are overwriting in every iteration (per indicator).
-      # This is fine because resampling is needed per indicator.
+      # NOTE: We are saving resampled crop mask per indicator.
+      # It's possible to run the script for multiple indicators in parallel.
       resampled_filename <- file.path(AGML_ROOT, "crop_masks",
-                                      "resampled_crop_mask.tif")
+                                      paste0(indicator, "_", "resampled_crop_mask.tif"))
       writeRaster(crop_mask, resampled_filename, overwrite=TRUE)
 
       rm(list=c("ind_rast", "crop_mask"))
