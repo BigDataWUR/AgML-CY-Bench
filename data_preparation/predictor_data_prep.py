@@ -4,14 +4,10 @@ import rasterio
 import rasterio.features
 import pandas as pd
 import geopandas as gpd
-from rasterio.crs import CRS
 from itertools import repeat
 from multiprocessing import Pool
 import logging
-from rasterio.warp import transform_geom
-from shapely.geometry import shape
-from rasterio.mask import mask
-from datetime import datetime
+import argparse
 import multiprocessing
 import warnings
 
@@ -79,7 +75,7 @@ FEWSNET_ADMIN_ID_KEY = "adm_id"
 ##################
 
 AGML_ROOT = r"/path/to/agml"
-DATA_DIR = os.path.join(AGML_ROOT, "Predictors")
+DATA_DIR = os.path.join(AGML_ROOT, "predictors")
 OUTPUT_DIR = os.path.join(AGML_ROOT, "python-output")
 
 #####################
@@ -88,44 +84,94 @@ OUTPUT_DIR = os.path.join(AGML_ROOT, "python-output")
 # NOTES:
 # FPAR data starts from 2001. There may be some data from 2000, but it's not complete.
 # GLDAS data starts from 2003. 2003 is not complete.
-start_year = 2001
-end_year = 2023
+START_YEAR = 2001
+END_YEAR = 2023
 
 ########
 # crop
 ########
-crops = ["wheat", "maize"]
+CROPS = ["wheat", "maize"]
 
 #####################################################
 # predictors
 # NOTE: key should match directory name containing raster files
 #####################################################
 
-predictors = {
-    "AgERA5": {
-        "prec": ["time series", "continuous"],
-        "tmax": ["time series", "continuous"],
-        "tmin": ["time series", "continuous"],
-        "tavg": ["time series", "continuous"],
-        "rad": ["time series", "continuous"],
+ALL_INDICATORS = {
+    "prec": {
+        "source": "AgERA5",
+        "is_time_series": True,
+        "is_categorical": False,
     },
-    "MOD09CMG": {
-        "ndvi": ["time series", "continuous"],
+    "tmax": {
+        "source": "AgERA5",
+        "is_time_series": True,
+        "is_categorical": False,
     },
-    "JRC_FPAR500m": {
-        "fpar": ["time series", "continuous"],
+    "tmin": {
+        "source": "AgERA5",
+        "is_time_series": True,
+        "is_categorical": False,
     },
-    "WISE_Soil": {
-        "awc": ["static", "continuous"],
-        "drainage_class": ["static", "categorical"],
-        "bulk_density": ["static", "continuous"],
+    "tavg": {
+        "source": "AgERA5",
+        "is_time_series": True,
+        "is_categorical": False,
     },
-    "FAO_AQUASTAT": {
-        "et0": ["time series", "continuous"],
+    "rad": {
+        "source": "AgERA5",
+        "is_time_series": True,
+        "is_categorical": False,
     },
-    "GLDAS": {
-        "rsm": ["time series", "continuous"],
-        "ssm": ["time series", "continuous"],
+    "ndvi": {
+        "source": "MOD09CMG",
+        "is_time_series": True,
+        "is_categorical": False,
+    },
+    "fpar": {
+        "source": "JRC_FPAR500m",
+        "is_time_series": True,
+        "is_categorical": False,
+    },
+    "et0": {
+        "source": "FAO_AQUASTAT",
+        "is_time_series": True,
+        "is_categorical": False,
+    },
+    "rsm": {
+        "source": "GLDAS",
+        "is_time_series": True,
+        "is_categorical": False,
+    },
+    "ssm": {
+        "source": "GLDAS",
+        "is_time_series": True,
+        "is_categorical": False,
+    },
+    "awc": {
+        "source": "WISE_Soil",
+        "is_time_series": False,
+        "is_categorical": False,
+    },
+    "bulk_density": {
+        "source": "WISE_Soil",
+        "is_time_series": False,
+        "is_categorical": False,
+    },
+    "drainage_class": {
+        "source": "WISE_Soil",
+        "is_time_series": False,
+        "is_categorical": True,
+    },
+    "sos": {
+        "source": "ESA_WC_Crop_Calendars",
+        "is_time_series": False,
+        "is_categorical": False,
+    },
+    "eos": {
+        "source": "ESA_WC_Crop_Calendars",
+        "is_time_series": False,
+        "is_categorical": False,
     },
 }
 
@@ -578,16 +624,19 @@ def geom_extract(
     """
     Extracts the indicator statistics on input geometry using the AFI as weights.
 
-    Global variable SUPPRESS_ERRORS controls if a custom error (UnableToExtractStats) should be raised when it's not
-    possible to extract stats with given parameters. By default it is set to suppress errors and only report a warning.
-    This setup is for the use case when the function is called directly and can handle an empty output.
-    The opposite case, when the errors are raised is used when this function is called in a multiprocessing pool and
-    it's necessary to link a proper error message with a geometry/unit identifier.
+    Global variable SUPPRESS_ERRORS controls if a custom error (UnableToExtractStats)
+    should be raised when it's not possible to extract stats with given parameters.
+    By default it is set to suppress errors and only report a warning. This setup is
+    for the use case when the function is called directly and can handle an empty output.
+    The opposite case, when the errors are raised is used when this function is called in
+    a multiprocessing pool and it's necessary to link a proper error message with
+    a geometry/unit identifier.
 
     Handles heterogeneous datasets by using the tbx_util.raster.get_common_bounds_and_shape function.
 
     :param geometry: GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
-    :param indicator: path to raster file or an already opened dataset (rasterio.DatasetReader) on which statistics are extracted
+    :param indicator: path to raster file or an already opened dataset (rasterio.DatasetReader)
+        on which statistics are extracted
     :param stats_out: definition of statistics to extract, the list is directly forwarded to function
         asap_toolbox.util.raster.arr_stats.
         Additionally, accepts "counts" keyword that calculates following values:
@@ -596,17 +645,20 @@ def geom_extract(
             - valid_data_after_masking - indicator used for calculation
             - weight_sum - total mask sum
             - weight_sum_used - mask sum after masking of dataset nodata is applied
-    :param afi: path to Area Fraction index or weights - path to raster file or an already opened dataset (rasterio.DatasetReader)
+    :param afi: path to Area Fraction index or weights - path to raster file or
+        an already opened dataset (rasterio.DatasetReader)
     :param afi_thresh: threshold to mask out the afi data
     :param classification: If defined, calculates the pixel/weight sums of each class defined.
-        Defined as JSON dictionary with borders as list of min, max value pairs and border behaviour definition:
+        Defined as JSON dictionary with borders as list of min, max value pairs and
+        border behaviour definition:
             {
                 borders: ((min1, max1), (min2, max2), ..., (min_n, max_n)),
                 border_include: [min|max|both|None]
             }
     :return: dict with extracted stats divided in 3 groups:
         - stats - dict with calculated stats values (mean, std, min, max)
-        - counts - dict with calculated count values (total; valid_data; valid_data_after_masking; weight_sum; weight_sum_used)
+        - counts - dict with calculated count values (total; valid_data; valid_data_after_masking;
+                    weight_sum; weight_sum_used)
         - classification - dict with border definitions and values
         {
             stats: {mean: val, std: min: val, max: val, ...}
@@ -852,6 +904,8 @@ def get_shapes(region="US"):
         sel_shapes = gpd.read_file(
             os.path.join(AGML_ROOT, "shapefiles", "shapefiles_MX.zip")
         )
+        # adm_id in shapefile has a hyphen. Yield data does not have one.
+        sel_shapes["adm_id"] = sel_shapes["adm_id"].str.replace("-", "")
     elif region == "US":
         sel_shapes = gpd.read_file(
             os.path.join(AGML_ROOT, "shapefiles", "shapefiles_US.zip")
@@ -871,25 +925,21 @@ def get_shapes(region="US"):
 
 def process_file(
     file,
-    indicator_dir,
     crop,
-    region,
     indicator_name,
     geometries,
-    is_time_series=True,
-    is_continuous=True,
+    is_time_series,
+    is_categorical,
 ):
     """
     Process one indicator raster file. Handles .nc or .tif files.
 
-    :param file: path to raster file.
-    :param indicator_dir: path to directory containing indicator raster file
+    :param file: path to indicator raster file.
     :param crop: crop name
-    :param region: region (EU or FEWSNET) or 2-letter country code
     :param indicator_name: indicator name
     :param geometry: geometry
     :param is_time_series: flag to indicate whether data is static or time series
-    :param is_continuous: flag to indicator whether data is categorical or continuous
+    :param is_categorical: flag to indicator whether data is categorical or continuous
     """
     if crop == "maize":
         crop_mask_file = "crop_mask_maize_WC.tif"
@@ -902,10 +952,14 @@ def process_file(
 
     basename = os.path.basename(file)
     fname, ext = os.path.splitext(basename)
-    if is_continuous:
-        aggr = "mean"
-    else:
+    # TODO: Handle .nc ext
+    if ext == ".nc":
+        return pd.DataFrame()
+
+    if is_categorical:
         aggr = "mode"
+    else:
+        aggr = "mean"
 
     if is_time_series:
         date_str = fname[-8:]
@@ -922,22 +976,20 @@ def process_file(
     for adm_id, geometry in geometries.items():
         stats = geom_extract(
             geometry,
-            indicator_dir,
             file,
-            indicator_name,
             stats_out=[aggr],
-            crop_mask_file=crop_mask_path,
-            crop_mask_thresh=0,
+            afi=crop_mask_path,
+            afi_thresh=0,
             thresh_type="Fixed",
         )
         if (stats is not None) and (len(stats) > 0):
             mean_var = stats["stats"][aggr]
             if is_time_series:
-                adm_region_data = [crop, adm_id, date_str, mean_var]
+                data_row = [crop, adm_id, date_str, mean_var]
             else:
-                adm_region_data = [crop, adm_id, mean_var]
+                data_row = [crop, adm_id, mean_var]
 
-            df.loc[len(df.index)] = adm_region_data
+            df.loc[len(df.index)] = data_row
 
     return df
 
@@ -947,7 +999,7 @@ def process_file(
 """
 
 
-def prepare_predictors(crop, region):
+def prepare_predictors(crop, region, sel_indicators):
     geo_df = get_shapes(region=region)
     geo_df = geo_df[["adm_id", "geometry"]]
 
@@ -958,91 +1010,128 @@ def prepare_predictors(crop, region):
 
     #################Loop over each crop, year, and variable##########################
     ##########setup crop mask file###################
-    for pred_source, indicators in predictors.items():
-        for ind in indicators:
-            is_time_series = indicators[ind][0] == "time series"
-            is_continuous = indicators[ind][1] == "continuous"
-            indicator_dir = os.path.join(DATA_DIR, pred_source, ind)
-            output_path = os.path.join(OUTPUT_DIR, crop, region, ind)
-            os.makedirs(output_path, exist_ok=True)
+    for indicator in sel_indicators:
+        pred_source = ALL_INDICATORS[indicator]["source"]
+        is_time_series = ALL_INDICATORS[indicator]["is_time_series"]
+        is_categorical = ALL_INDICATORS[indicator]["is_categorical"]
+        output_path = os.path.join(OUTPUT_DIR, crop, region, indicator)
+        os.makedirs(output_path, exist_ok=True)
 
-            # Time series data
-            if is_time_series:
-                for yr in range(start_year, end_year + 1):
-                    print("Start working on", crop, region, ind, yr)
-                    files = get_time_series_files(indicator_dir, year=yr)
+        # Time series data
+        if is_time_series:
+            indicator_dir = os.path.join(DATA_DIR, pred_source, indicator)
+            result_final = pd.DataFrame()
+            for yr in range(START_YEAR, END_YEAR + 1):
+                print("Start working on", crop, region, indicator, yr)
+                files = get_time_series_files(indicator_dir, year=yr)
 
-                    print("There are " + str(len(files)) + " files!")
-                    start_time = time.time()
-                    cpus = multiprocessing.cpu_count()
-                    print(cpus)
-
-                    files = sorted([os.path.join(indicator_dir, f) for f in files])
-                    with multiprocessing.Pool(cpus) as pool:
-                        # NOTE: multiprocessing using a target function with multiple arguments.
-                        # Based on the answer to
-                        # https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
-                        dfs = pool.starmap(
-                            process_file,
-                            zip(
-                                files,
-                                repeat(indicator_dir),
-                                repeat(crop),
-                                repeat(region),
-                                repeat(ind),
-                                repeat(geometries),
-                                repeat(is_time_series),
-                                repeat(is_continuous),
-                            ),
-                        )
-
-                        results_df = pd.concat(dfs, axis=0)
-                        out_csv = "_".join([ind, crop, region, yr]) + ".csv"
-                        results_df.to_csv(
-                            os.path.join(output_path, out_csv), index=False
-                        )
-
-                    m, s = divmod((time.time() - start_time), 60)
-                    h, m = divmod(m, 60)
-
-                    print("Time used: %02d:%02d:%02d" % (h, m, s))
-
-            # Static data
-            else:
-                print("Start working on", crop, region, ind)
-                files = os.listdir(indicator_dir)
-                # should be one raster file
-                assert len(files) == 1
-
+                print("There are " + str(len(files)) + " files!")
                 start_time = time.time()
-                df = process_file(
-                    os.path.join(indicator_dir, files[0]),
-                    indicator_dir,
-                    crop,
-                    region,
-                    ind,
-                    geometries,
-                    is_time_series,
-                    is_continuous,
-                )
+                cpus = multiprocessing.cpu_count()
 
-                out_csv = "_".join([ind, crop, region]) + ".csv"
-                df.to_csv(os.path.join(output_path, out_csv), index=False)
+                files = sorted([os.path.join(indicator_dir, f) for f in files])
+                with multiprocessing.Pool(cpus) as pool:
+                    # NOTE: multiprocessing using a target function with multiple arguments.
+                    # Based on the answer to
+                    # https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
+                    dfs = pool.starmap(
+                        process_file,
+                        zip(
+                            files,
+                            repeat(crop),
+                            repeat(indicator),
+                            repeat(geometries),
+                            repeat(is_time_series),
+                            repeat(is_categorical),
+                        ),
+                    )
 
-                m, s = divmod((time.time() - start_time), 60)
-                h, m = divmod(m, 60)
+                    result_yr = pd.concat(dfs, axis=0)
+                    result_final = pd.concat([result_final, result_yr], axis=0)
 
-                print("Done for", crop, region, ind)
-                print("Time used: %02d:%02d:%02d" % (h, m, s))
+            out_csv = "_".join([indicator, crop, region]) + ".csv"
+            result_final.to_csv(os.path.join(output_path, out_csv), index=False)
+
+            m, s = divmod((time.time() - start_time), 60)
+            h, m = divmod(m, 60)
+
+            print("Time used: %02d:%02d:%02d" % (h, m, s))
+
+        # Static data
+        else:
+            indicator_dir = os.path.join(DATA_DIR, pred_source)
+            print("Start working on", crop, region, indicator)
+            files = os.listdir(indicator_dir)
+
+            # for crop calendar, need to filter by crop as well
+            if indicator in ["sos", "eos"]:
+                files = [f for f in files if (crop in f) and (indicator in f)]
+            else:
+                files = [f for f in files if (indicator in f)]
+
+            # should be one raster file
+            assert len(files) == 1
+
+            start_time = time.time()
+            df = process_file(
+                os.path.join(indicator_dir, files[0]),
+                crop,
+                indicator,
+                geometries,
+                is_time_series,
+                is_categorical,
+            )
+
+            out_csv = "_".join([indicator, crop, region]) + ".csv"
+            df.to_csv(os.path.join(output_path, out_csv), index=False)
+
+            m, s = divmod((time.time() - start_time), 60)
+            h, m = divmod(m, 60)
+
+            print("Done for", crop, region, indicator)
+            print("Time used: %02d:%02d:%02d" % (h, m, s))
 
 
-for crop in crops:
-    sel_regions = []
-    if crop == "maize":
-        sel_regions = ["AR", "BR", "CN", "EU", "FEWSNET", "IN", "ML", "MX", "US"]
-    elif crop == "wheat":
-        sel_regions = ["AR", "AU", "BR", "CN", "EU", "FEWSNET", "IN", "US"]
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="predictor_data_prep.py", description="Prepare CY-Bench predictor data"
+    )
+    parser.add_argument("-c", "--crop")
+    parser.add_argument("-r", "--region")
+    parser.add_argument("-i", "--indicator")
+    args = parser.parse_args()
+    if args.crop is not None:
+        sel_crops = [args.crop]
+    else:
+        sel_crops = CROPS
 
-    for cn in sel_regions:
-        print("Working on", crop, cn)
-        prepare_predictors(crop, cn)
+    sel_regions = None
+    if args.region is not None:
+        sel_regions = [args.region]
+
+    if args.indicator is not None:
+        sel_indicators = [args.indicator]
+    else:
+        sel_indicators = list(ALL_INDICATORS.keys())
+
+    for crop in sel_crops:
+        if sel_regions is None:
+            sel_regions = []
+            if crop == "maize":
+                sel_regions = [
+                    "AR",
+                    "BR",
+                    "CN",
+                    "EU",
+                    "FEWSNET",
+                    "IN",
+                    "ML",
+                    "MX",
+                    "US",
+                ]
+            elif crop == "wheat":
+                sel_regions = ["AR", "AU", "BR", "CN", "EU", "FEWSNET", "IN", "US"]
+
+        for cn in sel_regions:
+            print("Working on", crop, cn)
+            prepare_predictors(crop, cn, sel_indicators)
