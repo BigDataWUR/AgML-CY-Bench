@@ -1058,7 +1058,10 @@ def get_time_series_files(data_path, year=2000):
     """
     files = []
     for f in os.listdir(data_path):
-        fname, _ = os.path.splitext(f)
+        fname, ext = os.path.splitext(f)
+        if not (ext == ".tif" or ext == ".nc"):
+            continue
+
         # we expect the last part of filename to be YYYYMMDD
         date_str = fname[-8:]
         if int(date_str[:4]) == year:
