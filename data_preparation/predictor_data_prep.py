@@ -17,7 +17,6 @@ warnings.filterwarnings("ignore")
 log = logging.getLogger(__name__)
 
 
-SUPPRESS_ERRORS = True
 EU_COUNTRY_CODE_KEY = "CNTR_CODE"
 EU_ADMIN_LEVEL_KEY = "LEVL_CODE"
 
@@ -179,15 +178,18 @@ ALL_INDICATORS = {
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
+SUPPRESS_ERRORS = True
+MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL = 2  # 1 - raise; 2 - warn; 3 - none
+NUM_THREADS = max(round(os.cpu_count() / 6), 2)
+RESULT_TIMEOUT = 600
 
 
 class UnableToExtractStats(Exception):
+    """
+    @author: Joint Research Centre - D5 Food Security - ASAP
+    """
+
     pass
-
-
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
 
 
 def read_masked(
@@ -201,12 +203,14 @@ def read_masked(
     **kwargs
 ):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Reads the data fom the raster file and returns it as a numpy masked array.
     The geometry is used to define the mask.
     It returns only a subset of the data.
         It reads only the raster window containing the geometry. This optimizes the performance by reducing disk reads.
     The "use_pixels" parameter can be used to define how to handle the border pixels.
-        Some require shapely to be available on the system
+        Some require shapely to be available on the system.
+
     :param ds: Raster file path or an instance of a rasterio.DatasetReader (already opened raster file).
     :param mask: iterable over geometries used to mask the array, mask is a read mask
                  (only data covered by the geometry is used)
@@ -301,16 +305,13 @@ def read_masked(
     return source
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def round_window(window):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Outputs a copy of the window rounded to the nearest whole pixel.
     Rounds the absolute size of the window extent which makes sure that all pixel cneters covered by the input window
     are included.
+
     :param window: Input window
     :return: rasterio.windows.Window
     """
@@ -321,13 +322,9 @@ def round_window(window):
     return rasterio.windows.Window(_col_off, _row_off, _width, _height)
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def get_common_bounds_and_shape(geom, ds_list):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Returns a unified read window, bounds and resolution, for a given geometry on all raster datasets in a list.
     Used when combining datasets with heterogeneous resolution to read data with the extent (bounds) of the lowest
     resolution dataset and to use the resolution (shape) of the highest resolution dataset.
@@ -344,6 +341,7 @@ def get_common_bounds_and_shape(geom, ds_list):
         3. we define unified read window and out_shape
             - We use the aligned bounds to define a read window for all datasets
             - We use the resolution of the hres rounded bounds window shape as the read out_shape
+
     :param geom: GeoJSON-like feature (implements __geo_interface__) – feature collection, or iterable over geometry.
     :param ds_list: List of raster file paths or rasterio datasets
     :return: Pair of tuples, shape and bounds - ((x_min, y_min, x_max, y_max), (rows, columns))
@@ -379,16 +377,13 @@ def get_common_bounds_and_shape(geom, ds_list):
     return out_bounds, out_shape
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def arr_stats(arr, weights=None, output=("min", "max", "sum", "mean", "count", "mode")):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Extracts statistics from input array (arr).
     It uses weights array as weights if provided.
     List of statistics to extract is defined in the output parameter as a list or a comma separated string.
+
     :param arr: Input array
     :param weights: Array providing weights for each pixel value. Used to calculate stats.
     :param output: List of values to extract, can be a list or comma separated string.
@@ -512,14 +507,11 @@ def arr_stats(arr, weights=None, output=("min", "max", "sum", "mean", "count", "
     return out_vals
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def arr_classes_count(arr, cls_def, weights=None, border_include="min"):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Counts the number of array values in a class (bin) defined by min and max value.
+
     :param arr: Input array
     :param cls_def: list(dict) - List of dictionaries with Class definitions. A class is defined by its min and max value.
         [{'min': val1, 'max': val2}, ...]
@@ -557,15 +549,12 @@ def arr_classes_count(arr, cls_def, weights=None, border_include="min"):
     return cls_out
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def arr_unpack(arr, scale=1, offset=0, nodata=None):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Converts the values in the array to native format by applying scale,
     offset and nodata (val or func).
+
     :param arr: array to be converted
     :param scale: conversion to native format scale factor
     :param offset: conversion to native format offset factor
@@ -584,15 +573,12 @@ def arr_unpack(arr, scale=1, offset=0, nodata=None):
     return arr
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def apply_nodata(arr, nodata):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Masks the array with nodata definition.
     If arr is masked array the two masks are combined.
+
     :param arr: array to be masked
     :param nodata: no data value, function or array to mask the dataset
     :return: np.ma.array masked with nodata
@@ -607,21 +593,17 @@ def apply_nodata(arr, nodata):
         return np.ma.array(arr, mask=arr == nodata)
 
 
-"""
-@author: Joint Research Centre - D5 Food Security - ASAP
-"""
-
-
 def geom_extract(
     geometry,
     indicator,
     stats_out=("mean", "std", "min", "max", "sum", "counts", "mode"),
     afi=None,
-    classification=None,
     afi_thresh=None,
     thresh_type=None,
+    classification=None,
 ):
     """
+    @author: Joint Research Centre - D5 Food Security - ASAP
     Extracts the indicator statistics on input geometry using the AFI as weights.
 
     Global variable SUPPRESS_ERRORS controls if a custom error (UnableToExtractStats)
@@ -814,12 +796,266 @@ def geom_extract(
     return output
 
 
-"""
-@author: Dilli R. Paudel
-"""
+def admin_units_extract(
+    unit_geometries,
+    indicator,
+    stats_out=("mean", "std", "min", "max", "sum", "counts"),
+    afi=None,
+    afi_thresh=0.0,
+    thresh_type="Fixed",
+    classification=None,
+):
+    """
+    @author: Joint Research Centre - D5 Food Security - ASAP
+    Runs a various statistics extraction on the indicators raster for a given set of units.
+    Uses multiprocessing pool on a unit level to run the extraction in parallel.
+    Multiprocessing can be avoided by setting the global parameter NUM_THREADS = 1
+    Units are defined as a pair of values (unit_identifier, geometry) so that the error handling can link the error with
+    a proper unit and also the output to be linked to the propper unit.
+    Global parameter MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL controls how to handle when the geom_extract function raises
+    a UnableToExtractStats error if it doesn't succeed to extract statistics for a geometry.
+        - 1 - raise - raises an error
+        - 2 - warn - Logs a warning
+        - 3 - none - silent
+    By default it issues a warning (2).
+
+    :param units: List of Unit identifiers + geometry pairs.
+        - unit identifier can be anything, since it's just forwarded to the output, e.g. if convenient it can be a whole
+          django model object to be used later on when saving statistics or just a simple item id
+        - geometry - GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
+
+    :param indicator: path to raster file or an already opened dataset (rasterio.DatasetReader) on which statistics are extracted
+    :param stats_out: definition of statistics to extract, the list is directly forwarded to function
+        asap_toolbox.util.raster.arr_stats.
+        Additionally accepts "counts" keyword that calculates following values:
+            - total - overall unit grid coverage
+            - valid_data - indicator without nodata
+            - valid_data_after_masking - indicator used for calculation
+            - weight_sum - total mask sum
+            - weight_sum_used - mask sum after masking of dataset nodata is applied
+    :param afi: path to Area Fraction index or weights - path to raster file or an already opened dataset (rasterio.DatasetReader)
+    :param classification: If defined, calculates the pixel/weight sums of each class defined.
+        Defined as JSON dictionary with borders as list of min, max value pairs and border behaviour definition:
+            {
+                borders: ((min1, max1), (min2, max2), ..., (min_n, max_n)),
+                border_include: [min|max|both|None]
+            }
+    :return: yields an output of unit identifier and result pairs.
+        Unit identifiers are forwarded to provide pairing to the input.
+         The result are defined as dict with extracted stats divided in 3 groups:
+            - stats - dict with calculated stats values (mean, std, min, max)
+            - counts - dict with calculated count values (total; valid_data; valid_data_after_masking; weight_sum; weight_sum_used)
+            - classification - dict with border definitions and values
+            {
+                stats: {mean: val, std: min: val, max: val, ...}
+                counts: {total: val, valid_data: valid_data_after_masking: val, weight_sum: val, ...}
+                classification: {
+                    borders: ((min1, max1), (min2, max2), ..., (min_n, max_n)),
+                    border_include: val,
+                    values: (val1, val2, val3,...)
+                }
+            }
+    """
+    if not NUM_THREADS or NUM_THREADS > 1:
+        log.debug("Running the pool")
+        with Pool(
+            processes=NUM_THREADS, initializer=pool_init, initargs=[indicator, afi]
+        ) as pool:
+            pool_result = pool.starmap_async(
+                pool_wrapper_func,
+                zip(
+                    unit_geometries.items(),
+                    repeat(geom_extract),
+                    repeat(None),
+                    repeat(stats_out),
+                    repeat(None),
+                    repeat(afi_thresh),
+                    repeat(thresh_type),
+                    repeat(classification),
+                ),
+            )
+            for output in pool_result.get(timeout=RESULT_TIMEOUT):
+                yield output
+    else:  # loop call
+        log.debug("Running the loop")
+        # force an exception if unable to extract geometry
+        global SUPPRESS_ERRORS
+        SUPPRESS_ERRORS = False
+        # prepare and open datasets
+        _indicator = (
+            indicator
+            if isinstance(indicator, rasterio.DatasetReader)
+            else rasterio.open(indicator)
+        )
+        _afi = None
+        if afi:
+            _afi = (
+                afi if isinstance(afi, rasterio.DatasetReader) else rasterio.open(afi)
+            )
+        # get stats
+        for adm_id, geometry in unit_geometries.items():
+            try:
+                unit_output = geom_extract(
+                    geometry,
+                    _indicator,
+                    stats_out=stats_out,
+                    afi=_afi,
+                    afi_thresh=afi_thresh,
+                    thresh_type=thresh_type,
+                    classification=classification,
+                )
+            except UnableToExtractStats as e:
+                e_msg = "Unable to extract statistics for unit: %s - [%s]" % (adm_id, e)
+                unit_output = None
+                if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 1:
+                    raise Exception(e_msg)
+                if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 2:
+                    log.warning(e_msg)
+            yield adm_id, unit_output
+
+
+def pool_wrapper_func(unit, callback, *args, **kwargs):
+    """
+    @author: Joint Research Centre - D5 Food Security - ASAP
+    A wrapper function for executing stats extraction using multiprocessing on an admin unit level.
+
+    :param unit: Pair of Unit identifier + geometry
+        - unit identifier can be anything, since it's just forwarded to the output, e.g. if convenient it can be a whole
+          django model object to be used later on when saving statistics or just a simple item id
+        - geometry - GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
+    :param callback: A callback function to be called on the geometry.
+    :param args: forwarded to the callback function
+    :param kwargs: forwarded to the callback function
+    :return: returns an output of unit identifier and result pairs.
+        Handles the notification and unit info if the callback fails.
+    """
+    unit_id, unit_geom = unit
+    # collect global vars and replace them for the callback call
+    global _indicator, _afi
+    args = list(args)
+    args[0] = _indicator
+    args[2] = _afi
+    try:
+        output = callback(unit_geom, *args, **kwargs)
+    except UnableToExtractStats as e:
+        e_msg = "Unable to extract statistics for unit: %s - [%s]" % (unit_id, e)
+        output = None
+        if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 1:
+            raise Exception(e_msg)
+        if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 2:
+            log.warning(e_msg)
+
+    return unit_id, output
+
+
+def pool_init(indicator, afi):
+    """
+    @author: Joint Research Centre - D5 Food Security - ASAP
+    Multiprocessing pool initialisation, opens the files for each pool process instance.
+    Stores all the exchangeable variables in global vars to be use in each process in the pool.
+
+    :param indicator: indicator path
+    :param afi: afi path
+    :return: sets the following global variables to be used in each process:
+        _indicator - indicator dataset
+        _afi - AFI mask dataset
+    """
+    global SUPPRESS_ERRORS, _indicator, _afi
+    SUPPRESS_ERRORS = False
+    _indicator = rasterio.open(indicator)
+    _afi = None
+    if afi:
+        _afi = rasterio.open(afi)
+
+
+def process_file(
+    file,
+    crop,
+    indicator_name,
+    geometries,
+    is_time_series,
+    is_categorical,
+):
+    """
+    @author: Guanyuan Shuai
+    Process one indicator raster file. Handles .nc or .tif files.
+
+    :param file: path to indicator raster file.
+    :param crop: crop name
+    :param indicator_name: indicator name
+    :param geometry: geometry
+    :param is_time_series: flag to indicate whether data is static or time series
+    :param is_categorical: flag to indicator whether data is categorical or continuous
+    :return a dataframe with data from given raster file aggregated to admin units
+    """
+    if crop == "maize":
+        crop_mask_file = "crop_mask_maize_WC.tif"
+    elif crop == "wheat":
+        crop_mask_file = "crop_mask_winter_spring_cereals_WC.tif"
+    else:
+        crop_mask_file = "crop_mask_generic_asap.tif"
+
+    crop_mask_path = os.path.join(AGML_ROOT, "crop_masks", crop_mask_file)
+
+    basename = os.path.basename(file)
+    fname, ext = os.path.splitext(basename)
+    if ext == ".nc":
+        import netCDF4 as nc
+
+        nc_ds = nc.Dataset(file)
+        var_list = list(nc_ds.variables.keys() - nc_ds.dimension)
+        if len(var_list) > 1:
+            raise Exception("Multiple variabels found in file [%s]" % file)
+        file = "netcdf:{file}:{variable}".format(file=file, variable=var_list[0])
+
+    if is_categorical:
+        aggr = "mode"
+    else:
+        aggr = "mean"
+
+    if is_time_series:
+        date_str = fname[-8:]
+        col_names = ["crop_name", "adm_id", "date", indicator_name]
+    else:
+        date_str = None
+        col_names = ["crop_name", "adm_id", indicator_name]
+
+    ############################################
+    # get predictor value for each admin region
+    ############################################
+    result = admin_units_extract(
+        geometries,
+        file,
+        indicator_name,
+        is_time_series,
+        stats_out=[aggr],
+        afi=crop_mask_path,
+        afi_thresh=0.0,
+        thresh_type="Fixed",
+    )
+
+    df = pd.DataFrame(columns=col_names)
+    for adm_id, output in result:
+        aggr_val = output["stats"][aggr]
+        if is_time_series:
+            data_row = [crop, adm_id, date_str, aggr_val]
+        else:
+            data_row = [crop, adm_id, date_str, aggr_val]
+
+        df.loc[len(df.index)] = data_row
+
+    return df
 
 
 def get_time_series_files(data_path, year=2000):
+    """
+    @author: Dilli R. Paudel
+    Returns a list of raster files for the given year.
+
+    :param data_path: path to directory containing raster files
+    :param year: year of interest
+    :return: a list of rasters for given year
+    """
     files = []
     for f in os.listdir(data_path):
         fname, _ = os.path.splitext(f)
@@ -831,12 +1067,14 @@ def get_time_series_files(data_path, year=2000):
     return files
 
 
-"""
-@author: Dilli R. Paudel
-"""
-
-
 def get_shapes(region="US"):
+    """
+    @author: Dilli R. Paudel
+    Get admin unit boundaries.
+
+    :param region: region code or 2-letter country code
+    :return: a dataframe with adm_id and boundaries
+    """
     sel_shapes = pd.DataFrame()
     if region == "EU":
         geo_df = gpd.read_file(
@@ -919,92 +1157,15 @@ def get_shapes(region="US"):
     return sel_shapes
 
 
-"""
-@author: Guanyuan Shuai
-"""
-
-
-def process_file(
-    file,
-    crop,
-    indicator_name,
-    geometries,
-    is_time_series,
-    is_categorical,
-):
+def process_indicators(crop, region, sel_indicators):
     """
-    Process one indicator raster file. Handles .nc or .tif files.
+    @author: Guanyuan Shuai
+    Process predictors or indicators.
 
-    :param file: path to indicator raster file.
     :param crop: crop name
-    :param indicator_name: indicator name
-    :param geometry: geometry
-    :param is_time_series: flag to indicate whether data is static or time series
-    :param is_categorical: flag to indicator whether data is categorical or continuous
+    :param regoin: region code or 2-letter country code
+    :param sel_indicators: a list of indicators to process
     """
-    if crop == "maize":
-        crop_mask_file = "crop_mask_maize_WC.tif"
-    elif crop == "wheat":
-        crop_mask_file = "crop_mask_winter_spring_cereals_WC.tif"
-    else:
-        crop_mask_file = "crop_mask_generic_asap.tif"
-
-    crop_mask_path = os.path.join(AGML_ROOT, "crop_masks", crop_mask_file)
-
-    basename = os.path.basename(file)
-    fname, ext = os.path.splitext(basename)
-    if ext == ".nc":
-        import netCDF4 as nc
-        nc_ds = nc.Dataset(file)
-        var_list = list(nc_ds.varialbles.keys() - nc_ds.dimension)
-        if len(var_list) > 1:
-            raise Exception('Multiple variabels found in file [%s]' % file)
-        file = 'netcdf:{file}:{variable}'.format(file=file, variable=var_list[0])
-
-    if is_categorical:
-        aggr = "mode"
-    else:
-        aggr = "mean"
-
-    if is_time_series:
-        date_str = fname[-8:]
-        col_names = ["crop_name", "adm_id", "date", indicator_name]
-    else:
-        date_str = None
-        col_names = ["crop_name", "adm_id", indicator_name]
-
-    df = pd.DataFrame(columns=col_names)
-
-    ############################################
-    # get predictor value for each admin region
-    ############################################
-    for adm_id, geometry in geometries.items():
-        stats = geom_extract(
-            geometry,
-            file,
-            stats_out=[aggr],
-            afi=crop_mask_path,
-            afi_thresh=0,
-            thresh_type="Fixed",
-        )
-        if (stats is not None) and (len(stats) > 0):
-            mean_var = stats["stats"][aggr]
-            if is_time_series:
-                data_row = [crop, adm_id, date_str, mean_var]
-            else:
-                data_row = [crop, adm_id, mean_var]
-
-            df.loc[len(df.index)] = data_row
-
-    return df
-
-
-"""
-@author: Guanyuan Shuai
-"""
-
-
-def prepare_predictors(crop, region, sel_indicators):
     geo_df = get_shapes(region=region)
     geo_df = geo_df[["adm_id", "geometry"]]
 
@@ -1035,24 +1196,15 @@ def prepare_predictors(crop, region, sel_indicators):
                 cpus = multiprocessing.cpu_count()
 
                 files = sorted([os.path.join(indicator_dir, f) for f in files])
-                with multiprocessing.Pool(cpus) as pool:
-                    # NOTE: multiprocessing using a target function with multiple arguments.
-                    # Based on the answer to
-                    # https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
-                    dfs = pool.starmap(
-                        process_file,
-                        zip(
-                            files,
-                            repeat(crop),
-                            repeat(indicator),
-                            repeat(geometries),
-                            repeat(is_time_series),
-                            repeat(is_categorical),
-                        ),
+                result_yr = pd.DataFrame()
+                for f in files:
+                    df = process_file(
+                        f, crop, indicator, geometries, is_time_series, is_categorical
                     )
 
-                    result_yr = pd.concat(dfs, axis=0)
-                    result_final = pd.concat([result_final, result_yr], axis=0)
+                    result_yr = pd.concat([result_yr, df], axis=0)
+
+                result_final = pd.concat([result_final, result_yr], axis=0)
 
             out_csv = "_".join([indicator, crop, region]) + ".csv"
             result_final.to_csv(os.path.join(output_path, out_csv), index=False)

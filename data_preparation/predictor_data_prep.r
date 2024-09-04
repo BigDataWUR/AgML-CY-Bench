@@ -221,10 +221,10 @@ process_ts_raster <- function(indicator_file, indicator,
     ind_rast[ind_rast > 250] <- NA
     #  To scale, apply the formula: (x - 50)/200
     ind_rast <- (ind_rast - 50)/200
-  } else if (indicator %in% c("ET0", "surface_moisture", "rootzone_moisture")) {
+  } else if (indicator %in% c("et0", "ssm", "rsm")) {
     # check data_preparation/global_ET0_FAO
     ind_rast[ind_rast == -9999] <- NA
-  } else if (grepl("Temperature", indicator, fixed=TRUE)) {
+  } else if (indicator %in% c("tmin", "tmax", "tavg")) {
     # temp_C = temp_K - 273.15
     ind_rast <- ind_rast - 273.15
   }
