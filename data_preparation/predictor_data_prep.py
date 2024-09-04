@@ -344,7 +344,7 @@ def get_common_bounds_and_shape(geom, ds_list):
         3. we define unified read window and out_shape
             - We use the aligned bounds to define a read window for all datasets
             - We use the resolution of the hres rounded bounds window shape as the read out_shape
-    :param geom: GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
+    :param geom: GeoJSON-like feature (implements __geo_interface__) – feature collection, or iterable over geometry.
     :param ds_list: List of raster file paths or rasterio datasets
     :return: Pair of tuples, shape and bounds - ((x_min, y_min, x_max, y_max), (rows, columns))
     """
@@ -648,6 +648,7 @@ def geom_extract(
     :param afi: path to Area Fraction index or weights - path to raster file or
         an already opened dataset (rasterio.DatasetReader)
     :param afi_thresh: threshold to mask out the afi data
+    :param tresh_type: type of afi_thresh ("Fixed" aka value or "percentile")
     :param classification: If defined, calculates the pixel/weight sums of each class defined.
         Defined as JSON dictionary with borders as list of min, max value pairs and
         border behaviour definition:
@@ -952,9 +953,13 @@ def process_file(
 
     basename = os.path.basename(file)
     fname, ext = os.path.splitext(basename)
-    # TODO: Handle .nc ext
     if ext == ".nc":
-        return pd.DataFrame()
+        import netCDF4 as nc
+        nc_ds = nc.Dataset(file)
+        var_list = list(nc_ds.varialbles.keys() - nc_ds.dimension)
+        if len(var_list) > 1:
+            raise Exception('Multiple variabels found in file [%s]' % file)
+        file = 'netcdf:{file}:{variable}'.format(file=file, variable=var_list[0])
 
     if is_categorical:
         aggr = "mode"
