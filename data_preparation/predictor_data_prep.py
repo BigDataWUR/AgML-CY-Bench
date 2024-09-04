@@ -1028,7 +1028,7 @@ def process_file(
         file,
         indicator_name,
         is_time_series,
-        stats_out=[aggr],
+        stats_out=(aggr,),
         afi=crop_mask_path,
         afi_thresh=0.0,
         thresh_type="Fixed",
@@ -1291,4 +1291,4 @@ if __name__ == "__main__":
 
         for cn in sel_regions:
             print("Working on", crop, cn)
-            prepare_predictors(crop, cn, sel_indicators)
+            process_indicators(crop, cn, sel_indicators)
