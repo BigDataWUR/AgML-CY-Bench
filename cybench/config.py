@@ -11,6 +11,13 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
+# Path to folder where aligned data is stored
+# NOTE: Data is saved after aligning time series to crop season.
+# Similarly, labels data is aligned to have the same locations and years
+# as in input data.
+PATH_ALIGNED_DATA_DIR = os.path.join(CONFIG_DIR, "aligned_data")
+os.makedirs(PATH_ALIGNED_DATA_DIR, exist_ok=True)
+
 # Path to folder where output is stored
 PATH_OUTPUT_DIR = os.path.join(CONFIG_DIR, "output")
 os.makedirs(PATH_OUTPUT_DIR, exist_ok=True)
@@ -156,6 +163,8 @@ GDD_UPPER_LIMIT = {
 # "n-day(s)" where n is an integer
 FORECAST_LEAD_TIME = "middle-of-season"
 
+# Buffer period before the start of season
+SPINUP_DAYS = 90
 
 # Logging
 PATH_LOGS_DIR = os.path.join(PATH_OUTPUT_DIR, "logs")

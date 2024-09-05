@@ -7,7 +7,6 @@ from cybench.config import (
     KEY_TARGET,
     KEY_DATES,
     DATASETS,
-    FORECAST_LEAD_TIME,
 )
 
 
@@ -91,6 +90,7 @@ class Dataset:
         crop = crop_countries[0]
         assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
+        # only crop is specified
         if len(crop_countries) < 2:
             country_codes = DATASETS[crop]
         else:
@@ -105,7 +105,7 @@ class Dataset:
         return Dataset(
             crop,
             df_y,
-            list(dfs_x),
+            list(dfs_x.values()),
         )
 
     @property
@@ -199,7 +199,7 @@ class Dataset:
         for i in range(len(self)):
             yield self[i]
 
-    def _get_feature_data(self, loc_id: int, year: int) -> dict:
+    def _get_feature_data(self, loc_id: str, year: int) -> dict:
         """
         Helper function for obtaining feature data corresponding to some index
         :param loc_id: location index value
