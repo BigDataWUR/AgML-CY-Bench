@@ -969,7 +969,7 @@ def pool_init(indicator, afi):
 
 
 def process_file(
-    file,
+    indicator_file,
     crop,
     indicator_name,
     geometries,
@@ -997,16 +997,18 @@ def process_file(
 
     crop_mask_path = os.path.join(AGML_ROOT, "crop_masks", crop_mask_file)
 
-    basename = os.path.basename(file)
+    basename = os.path.basename(indicator_file)
     fname, ext = os.path.splitext(basename)
     if ext == ".nc":
         import netCDF4 as nc
 
-        nc_ds = nc.Dataset(file)
+        nc_ds = nc.Dataset(indicator_file)
         var_list = list(nc_ds.variables.keys() - nc_ds.dimension)
         if len(var_list) > 1:
-            raise Exception("Multiple variabels found in file [%s]" % file)
-        file = "netcdf:{file}:{variable}".format(file=file, variable=var_list[0])
+            raise Exception("Multiple variabels found in file [%s]" % indicator_file)
+        indicator_file = "netcdf:{indicator_file}:{variable}".format(
+            indicator_file=indicator_file, variable=var_list[0]
+        )
 
     if is_categorical:
         aggr = "mode"
@@ -1025,9 +1027,7 @@ def process_file(
     ############################################
     result = admin_units_extract(
         geometries,
-        file,
-        indicator_name,
-        is_time_series,
+        indicator_file,
         stats_out=(aggr,),
         afi=crop_mask_path,
         afi_thresh=0.0,
@@ -1035,14 +1035,15 @@ def process_file(
     )
 
     df = pd.DataFrame(columns=col_names)
-    for adm_id, output in result:
-        aggr_val = output["stats"][aggr]
-        if is_time_series:
-            data_row = [crop, adm_id, date_str, aggr_val]
-        else:
-            data_row = [crop, adm_id, date_str, aggr_val]
+    for adm_id, stats in result:
+        if (stats is not None) and (len(stats) > 0):
+            aggr_val = stats["stats"][aggr]
+            if is_time_series:
+                data_row = [crop, adm_id, date_str, aggr_val]
+            else:
+                data_row = [crop, adm_id, aggr_val]
 
-        df.loc[len(df.index)] = data_row
+            df.loc[len(df.index)] = data_row
 
     return df
 
