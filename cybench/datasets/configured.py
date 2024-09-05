@@ -236,7 +236,7 @@ def load_aligned_dfs(crop: str, country_code: str) -> tuple:
 
 def load_dfs_crop(
     crop: str, countries: list = None, lead_time: str = FORECAST_LEAD_TIME
-) -> dict:
+) -> tuple:
     """
     Load data for crop and one or more countries. If `countries` is None,
     data for all countries in CY-Bench is loaded.

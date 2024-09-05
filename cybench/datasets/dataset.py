@@ -7,7 +7,6 @@ from cybench.config import (
     KEY_TARGET,
     KEY_DATES,
     DATASETS,
-    FORECAST_LEAD_TIME,
 )
 
 
@@ -200,7 +199,7 @@ class Dataset:
         for i in range(len(self)):
             yield self[i]
 
-    def _get_feature_data(self, loc_id: int, year: int) -> dict:
+    def _get_feature_data(self, loc_id: str, year: int) -> dict:
         """
         Helper function for obtaining feature data corresponding to some index
         :param loc_id: location index value
