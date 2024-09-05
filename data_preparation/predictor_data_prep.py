@@ -180,7 +180,7 @@ ALL_INDICATORS = {
 """
 SUPPRESS_ERRORS = True
 MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL = 2  # 1 - raise; 2 - warn; 3 - none
-NUM_THREADS = max(round(os.cpu_count() / 6), 2)
+NUM_THREADS = None
 RESULT_TIMEOUT = 600
 
 
