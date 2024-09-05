@@ -1,115 +1,31 @@
 # @author: Hilmy, Dilli
 
 import os
-from collections import defaultdict
-
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-
 import pandas as pd
-import numpy as np
-
-import pickle
 
 from cybench.config import (
-    PATH_RESULTS_DIR,
     CONFIG_DIR,
-    KEY_LOC,
     KEY_YEAR,
+    KEY_COUNTRY,
 )
 
-from cybench.runs.run_benchmark import (
-    get_prediction_residuals,
-    compute_metrics,
+from cybench.runs.run_benchmark import BASELINE_MODELS
+from cybench.runs.process_results import (
+    results_to_metrics,
+    results_to_residuals,
 )
 
 PATH_GRAPHS_DIR = os.path.join(CONFIG_DIR, "output", "graphs")
 os.makedirs(PATH_GRAPHS_DIR, exist_ok=True)
 
 
-datasets = {
-    "maize": [
-        "AO",
-        "AR",
-        "AT",
-        "BE",
-        "BF",
-        "BG",
-        "BR",
-        "CN",
-        "CZ",
-        "DE",
-        "DK",
-        "EE",
-        "EL",
-        "ES",
-        "ET",
-        "FI",
-        "FR",
-        "HR",
-        "HU",
-        "IE",
-        "IN",
-        "IT",
-        "LS",
-        "LT",
-        "LV",
-        "MG",
-        "ML",
-        "MW",
-        "MX",
-        "MZ",
-        "NE",
-        "NL",
-        "PL",
-        "PT",
-        "RO",
-        "SE",
-        "SK",
-        "SN",
-        "TD",
-        "US",
-        "ZA",
-        "ZM",
-    ],
-    "wheat": [
-        "AR",
-        "AT",
-        "AU",
-        "BE",
-        "BG",
-        "BR",
-        "CN",
-        "CZ",
-        "DE",
-        "DK",
-        "EE",
-        "EL",
-        "ES",
-        "FI",
-        "FR",
-        "HR",
-        "HU",
-        "IE",
-        "IN",
-        "IT",
-        "LT",
-        "LV",
-        "NL",
-        "PL",
-        "PT",
-        "RO",
-        "SE",
-        "SK",
-        "US",
-    ],
-}
-
-
 def plot_bars(df, metric, metric_label, title_label, file_name):
     fig = plt.figure(figsize=(12, 6))
     sns.barplot(
-        x="country",
+        x=KEY_COUNTRY,
         y=metric,
         data=df,
         hue="model",
@@ -157,7 +73,7 @@ def plot_metrics(
     if metric == "mape_country":
         plot_graph(
             df,
-            "country",
+            KEY_COUNTRY,
             "model",
             "Country",
             "mape",
@@ -169,7 +85,7 @@ def plot_metrics(
     elif metric == "nrmse_country":
         plot_graph(
             df,
-            "country",
+            KEY_COUNTRY,
             "model",
             "Country",
             "normalized_rmse",
@@ -207,7 +123,7 @@ def box_plots_residuals(
     subplots_per_row=4,
 ):
     # Filter data based on selected countries and crop
-    data_filtered = data[(data["country"].isin(countries)) & (data["crop"] == crop)]
+    data_filtered = data[(data[KEY_COUNTRY].isin(countries)) & (data["crop"] == crop)]
 
     # Set up the figure for subplots
     num_countries = len(countries)
@@ -215,7 +131,9 @@ def box_plots_residuals(
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey="none"
     )
-    axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
+
     font = {
         "color": "black",
         "size": 18,
@@ -223,7 +141,7 @@ def box_plots_residuals(
 
     for i in range(num_countries):
         cn = countries[i]
-        data_cn = data_filtered[data_filtered["country"] == cn]
+        data_cn = data_filtered[data_filtered[KEY_COUNTRY] == cn]
         boxplot_df = data_cn[residual_cols]
         boxplot_df = boxplot_df.rename(columns=residual_labels)
         sel_ax = axes if (num_countries == 1) else axes[i]
@@ -247,8 +165,9 @@ def box_plots_residuals(
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_residuals_{crop}.jpg"))
@@ -257,7 +176,7 @@ def box_plots_residuals(
 
 def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_row=4):
     # Filter data based on selected countries and crop
-    data_filtered = data[(data["country"].isin(countries)) & (data["crop"] == crop)]
+    data_filtered = data[(data[KEY_COUNTRY].isin(countries)) & (data["crop"] == crop)]
 
     # Set up the figure for subplots
     num_countries = len(countries)
@@ -265,15 +184,17 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey=True
     )
-    axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
 
     # Plot boxplots for each country
     for i, country in enumerate(countries):
-        ax = axes[i]
+        ax = axes if (num_countries == 1) else axes[i]
+
         sns.boxplot(
             x="model",
             y=metric,
-            data=data_filtered[data_filtered["country"] == country],
+            data=data_filtered[data_filtered[KEY_COUNTRY] == country],
             ax=ax,
             showfliers=False,
             hue="model",
@@ -291,8 +212,9 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
         ax.xaxis.grid(False)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"boxplots_{metric}_{crop}.jpg"))
@@ -300,11 +222,12 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
 
 
 def plot_yearly_metrics(data, crop, country, metric, metric_label):
-    data_filtered = data[(data["crop"] == crop) & (data["country"] == country)]
+    data_filtered = data[(data["crop"] == crop) & (data[KEY_COUNTRY] == country)]
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_rows = 2
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 5 * num_rows), sharey=True)
-    axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
 
     num_years = len(all_years)
     sel_years = [all_years[: int(num_years / 2)], all_years[int(num_years / 2) :]]
@@ -334,8 +257,9 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
             ax.get_legend().remove()
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_{metric}_{crop}_{country}.jpg"))
@@ -344,12 +268,14 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
 
 def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
     # Filter data based on selected countries and crop
-    data_filtered = data[(data["country"] == country) & (data["crop"] == crop)]
+    data_filtered = data[(data[KEY_COUNTRY] == country) & (data["crop"] == crop)]
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_years = len(all_years)
     num_cols = int(num_years / 2) + 1
     fig, axes = plt.subplots(2, num_cols, figsize=(5 * num_cols, 12), sharey="none")
-    axes = axes.flatten()
+    if (isinstance(axes, np.ndarray)):
+        axes = axes.flatten()
+
     font = {
         "color": "black",
         "size": 18,
@@ -393,96 +319,62 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    for j in range(i + 1, len(axes)):
-        fig.delaxes(axes[j])
+    if (isinstance(axes, np.ndarray)):
+        for j in range(i + 1, len(axes)):
+            fig.delaxes(axes[j])
 
     plt.tight_layout()
     plt.savefig(os.path.join(PATH_GRAPHS_DIR, f"yearly_residuals_{crop}_{country}.jpg"))
     plt.close(fig)
 
 
-def write_to_markdown(df, metrics, metrics_labels):
-    aggrs = {}
-    for met in metrics:
-        aggrs[met] = ["mean", "median", "std"]
-
-    df_summary = df.groupby(["crop", "country"]).agg(aggrs)
-    df_summary = df_summary.rename(columns=metrics_labels)
-    # NOTE: This requires tabulate package.
-    with open(os.path.join(PATH_GRAPHS_DIR, "results_table.md"), "w") as file:
-        file.write(df_summary.to_markdown())
-
-
 if __name__ == "__main__":
-    model_names = {
-        "AverageYieldModel": "Naive",
-        "LSTM": "LSTM",
-        "SklearnRidge": "Ridge",
-        "SklearnRF": "RF",
-        # "LinearTrend": "Trend",
-    }
-
-    df_metrics = pd.DataFrame()
-    df_residuals = pd.DataFrame()
-    metrics = None
-    residual_cols = None
-    sel_crop_countries = {}
-    for crop, country_codes in datasets.items():
-        for cn in country_codes:
-            run_name = crop + "_" + cn
-            if not os.path.isdir(os.path.join(PATH_RESULTS_DIR, run_name)):
-                continue
-
-            if crop in sel_crop_countries:
-                sel_crop_countries[crop] = sel_crop_countries[crop] + [cn]
-            else:
-                sel_crop_countries[crop] = [cn]
-
-            df = compute_metrics(run_name, list(model_names.keys()))
-            if metrics is None:
-                metrics = list(df.columns)
-            df.reset_index(inplace=True)
-            df["country"] = cn
-            df["crop"] = crop
-            # NOTE: Mean Absolute Percentage Error (MAPE) is not converted to percentage.
-            # This is because we follow the default from scikit-learn.
-            # TODO: Remove this when MAPE is actually a percentage.
-            df["mape"] = df["mape"] * 100
-            df = df[["crop", "country", KEY_YEAR, "model"] + metrics]
-            df_metrics = pd.concat([df_metrics, df], axis=0)
-
-            df_r = get_prediction_residuals(run_name, model_names)
-            df_r["country"] = cn
-            df_r["crop"] = crop
-            df_r.reset_index(inplace=True)
-            if residual_cols is None:
-                residual_cols = [c for c in df_r.columns if "res" in c]
-
-            df_r = df_r[["crop", "country", KEY_LOC, KEY_YEAR] + residual_cols]
-            df_residuals = pd.concat([df_residuals, df_r], axis=0)
-
-    df_metrics["model"].replace(model_names, inplace=True)
     metric_labels = {
         "mape": "Mean Absolute Percentage Error",
         "normalized_rmse": "Normalized RMSE",
+        "r2": "Coefficient of Determination",
     }
-
-    # write summary table to a markdown file
-    write_to_markdown(df_metrics, metrics, metric_labels)
-
-    for cr, cns in sel_crop_countries.items():
-        for met in metrics:
+    df_metrics = results_to_metrics()
+    crops = df_metrics["crop"].unique()
+    metric_names = [m for m in metric_labels if m in df_metrics.columns]
+    for cr in crops:
+        country_codes = df_metrics[df_metrics["crop"] == cr][KEY_COUNTRY].unique()
+        for met in metric_names:
             box_plots_metrics(
-                df_metrics, cr, cns, met, metric_labels[met], subplots_per_row=len(cns)
+                df_metrics,
+                cr,
+                country_codes,
+                met,
+                metric_labels[met],
+                subplots_per_row=len(country_codes),
             )
 
+        for met in metric_names:
+            for cn in country_codes:
+                plot_yearly_metrics(df_metrics, cr, cn, met, metric_labels[met])
+
+    for metric in ["bars"]:
+        plot_metrics(df_metrics, metric)
+
+    model_short_names = {
+        "AverageYieldModel": "Naive",
+        "LinearTrend": "Trend",
+        "SklearnRidge": "Ridge",
+        "SklearnRF": "RF",
+    }
+    # for other models, add name as short name
+    for model_name in BASELINE_MODELS:
+        if model_name not in model_short_names:
+            model_short_names[model_name] = model_name
+
+    df_residuals = results_to_residuals(model_names=model_short_names)
     residual_labels = {}
-    model_short_names = list(model_names.values())
-    for model_sname in model_short_names:
+    for model_sname in model_short_names.values():
         residual_labels[model_sname + "_res"] = model_sname
 
     ymin = None
     ymax = None
+    residual_cols = [c for c in df_residuals if "_res" in c]
     for c in residual_cols:
         if ymin is None:
             ymin = df_residuals[c].min()
@@ -494,26 +386,22 @@ if __name__ == "__main__":
         else:
             ymax = max(ymax, df_residuals[c].max())
 
-    for cr, cns in sel_crop_countries.items():
+    crops = df_residuals["crop"].unique()
+    for cr in crops:
+        country_codes = df_residuals[df_residuals["crop"] == cr][KEY_COUNTRY].unique()
         box_plots_residuals(
             df_residuals,
             cr,
-            cns,
+            country_codes,
             residual_cols,
             residual_labels,
             ymin,
             ymax,
-            subplots_per_row=len(cns),
+            subplots_per_row=len(country_codes),
         )
 
-    for met in metrics:
-        for cr in sel_crop_countries:
-            for cn in sel_crop_countries[cr]:
-                plot_yearly_metrics(df_metrics, cr, cn, met, metric_labels[met])
-
+        for met in metric_names:
+            for cn in country_codes:
                 plot_yearly_residuals(
                     df_residuals, cr, cn, residual_cols, residual_labels
                 )
-
-    for metric in ["bars"]:
-        plot_metrics(df_metrics, metric)
