@@ -266,9 +266,9 @@ process_ts_year <- function(year, file_path, filename_pattern,
     return(NULL)
   }
 
-  dfs <- pblapply(file_list, process_ts_raster, indicator=indicator,
-                  crop_mask_file=crop_mask_file,
-                  region_boundaries=region_boundaries)
+  dfs <- lapply(file_list, process_ts_raster, indicator=indicator,
+                crop_mask_file=crop_mask_file,
+                region_boundaries=region_boundaries)
 
   result <- rbindlist(dfs)
   rm(dfs)
