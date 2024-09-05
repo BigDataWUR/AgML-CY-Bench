@@ -1003,7 +1003,7 @@ def process_file(
         import netCDF4 as nc
 
         nc_ds = nc.Dataset(indicator_file)
-        var_list = list(nc_ds.variables.keys() - nc_ds.dimension)
+        var_list = list(nc_ds.variables.keys() - nc_ds.dimensions)
         if len(var_list) > 1:
             raise Exception("Multiple variabels found in file [%s]" % indicator_file)
         indicator_file = "netcdf:{indicator_file}:{variable}".format(
