@@ -867,6 +867,12 @@ def process_file(
         if (stats is not None) and (len(stats) > 0):
             aggr_val = stats["stats"][aggr]
             if is_time_series:
+                # convert Kelvin to Celsius
+                if (indicator_name in ["tmin", "tmax", "tavg"]):
+                    aggr_val = aggr_val - 273.15
+                elif (indicator_name == "ndvi"):
+                    aggr_val <- (aggr_val - 50)/200
+
                 data_row = [crop, adm_id, date_str, aggr_val]
             else:
                 data_row = [crop, adm_id, aggr_val]
