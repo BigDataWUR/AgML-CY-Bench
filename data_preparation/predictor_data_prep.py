@@ -181,7 +181,7 @@ AGERA5_VARIABLES = {
     "tmin": "Temperature_Air_2m_Min_24h",
     "tavg": "Temperature_Air_2m_Mean_24h",
     "prec": "Precipitation_Flux",
-    "rad":  "Solar_Radiation_Flux",
+    "rad": "Solar_Radiation_Flux",
 }
 
 
@@ -868,10 +868,10 @@ def process_file(
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 # convert Kelvin to Celsius
-                if (indicator_name in ["tmin", "tmax", "tavg"]):
+                if indicator_name in ["tmin", "tmax", "tavg"]:
                     aggr_val = aggr_val - 273.15
-                elif (indicator_name == "ndvi"):
-                    aggr_val = (aggr_val - 50)/200
+                elif indicator_name == "ndvi":
+                    aggr_val = (aggr_val - 50) / 200
 
                 data_row = [crop, adm_id, date_str, aggr_val]
             else:
