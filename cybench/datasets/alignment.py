@@ -99,13 +99,6 @@ def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_day
         (df["end_of_year"] - df["eos_date"]).dt.days + df["eos_diff"], unit="d"
     )
 
-    # Calculate season length. Handle seasons crossing calendar year.
-    df["season_length"] = np.where(
-        (df["eos"] > df["sos"]),
-        (df["eos"] - df["sos"]),
-        (365 - df["sos"]) + df["eos"],
-    )
-
     # Keep data for spinup days before the start of season.
     df["ts_length"] = np.where(
         df["season_length"] + spinup_days <= 365,
@@ -125,60 +118,34 @@ def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_day
     )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
 
-    return df[select_cols + ["season_length", "end_of_year"]]
+    return df[select_cols]
 
 
-def trim_to_lead_time(df, lead_time, spinup_days):
+def trim_to_lead_time(df, lead_time):
     """Remove time series data after lead time.
 
     Args:
         df (pd.DataFrame): time series data
         lead_time (str): lead time option
-        spinup_days (int): extra days to include before the start of season
 
     Returns:
         the same DataFrame with data after lead time removed
     """
     # NOTE: df should have the columns returned by `align_to_crop_season` above.
     index_names = df.index.names
+    select_cols = list(df.columns)
     df.reset_index(inplace=True)
-    assert "season_length" in df.columns
-    assert "end_of_year" in df.columns
-    select_cols = [c for c in df.columns if c not in ["season_length", "end_of_year"]]
 
     # Determine cutoff days based on lead time.
     df = _add_cutoff_days(df, lead_time)
     # NOTE: We need to do pd.to_datetime because pandas reads dates as str.
     # Also note that pandas seems to write dates in "%Y-%m-%d" format.
-    df["end_of_year"] = pd.to_datetime(df["end_of_year"], format="%Y-%m-%d")
+    df["end_of_year"] = pd.to_datetime(
+        df[KEY_YEAR].astype(str) + "1231", format="%Y-%m-%d"
+    )
     df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d")
     df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
     df = df[df["date"] <= df["cutoff_date"]]
-
-    # Keep the same number of time steps for all locations and years.
-    # It's necessary because models will stack time series data in a batch.
-    # NOTE: We don't want more than (season_length + spinup_days - cutoff_days).
-    #   We could do avg of season_length, but max is safer.
-    #   It doesn't hurt to have more data in the front.
-    #   Using less may hurt performance.
-    # More NOTEs:
-    # 1. We take min of date by (loc, year) so that all data points have
-    #   num_time_steps.
-    # 2. Then we look at max of (season_length + spinup_days - cutoff_days).
-    #    This is the maximum number of time steps after accounting for
-    #    spinup_days and lead time (cutoff_days).
-    # We take the min of 1 and 2 to meet both criteria.
-    num_time_steps = (
-        df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].count().min()
-    )
-    num_time_steps = min(df["season_length"].max() + spinup_days, num_time_steps)
-    # sort by date to make sure tail works correctly
-    df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-    df = (
-        df.groupby([KEY_LOC, KEY_YEAR], observed=True)
-        .tail(num_time_steps)
-        .reset_index()
-    )
 
     # NOTE: pandas adds "-" to date
     df["date"] = df["date"].astype(str)

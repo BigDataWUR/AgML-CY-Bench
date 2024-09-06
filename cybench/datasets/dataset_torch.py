@@ -14,7 +14,17 @@ class TorchDataset(torch.utils.data.Dataset):
         :param dataset:
         """
         self._dataset = dataset
+        # data can be in different resolution
+        # data can have different dates
+        # some dates in one location and year, different dates in another location and year
+        # data can have different number of dates and values
+        # TODO interpolation
+        # TODO aggregation to dekadal resolution
+        df_crop_cal = dataset._dfs_x["crop_calendar"]
+        max_season_length = df_crop_cal["season_length"].max()
+        # NOTE: end of season is 1231 (Dec 31)
 
+    
     def get_normalization_params(self, normalization="standard"):
         """
         Compute normalization parameters for input data.

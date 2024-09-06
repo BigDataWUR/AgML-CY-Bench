@@ -16,7 +16,7 @@ class Dataset:
         self,
         crop,
         data_target: pd.DataFrame = None,
-        data_inputs: list = None,
+        data_inputs: dict = None,
     ):
         """
         Dataset class for regional yield forecasting
@@ -30,7 +30,7 @@ class Dataset:
                                   Expected column name is stored in `config.KEY_TARGET`
                                 - The dataframe is indexed by (location id, year) using the correct naming
                                   Expected names are stored in `config.KEY_LOC`, `config.KEY_YEAR`, resp.
-        :param data_inputs: list of pandas.Dataframe objects each containing inputs
+        :param data_inputs: dict of data source to pandas.Dataframe objects each containing inputs
                             Dataframes should meet the following requirements:
                                 - inputs are assumed to be numeric
                                 - Columns should be named by their respective feature names
@@ -52,32 +52,18 @@ class Dataset:
         if data_target is None:
             data_target = self._empty_df_target()
         if data_inputs is None:
-            data_inputs = list()
+            data_inputs = {}
 
         # Validate input data
         assert self._validate_dfs(data_target, data_inputs)
 
         self._df_y = data_target
-        self._dfs_x = list(data_inputs)
+        self._dfs_x = data_inputs
 
         # Sort all data for faster lookups
-        # Also save min and max dates for time series
-        # NOTE: We need min and max dates to ensure
-        # the same number of time steps for some models, e.g. LSTM.
         self._df_y.sort_index(inplace=True)
-        self._min_date = None
-        self._max_date = None
-        for df in self._dfs_x:
-            df.sort_index(inplace=True)
-            if len(df.index.names) == 3:
-                df_min_date = min(df.index.get_level_values(2))
-                df_max_date = max(df.index.get_level_values(2))
-                if self._min_date is None:
-                    self._min_date = df_min_date
-                    self._max_date = df_max_date
-                else:
-                    self._min_date = min(self._min_date, df_min_date)
-                    self._max_date = max(self._max_date, df_max_date)
+        for x in self._dfs_x:
+            self._dfs_x[x].sort_index(inplace=True)
 
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
@@ -106,7 +92,7 @@ class Dataset:
         return Dataset(
             crop,
             df_y,
-            list(dfs_x.values()),
+            dfs_x,
         )
 
     @property
@@ -132,7 +118,7 @@ class Dataset:
         """
         Obtain a set containing all feature names
         """
-        return set.union(*[set(df.columns) for df in self._dfs_x])
+        return set.union(*[set(self._dfs_x[x].columns) for x in self._dfs_x])
 
     def targets(self) -> np.array:
         """
@@ -259,8 +245,6 @@ class Dataset:
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
                 dates = {key: df_loc.index.values for key in df_loc.columns}
 
-                dates = {key: df_loc.index.values for key in df_loc.columns}
-
                 data = {
                     **data_loc,
                     **data,
@@ -302,12 +286,12 @@ class Dataset:
         return df
 
     @staticmethod
-    def _validate_dfs(df_y: pd.DataFrame, dfs_x: list) -> bool:
+    def _validate_dfs(df_y: pd.DataFrame, dfs_x: dict) -> bool:
         """
         Helper function that implements some checks on whether the input dataframes are correctly formatted
 
         :param df_y: dataframe containing yield statistics
-        :param dfs_x: list of dataframes each containing feature data
+        :param dfs_x: dict of data source to dataframes each containing feature data
         :return: a bool indicating whether the test has passed
         """
 
@@ -318,7 +302,7 @@ class Dataset:
 
         # Make sure columns are named properly
         if len(dfs_x) > 0:
-            column_names = set.union(*[set(df.columns) for df in dfs_x])
+            column_names = set.union(*[set(dfs_x[x].columns) for x in dfs_x])
             assert KEY_LOC not in column_names
             assert KEY_YEAR not in column_names
             assert KEY_TARGET not in column_names
@@ -326,7 +310,7 @@ class Dataset:
 
         # Make sure there are no overlaps in feature names
         if len(dfs_x) > 1:
-            assert len(set.intersection(*[set(df.columns) for df in dfs_x])) == 0
+            assert len(set.intersection(*[set(dfs_x[x].columns) for x in dfs_x])) == 0
 
         return True
 
@@ -365,8 +349,8 @@ class Dataset:
         :param years_split: tuple e.g ([2012, 2014], [2013, 2015])
         :return: two data sets
         """
-        data_dfs1 = []
-        data_dfs2 = []
+        data_dfs1 = {}
+        data_dfs2 = {}
 
         # Check existing index.
         # TODO: There might be a better way to do this.
@@ -376,7 +360,8 @@ class Dataset:
             list(set(years_split[1]).intersection(index_years)),
         )
 
-        for src_df in self._dfs_x:
+        for x in self._dfs_x:
+            src_df = self._dfs_x[x]
             n_levels = len(src_df.index.names)
             if (n_levels) >= 2:
                 src_df_1, src_df_2 = self._split_df_on_index(
@@ -385,8 +370,8 @@ class Dataset:
             else:
                 src_df_1 = src_df.copy()
                 src_df_2 = src_df.copy()
-            data_dfs1.append(src_df_1)
-            data_dfs2.append(src_df_2)
+            data_dfs1[x] = src_df_1
+            data_dfs2[x] = src_df_2
 
         df_y_1, df_y_2 = self._split_df_on_index(self._df_y, years_split, level=1)
         return (

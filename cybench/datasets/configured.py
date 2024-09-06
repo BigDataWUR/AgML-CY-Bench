@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import pandas as pd
 
 
@@ -56,7 +57,6 @@ def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal):
     """
     df = _add_year(df)
     df = df[index_cols + select_cols]
-    df = df.dropna(axis=0)
     df = align_to_crop_season(df, df_crop_cal, SPINUP_DAYS)
 
     return df
@@ -101,6 +101,12 @@ def load_dfs(crop: str, country_code: str) -> tuple:
         ),
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
+    # Calculate season length. Handle seasons crossing calendar year.
+    df_crop_cal["season_length"] = np.where(
+        (df_crop_cal["eos"] > df_crop_cal["sos"]),
+        (df_crop_cal["eos"] - df_crop_cal["sos"]),
+        (365 - df_crop_cal["sos"]) + df_crop_cal["eos"],
+    )
 
     # Time series data
     # NOTE: All time series data have to be rotated by crop calendar.
@@ -151,8 +157,14 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_soil_moisture.set_index(ts_index_cols, inplace=True)
 
+    df_crop_cal = df_crop_cal[[KEY_LOC, "season_length"]]
+    # ignore leap year
+    df_crop_cal["eos_doy"] = 365
+    df_crop_cal["sos_doy"] = 365 - df_crop_cal["season_length"]
+
     dfs_x = {
         "soil": df_x_soil,
+        "crop_calendar": df_crop_cal,
         "meteo": df_x_meteo,
         RS_FPAR: df_x_fpar,
         RS_NDVI: df_x_ndvi,
@@ -191,6 +203,13 @@ def load_aligned_dfs(crop: str, country_code: str) -> tuple:
         index_col=[KEY_LOC],
     )
 
+    # crop calendar
+    df_x_crop_cal = pd.read_csv(
+        os.path.join(path_data_cn, "_".join(["crop_calendar", crop, country_code]) + ".csv"),
+        header=0,
+        index_col=[KEY_LOC],
+    )
+
     # Time series data
     ts_index_cols = [KEY_LOC, KEY_YEAR, "date"]
     # meteo
@@ -225,6 +244,7 @@ def load_aligned_dfs(crop: str, country_code: str) -> tuple:
 
     dfs_x = {
         "soil": df_x_soil,
+        "crop_calendar": df_x_crop_cal,
         "meteo": df_x_meteo,
         RS_FPAR: df_x_fpar,
         RS_NDVI: df_x_ndvi,
