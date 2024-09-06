@@ -864,7 +864,7 @@ def process_file(
             afi_thresh=0,
             thresh_type="Fixed",
         )
-        if (stats is not None) and (len(stats) > 0):
+        if (stats is not None) and (aggr in stats):
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 # convert Kelvin to Celsius
