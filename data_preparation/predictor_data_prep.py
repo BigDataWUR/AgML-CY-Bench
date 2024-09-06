@@ -865,11 +865,11 @@ def process_file(
             thresh_type="Fixed",
         )
         if (stats is not None) and (len(stats) > 0):
-            mean_var = stats["stats"][aggr]
+            aggr_val = stats["stats"][aggr]
             if is_time_series:
-                data_row = [crop, adm_id, date_str, mean_var]
+                data_row = [crop, adm_id, date_str, aggr_val]
             else:
-                data_row = [crop, adm_id, mean_var]
+                data_row = [crop, adm_id, aggr_val]
             df.loc[len(df.index)] = data_row
 
     return df
