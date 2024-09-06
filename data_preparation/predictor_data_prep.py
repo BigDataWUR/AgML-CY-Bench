@@ -174,6 +174,15 @@ ALL_INDICATORS = {
     },
 }
 
+# used to read .nc files
+AGERA5_VARIABLES = {
+    "tmax": "Temperature_Air_2m_Max_24h",
+    "tmin": "Temperature_Air_2m_Min_24h",
+    "tavg": "Temperature_Air_2m_Mean_24h",
+    "prec": "Precipitation_Flux",
+    "rad":  "Solar_Radiation_Flux",
+}
+
 
 """
 @author: Joint Research Centre - D5 Food Security - ASAP
@@ -1000,14 +1009,8 @@ def process_file(
     basename = os.path.basename(indicator_file)
     fname, ext = os.path.splitext(basename)
     if ext == ".nc":
-        import netCDF4 as nc
-
-        nc_ds = nc.Dataset(indicator_file)
-        var_list = list(nc_ds.variables.keys() - nc_ds.dimensions)
-        if len(var_list) > 1:
-            raise Exception("Multiple variabels found in file [%s]" % indicator_file)
         indicator_file = "netcdf:{indicator_file}:{variable}".format(
-            indicator_file=indicator_file, variable=var_list[0]
+            indicator_file=indicator_file, variable=AGERA5_VARIABLES[indicator_name]
         )
 
     if is_categorical:
