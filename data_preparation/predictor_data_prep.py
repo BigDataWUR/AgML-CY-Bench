@@ -871,7 +871,7 @@ def process_file(
                 if (indicator_name in ["tmin", "tmax", "tavg"]):
                     aggr_val = aggr_val - 273.15
                 elif (indicator_name == "ndvi"):
-                    aggr_val <- (aggr_val - 50)/200
+                    aggr_val = (aggr_val - 50)/200
 
                 data_row = [crop, adm_id, date_str, aggr_val]
             else:
