@@ -21,9 +21,10 @@ EU_COUNTRY_CODE_KEY = "CNTR_CODE"
 EU_ADMIN_LEVEL_KEY = "LEVL_CODE"
 
 # Country codes to admin level
-# Austria (AT), Belgium (BE), Bulgaria (BG), Czech Republic (CZ), Germany (DE), Denmark (DK), Estonia (EE), Greece (EL),
-# Spain (ES), Finland (FI), France (FR), Croatia (HR), Hungary (HU), Ireland (IE), Italy (IT), Lithuania (LT),
-# Latvia (LV), The Netherlands (NL), Poland (PL), Portugal (PT), Romania (RO), Sweden (SE), Slovakia (SK)
+# Austria (AT), Belgium (BE), Bulgaria (BG), Czech Republic (CZ), Germany (DE), Denmark (DK),
+# Estonia (EE), Greece (EL), Spain (ES), Finland (FI), France (FR), Croatia (HR), Hungary (HU),
+# Ireland (IE), Italy (IT), Lithuania (LT), Latvia (LV), The Netherlands (NL), Poland (PL),
+# Portugal (PT), Romania (RO), Sweden (SE), Slovakia (SK)
 EU_COUNTRIES = {
     "AT": 2,
     "BE": 2,
@@ -188,9 +189,6 @@ AGERA5_VARIABLES = {
 @author: Joint Research Centre - D5 Food Security - ASAP
 """
 SUPPRESS_ERRORS = True
-MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL = 2  # 1 - raise; 2 - warn; 3 - none
-NUM_THREADS = None
-RESULT_TIMEOUT = 600
 
 
 class UnableToExtractStats(Exception):
@@ -805,178 +803,6 @@ def geom_extract(
     return output
 
 
-def admin_units_extract(
-    unit_geometries,
-    indicator,
-    stats_out=("mean", "std", "min", "max", "sum", "counts"),
-    afi=None,
-    afi_thresh=0.0,
-    thresh_type="Fixed",
-    classification=None,
-):
-    """
-    @author: Joint Research Centre - D5 Food Security - ASAP
-    Runs a various statistics extraction on the indicators raster for a given set of units.
-    Uses multiprocessing pool on a unit level to run the extraction in parallel.
-    Multiprocessing can be avoided by setting the global parameter NUM_THREADS = 1
-    Units are defined as a pair of values (unit_identifier, geometry) so that the error handling can link the error with
-    a proper unit and also the output to be linked to the propper unit.
-    Global parameter MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL controls how to handle when the geom_extract function raises
-    a UnableToExtractStats error if it doesn't succeed to extract statistics for a geometry.
-        - 1 - raise - raises an error
-        - 2 - warn - Logs a warning
-        - 3 - none - silent
-    By default it issues a warning (2).
-
-    :param units: List of Unit identifiers + geometry pairs.
-        - unit identifier can be anything, since it's just forwarded to the output, e.g. if convenient it can be a whole
-          django model object to be used later on when saving statistics or just a simple item id
-        - geometry - GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
-
-    :param indicator: path to raster file or an already opened dataset (rasterio.DatasetReader) on which statistics are extracted
-    :param stats_out: definition of statistics to extract, the list is directly forwarded to function
-        asap_toolbox.util.raster.arr_stats.
-        Additionally accepts "counts" keyword that calculates following values:
-            - total - overall unit grid coverage
-            - valid_data - indicator without nodata
-            - valid_data_after_masking - indicator used for calculation
-            - weight_sum - total mask sum
-            - weight_sum_used - mask sum after masking of dataset nodata is applied
-    :param afi: path to Area Fraction index or weights - path to raster file or an already opened dataset (rasterio.DatasetReader)
-    :param classification: If defined, calculates the pixel/weight sums of each class defined.
-        Defined as JSON dictionary with borders as list of min, max value pairs and border behaviour definition:
-            {
-                borders: ((min1, max1), (min2, max2), ..., (min_n, max_n)),
-                border_include: [min|max|both|None]
-            }
-    :return: yields an output of unit identifier and result pairs.
-        Unit identifiers are forwarded to provide pairing to the input.
-         The result are defined as dict with extracted stats divided in 3 groups:
-            - stats - dict with calculated stats values (mean, std, min, max)
-            - counts - dict with calculated count values (total; valid_data; valid_data_after_masking; weight_sum; weight_sum_used)
-            - classification - dict with border definitions and values
-            {
-                stats: {mean: val, std: min: val, max: val, ...}
-                counts: {total: val, valid_data: valid_data_after_masking: val, weight_sum: val, ...}
-                classification: {
-                    borders: ((min1, max1), (min2, max2), ..., (min_n, max_n)),
-                    border_include: val,
-                    values: (val1, val2, val3,...)
-                }
-            }
-    """
-    if not NUM_THREADS or NUM_THREADS > 1:
-        log.debug("Running the pool")
-        with Pool(
-            processes=NUM_THREADS, initializer=pool_init, initargs=[indicator, afi]
-        ) as pool:
-            pool_result = pool.starmap_async(
-                pool_wrapper_func,
-                zip(
-                    unit_geometries.items(),
-                    repeat(geom_extract),
-                    repeat(None),
-                    repeat(stats_out),
-                    repeat(None),
-                    repeat(afi_thresh),
-                    repeat(thresh_type),
-                    repeat(classification),
-                ),
-            )
-            for output in pool_result.get(timeout=RESULT_TIMEOUT):
-                yield output
-    else:  # loop call
-        log.debug("Running the loop")
-        # force an exception if unable to extract geometry
-        global SUPPRESS_ERRORS
-        SUPPRESS_ERRORS = False
-        # prepare and open datasets
-        _indicator = (
-            indicator
-            if isinstance(indicator, rasterio.DatasetReader)
-            else rasterio.open(indicator)
-        )
-        _afi = None
-        if afi:
-            _afi = (
-                afi if isinstance(afi, rasterio.DatasetReader) else rasterio.open(afi)
-            )
-        # get stats
-        for adm_id, geometry in unit_geometries.items():
-            try:
-                unit_output = geom_extract(
-                    geometry,
-                    _indicator,
-                    stats_out=stats_out,
-                    afi=_afi,
-                    afi_thresh=afi_thresh,
-                    thresh_type=thresh_type,
-                    classification=classification,
-                )
-            except UnableToExtractStats as e:
-                e_msg = "Unable to extract statistics for unit: %s - [%s]" % (adm_id, e)
-                unit_output = None
-                if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 1:
-                    raise Exception(e_msg)
-                if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 2:
-                    log.warning(e_msg)
-            yield adm_id, unit_output
-
-
-def pool_wrapper_func(unit, callback, *args, **kwargs):
-    """
-    @author: Joint Research Centre - D5 Food Security - ASAP
-    A wrapper function for executing stats extraction using multiprocessing on an admin unit level.
-
-    :param unit: Pair of Unit identifier + geometry
-        - unit identifier can be anything, since it's just forwarded to the output, e.g. if convenient it can be a whole
-          django model object to be used later on when saving statistics or just a simple item id
-        - geometry - GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
-    :param callback: A callback function to be called on the geometry.
-    :param args: forwarded to the callback function
-    :param kwargs: forwarded to the callback function
-    :return: returns an output of unit identifier and result pairs.
-        Handles the notification and unit info if the callback fails.
-    """
-    unit_id, unit_geom = unit
-    # collect global vars and replace them for the callback call
-    global _indicator, _afi
-    args = list(args)
-    args[0] = _indicator
-    args[2] = _afi
-    try:
-        output = callback(unit_geom, *args, **kwargs)
-    except UnableToExtractStats as e:
-        e_msg = "Unable to extract statistics for unit: %s - [%s]" % (unit_id, e)
-        output = None
-        if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 1:
-            raise Exception(e_msg)
-        if MULTIPROC_FAILED_EXTRACTION_MSG_LEVEL == 2:
-            log.warning(e_msg)
-
-    return unit_id, output
-
-
-def pool_init(indicator, afi):
-    """
-    @author: Joint Research Centre - D5 Food Security - ASAP
-    Multiprocessing pool initialisation, opens the files for each pool process instance.
-    Stores all the exchangeable variables in global vars to be use in each process in the pool.
-
-    :param indicator: indicator path
-    :param afi: afi path
-    :return: sets the following global variables to be used in each process:
-        _indicator - indicator dataset
-        _afi - AFI mask dataset
-    """
-    global SUPPRESS_ERRORS, _indicator, _afi
-    SUPPRESS_ERRORS = False
-    _indicator = rasterio.open(indicator)
-    _afi = None
-    if afi:
-        _afi = rasterio.open(afi)
-
-
 def process_file(
     indicator_file,
     crop,
@@ -1028,24 +854,22 @@ def process_file(
     ############################################
     # get predictor value for each admin region
     ############################################
-    result = admin_units_extract(
-        geometries,
-        indicator_file,
-        stats_out=(aggr,),
-        afi=crop_mask_path,
-        afi_thresh=0.0,
-        thresh_type="Fixed",
-    )
-
     df = pd.DataFrame(columns=col_names)
-    for adm_id, stats in result:
+    for adm_id, geometry in geometries.items():
+        stats = geom_extract(
+            geometry,
+            indicator_file,
+            stats_out=(aggr,),
+            afi=crop_mask_path,
+            afi_thresh=0,
+            thresh_type="Fixed",
+        )
         if (stats is not None) and (len(stats) > 0):
-            aggr_val = stats["stats"][aggr]
+            mean_var = stats["stats"][aggr]
             if is_time_series:
-                data_row = [crop, adm_id, date_str, aggr_val]
+                data_row = [crop, adm_id, date_str, mean_var]
             else:
-                data_row = [crop, adm_id, aggr_val]
-
+                data_row = [crop, adm_id, mean_var]
             df.loc[len(df.index)] = data_row
 
     return df
@@ -1200,18 +1024,25 @@ def process_indicators(crop, region, sel_indicators):
 
                 print("There are " + str(len(files)) + " files!")
                 start_time = time.time()
-                cpus = multiprocessing.cpu_count()
 
                 files = sorted([os.path.join(indicator_dir, f) for f in files])
-                result_yr = pd.DataFrame()
-                for f in files:
-                    df = process_file(
-                        f, crop, indicator, geometries, is_time_series, is_categorical
+                with multiprocessing.Pool(processes=None) as pool:
+                    # NOTE: multiprocessing using a target function with multiple arguments.
+                    # Based on the answer to
+                    # https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
+                    dfs = pool.starmap(
+                        process_file,
+                        zip(
+                            files,
+                            repeat(crop),
+                            repeat(indicator),
+                            repeat(geometries),
+                            repeat(is_time_series),
+                            repeat(is_categorical),
+                        ),
                     )
-
-                    result_yr = pd.concat([result_yr, df], axis=0)
-
-                result_final = pd.concat([result_final, result_yr], axis=0)
+                    result_yr = pd.concat(dfs, axis=0)
+                    result_final = pd.concat([result_final, result_yr], axis=0)
 
             out_csv = "_".join([indicator, crop, region]) + ".csv"
             result_final.to_csv(os.path.join(output_path, out_csv), index=False)
