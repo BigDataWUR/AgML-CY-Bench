@@ -4,11 +4,10 @@ import rasterio
 import rasterio.features
 import pandas as pd
 import geopandas as gpd
+import multiprocessing as mp
 from itertools import repeat
-from multiprocessing import Pool
 import logging
 import argparse
-import multiprocessing
 import warnings
 
 warnings.filterwarnings("ignore")
@@ -1032,7 +1031,7 @@ def process_indicators(crop, region, sel_indicators):
                 start_time = time.time()
 
                 files = sorted([os.path.join(indicator_dir, f) for f in files])
-                with multiprocessing.Pool(processes=None) as pool:
+                with mp.Pool(processes=None) as pool:
                     # NOTE: multiprocessing using a target function with multiple arguments.
                     # Based on the answer to
                     # https://stackoverflow.com/questions/5442910/how-to-use-multiprocessing-pool-map-with-multiple-arguments
