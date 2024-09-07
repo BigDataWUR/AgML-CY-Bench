@@ -5,7 +5,6 @@ import pandas as pd
 
 from cybench.config import (
     PATH_DATA_DIR,
-    PATH_ALIGNED_DATA_DIR,
     DATASETS,
     KEY_LOC,
     KEY_YEAR,
@@ -16,12 +15,9 @@ from cybench.config import (
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
     CROP_CALENDAR_ENTRIES,
-    FORECAST_LEAD_TIME,
-    SPINUP_DAYS,
 )
 
 from cybench.datasets.alignment import (
-    align_to_crop_season,
     trim_to_lead_time,
     align_inputs_and_labels,
 )
@@ -57,7 +53,7 @@ def _preprocess_time_series_data(df, index_cols, select_cols, df_crop_cal):
     """
     df = _add_year(df)
     df = df[index_cols + select_cols]
-    df = align_to_crop_season(df, df_crop_cal, SPINUP_DAYS)
+    df = trim_to_lead_time(df, df_crop_cal)
 
     return df
 
@@ -157,10 +153,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
     df_x_soil_moisture.set_index(ts_index_cols, inplace=True)
 
-    df_crop_cal = df_crop_cal[[KEY_LOC, "season_length"]]
-    # ignore leap year
-    df_crop_cal["eos_doy"] = 365
-    df_crop_cal["sos_doy"] = 365 - df_crop_cal["season_length"]
+    df_crop_cal.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {
         "soil": df_x_soil,
@@ -175,87 +168,8 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     return df_y, dfs_x
 
 
-def load_aligned_dfs(crop: str, country_code: str) -> tuple:
-    """Load aligned data (the output of `load_dfs`).
-    NOTE: Time series data is expected to be aligned to crop season.
-    Label data is expected to contain indices present in all input data.
-    All data have been saved with expected indices.
-
-    Args:
-        crop (str): crop name
-        country_code (str): 2-letter country code
-
-    Returns:
-        a tuple (target DataFrame, dict of input DataFrames)
-    """
-    path_data_cn = os.path.join(PATH_ALIGNED_DATA_DIR, crop, country_code)
-    # targets
-    df_y = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["yield", crop, country_code]) + ".csv"),
-        header=0,
-        index_col=[KEY_LOC, KEY_YEAR],
-    )
-
-    # soil
-    df_x_soil = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["soil", crop, country_code]) + ".csv"),
-        header=0,
-        index_col=[KEY_LOC],
-    )
-
-    # crop calendar
-    df_x_crop_cal = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["crop_calendar", crop, country_code]) + ".csv"),
-        header=0,
-        index_col=[KEY_LOC],
-    )
-
-    # Time series data
-    ts_index_cols = [KEY_LOC, KEY_YEAR, "date"]
-    # meteo
-    df_x_meteo = pd.read_csv(
-        os.path.join(path_data_cn, "_".join(["meteo", crop, country_code]) + ".csv"),
-        header=0,
-        index_col=ts_index_cols,
-    )
-
-    # fpar
-    df_x_fpar = pd.read_csv(
-        os.path.join(path_data_cn, "_".join([RS_FPAR, crop, country_code]) + ".csv"),
-        header=0,
-        index_col=ts_index_cols,
-    )
-
-    # ndvi
-    df_x_ndvi = pd.read_csv(
-        os.path.join(path_data_cn, "_".join([RS_NDVI, crop, country_code]) + ".csv"),
-        header=0,
-        index_col=ts_index_cols,
-    )
-
-    # soil moisture
-    df_x_soil_moisture = pd.read_csv(
-        os.path.join(
-            path_data_cn, "_".join(["soil_moisture", crop, country_code]) + ".csv"
-        ),
-        header=0,
-        index_col=ts_index_cols,
-    )
-
-    dfs_x = {
-        "soil": df_x_soil,
-        "crop_calendar": df_x_crop_cal,
-        "meteo": df_x_meteo,
-        RS_FPAR: df_x_fpar,
-        RS_NDVI: df_x_ndvi,
-        "soil_moisture": df_x_soil_moisture,
-    }
-
-    return df_y, dfs_x
-
-
 def load_dfs_crop(
-    crop: str, countries: list = None, lead_time: str = FORECAST_LEAD_TIME
+    crop: str, countries: list = None
 ) -> dict:
     """
     Load data for crop and one or more countries. If `countries` is None,
@@ -264,7 +178,6 @@ def load_dfs_crop(
     Args:
         crop (str): crop name
         countries (list): list of 2-letter country codes
-        lead_time (str): lead time option
 
     Returns:
         a tuple (target DataFrame, dict of input DataFrames)
@@ -277,26 +190,10 @@ def load_dfs_crop(
     df_y = pd.DataFrame()
     dfs_x = {}
     for cn in countries:
-        # load aligned data if exists
         try:
-            df_y_cn, dfs_x_cn = load_aligned_dfs(crop, cn)
+            df_y_cn, dfs_x_cn = load_dfs(crop, cn)
         except FileNotFoundError:
-            try:
-                df_y_cn, dfs_x_cn = load_dfs(crop, cn)
-                # save aligned data
-                cn_data_dir = os.path.join(PATH_ALIGNED_DATA_DIR, crop, cn)
-                os.makedirs(cn_data_dir, exist_ok=True)
-                df_y_cn.to_csv(
-                    os.path.join(
-                        cn_data_dir, "_".join([KEY_TARGET, crop, cn]) + ".csv"
-                    ),
-                )
-                for x, df_x in dfs_x_cn.items():
-                    df_x.to_csv(
-                        os.path.join(cn_data_dir, "_".join([x, crop, cn]) + ".csv"),
-                    )
-            except FileNotFoundError:
-                continue
+            continue
 
         df_y = pd.concat([df_y, df_y_cn], axis=0)
         if len(dfs_x) == 0:
@@ -304,11 +201,5 @@ def load_dfs_crop(
         else:
             for x, df_x_cn in dfs_x_cn.items():
                 dfs_x[x] = pd.concat([dfs_x[x], df_x_cn], axis=0)
-
-    # Trim to lead time and ensure same number of time steps
-    # for time series data.
-    for x in dfs_x:
-        if "date" in dfs_x[x].index.names:
-            dfs_x[x] = trim_to_lead_time(dfs_x[x], lead_time, SPINUP_DAYS)
 
     return df_y, dfs_x
