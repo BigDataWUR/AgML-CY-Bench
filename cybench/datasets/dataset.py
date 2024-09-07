@@ -197,7 +197,8 @@ class Dataset:
             KEY_DATES: dict(),
         }
         # For all feature dataframes
-        for df in self._dfs_x:
+        for x in self._dfs_x:
+            df = self._dfs_x[x]
             # Check in which category the dataframe fits:
             #   (1) static data -- indexed only by location
             #   (2) yearly data -- indexed by (location, year)
