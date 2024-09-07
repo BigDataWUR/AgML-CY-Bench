@@ -129,14 +129,6 @@ class Dataset:
     def indices(self) -> list:
         return self._df_y.index.values
 
-    @property
-    def min_date(self) -> str:
-        return self._min_date
-
-    @property
-    def max_date(self) -> str:
-        return self._max_date
-
     def __getitem__(self, index) -> dict:
         """
         Get a single data point in the dataset

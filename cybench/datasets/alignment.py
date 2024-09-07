@@ -47,8 +47,8 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
     select_cols = list(df.columns)
 
     # Merge with crop calendar
-    crop_cal_cols = [KEY_LOC, "sos", "eos", "season_length"]
-    crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int, "season_length": int})
+    crop_cal_cols = [KEY_LOC, "sos", "eos"]
+    crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
@@ -71,7 +71,13 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
     # Validate eos_date: eos_date - date should not be more than 366 days
     assert df[(df["eos_date"] - df["date"]).dt.days > 366].empty
 
-    # Keep data for spinup days before the start of season.
+    # Calculate season length. Handle seasons crossing calendar year.
+    df["season_length"] = np.where(
+        (df["eos"] > df["sos"]),
+        (df["eos"] - df["sos"]),
+        (365 - df["sos"]) + df["eos"],
+    )
+    # Total time series length including spinup days before the start of season.
     df["ts_length"] = np.where(
         df["season_length"] + SPINUP_DAYS <= 365,
         df["season_length"] + SPINUP_DAYS,

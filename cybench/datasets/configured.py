@@ -97,12 +97,6 @@ def load_dfs(crop: str, country_code: str) -> tuple:
         ),
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
-    # Calculate season length. Handle seasons crossing calendar year.
-    df_crop_cal["season_length"] = np.where(
-        (df_crop_cal["eos"] > df_crop_cal["sos"]),
-        (df_crop_cal["eos"] - df_crop_cal["sos"]),
-        (365 - df_crop_cal["sos"]) + df_crop_cal["eos"],
-    )
 
     # Time series data
     # NOTE: All time series data have to be rotated by crop calendar.

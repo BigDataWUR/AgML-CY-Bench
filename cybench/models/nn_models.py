@@ -10,7 +10,6 @@ from tsai.models.InceptionTime import InceptionTime
 
 from cybench.datasets.dataset_torch import TorchDataset
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.transforms import transform_ts_inputs_to_dekadal
 
 from cybench.models.model import BaseModel
 
@@ -244,8 +243,6 @@ class BaseNNModel(BaseModel, nn.Module):
         assert epochs > 0
 
         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
-        self._min_date = train_dataset.min_date
-        self._max_date = train_dataset.max_date
 
         train_dataset = TorchDataset(train_dataset)
         val_dataset = TorchDataset(val_dataset)
@@ -346,8 +343,6 @@ class BaseNNModel(BaseModel, nn.Module):
           A list of training losses (one value per epoch).
         """
         self.to(device)
-        self._min_date = dataset.min_date
-        self._max_date = dataset.max_date
 
         train_dataset = TorchDataset(dataset)
         train_loader = torch.utils.data.DataLoader(
@@ -560,9 +555,6 @@ class BaselineLSTM(BaseNNModel):
         hidden_size=64,
         num_layers=1,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
@@ -575,7 +567,6 @@ class BaselineLSTM(BaseNNModel):
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -623,9 +614,6 @@ class BaselineLSTM(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
@@ -641,7 +629,6 @@ class BaselineInceptionTime(BaseNNModel):
          num_layers (int): The number of InceptionBlocks. Defaults to 6.
          num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
          output_size (int): The number of output classes. Defaults to 1.
-         transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
          **kwargs: Additional keyword arguments passed to the base class.
     """
 
@@ -651,9 +638,6 @@ class BaselineInceptionTime(BaseNNModel):
         num_layers=6,
         num_features=32,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
@@ -669,7 +653,6 @@ class BaselineInceptionTime(BaseNNModel):
             c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -717,9 +700,6 @@ class BaselineInceptionTime(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts = x_ts.permute(0, 2, 1)
         x_ts = self._timeseries(x_ts)

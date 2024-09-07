@@ -13,6 +13,7 @@ from cybench.config import (
     RS_FPAR,
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
+    CROP_CALENDAR_ENTRIES,
 )
 
 
@@ -23,7 +24,7 @@ def test_dataset_item():
     assert isinstance(dataset[0], dict)
     expected_indices = [KEY_LOC, KEY_YEAR, KEY_DATES]
     expected_data = SOIL_PROPERTIES + METEO_INDICATORS + [RS_FPAR, RS_NDVI]
-    expected_data += SOIL_MOISTURE_INDICATORS + [KEY_TARGET]
+    expected_data += SOIL_MOISTURE_INDICATORS + CROP_CALENDAR_ENTRIES + [KEY_TARGET]
     assert len(dataset[0]) == len(expected_indices + expected_data)
     assert set(dataset[0].keys()) == set(expected_indices + expected_data)
 

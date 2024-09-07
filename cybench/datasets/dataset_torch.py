@@ -1,5 +1,6 @@
 import torch
 import torch.utils.data
+import pandas as pd
 
 from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
 
@@ -14,12 +15,9 @@ class TorchDataset(torch.utils.data.Dataset):
         :param dataset:
         """
         self._dataset = dataset
-        # data can be in different resolution
-        # data can have different dates
-        # some dates in one location and year, different dates in another location and year
-        # data can have different number of dates and values
-        # TODO interpolation
-        # TODO aggregation to dekadal resolution
+        # NOTE: Crop calendar dataframe comes with the original sos and eos.
+        # They are days of the year (from 1 to 366). Because they are averages,
+        # the numbers may be floats. Convert to ints.
         df_crop_cal = dataset._dfs_x["crop_calendar"]
 
         # NOTE: Code to compute sos_date and eos_date.
@@ -56,11 +54,17 @@ class TorchDataset(torch.utils.data.Dataset):
 
         # # Validate eos_date: eos_date - date should not be more than 366 days
         # assert df_ts[(df_ts["eos_date"] - df_ts["date"]).dt.days > 366].empty
-    
-        max_season_length = df_crop_cal["season_length"].max()
-        # NOTE: end of season is 1231 (Dec 31)
 
-    
+        # NOTE:
+        # data can be in different resolution
+        # data can have different dates
+        # some dates in one location and year, different dates in another location and year
+        # data can have different number of dates and values
+        # TODO interpolation
+        # TODO aggregation to dekadal resolution
+        # TODO Ensure number of time steps is the same for all locations, years and
+        # time series data sources.
+
     def get_normalization_params(self, normalization="standard"):
         """
         Compute normalization parameters for input data.

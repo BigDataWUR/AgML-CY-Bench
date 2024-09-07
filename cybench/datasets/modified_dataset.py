@@ -24,9 +24,6 @@ class ModifiedTargetsDataset(Dataset):
         target_indices = self._df_y.index.values
         assert len(set(input_indices) - set(target_indices)) == 0
 
-        self._min_date = dataset.min_date
-        self._max_date = dataset.max_date
-
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
         self._allow_incomplete = False
