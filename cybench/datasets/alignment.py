@@ -50,28 +50,12 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
     crop_cal_cols = [KEY_LOC, "sos", "eos", "season_length"]
     crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int, "season_length": int})
     df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
-    df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
     # The next new year starts right after this year's harvest.
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     # df["new_year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
     df["year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
-
-    # Fix sos_date for data that are in a different year than sos_date.
-    # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
-    # We want the data from 20020101 to 20020615 to have the sos_date of
-    # 20011124.
-    df["sos_date"] = np.where(
-        (df["date"] <= df["eos_date"]) & (df["sos"] > df["eos"]),
-        # select sos_date for the previous year because season started
-        # in the previous year.
-        df["sos_date"] + pd.offsets.DateOffset(years=-1),
-        df["sos_date"],
-    )
-
-    # Validate sos_date: date - sos_date should not be more than 366 days
-    assert df[(df["date"] - df["sos_date"]).dt.days > 366].empty
 
     # Fix eos_date for data that are after the current season's eos_date.
     # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
@@ -105,6 +89,8 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
         "max"
     )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
+    # Keep spinup_days before sos, i.e. keep season_length + spinup_days
+    df = df[(df["eos_date"] - df["date"]).dt.days >= df["ts_length"]]
 
     # Trim to lead time
     df = _add_cutoff_days(df, FORECAST_LEAD_TIME)

@@ -21,6 +21,42 @@ class TorchDataset(torch.utils.data.Dataset):
         # TODO interpolation
         # TODO aggregation to dekadal resolution
         df_crop_cal = dataset._dfs_x["crop_calendar"]
+
+        # NOTE: Code to compute sos_date and eos_date.
+        # df_ts = df_ts.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
+        # df_ts["sos_date"] = pd.to_datetime(df_ts[KEY_YEAR] * 1000 + df_ts["sos"], format="%Y%j")
+        # df_ts["eos_date"] = pd.to_datetime(df_ts[KEY_YEAR] * 1000 + df_ts["eos"], format="%Y%j")
+        # 
+        # Fix sos_date for data that are in a different year than sos_date.
+        # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
+        # We want the data from 20020101 to 20020615 to have the sos_date of
+        # 20011124.
+        # df_ts["sos_date"] = np.where(
+        #     (df_ts["date"] <= df_ts["eos_date"]) & (df_ts["sos"] > df_ts["eos"]),
+        #     # select sos_date for the previous year because season started
+        #     # in the previous year.
+        #     df_ts["sos_date"] + pd.offsets.DateOffset(years=-1),
+        #     df_ts["sos_date"],
+        # )
+
+        # # Validate sos_date: date - sos_date should not be more than 366 days
+        # assert df_ts[(df_ts["date"] - df_ts["sos_date"]).dt.days > 366].empty
+
+        # # Fix eos_date for data that are after the current season's eos_date.
+        # # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
+        # # the season that ends in 2002. We change the eos_date for those data to be
+        # # next year's eos_date.
+        # # NOTE: This works only for static crop calendar.
+        # df_ts["eos_date"] = np.where(
+        #     (df_ts["date"] > df_ts["eos_date"]),
+        #     # select eos_date for the next year
+        #     df_ts["eos_date"] + pd.offsets.DateOffset(years=1),
+        #     df_ts["eos_date"],
+        # )
+
+        # # Validate eos_date: eos_date - date should not be more than 366 days
+        # assert df_ts[(df_ts["eos_date"] - df_ts["date"]).dt.days > 366].empty
+    
         max_season_length = df_crop_cal["season_length"].max()
         # NOTE: end of season is 1231 (Dec 31)
 
