@@ -724,6 +724,7 @@ def geom_extract(
                 afi_arr[
                     ~np.isnan(afi_arr) & (afi_arr <= afi_thresh) & ~afi_arr.mask
                 ] = 0
+                afi_arr[(afi_arr < 0) | (afi_arr > 100)] = 0
 
             elif thresh_type == "Percentile":
                 m_afi_arr = afi_arr[~np.isnan(afi_arr) & (afi_arr > 0) & ~afi_arr.mask]
