@@ -696,7 +696,7 @@ def geom_extract(
     )
     # fpar values must be between 0 and 100
     # See https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_fpar_500m/README.md
-    if (indicator_name == "fpar"):
+    if indicator_name == "fpar":
         indicator_arr[(indicator_arr < 0) | (indicator_arr > 100)] = 0
     # convert Kelvin to Celsius
     # see https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_AgERA5/README.md
@@ -882,7 +882,7 @@ def process_file(
             afi_thresh=0,
             thresh_type="Fixed",
         )
-        if (stats is not None) and (aggr in stats["stats"]):
+        if (stats is not None) and ("stats" in stats) and (aggr in stats["stats"]):
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 data_row = [crop, adm_id, date_str, aggr_val]
