@@ -602,6 +602,7 @@ def apply_nodata(arr, nodata):
 def geom_extract(
     geometry,
     indicator,
+    indicator_name,
     stats_out=("mean", "std", "min", "max", "sum", "counts", "mode"),
     afi=None,
     afi_thresh=None,
@@ -625,6 +626,7 @@ def geom_extract(
     :param geometry: GeoJSON-like feature (implements __geo_interface__) – feature collection, or geometry.
     :param indicator: path to raster file or an already opened dataset (rasterio.DatasetReader)
         on which statistics are extracted
+    :param indicator_name: name of indicator
     :param stats_out: definition of statistics to extract, the list is directly forwarded to function
         asap_toolbox.util.raster.arr_stats.
         Additionally, accepts "counts" keyword that calculates following values:
@@ -692,6 +694,19 @@ def geom_extract(
         use_pixels="CENTER",
         out_shape=read_shape,
     )
+    # fpar values must be between 0 and 100
+    # See https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_fpar_500m/README.md
+    if (indicator_name == "fpar"):
+        indicator_arr[(indicator_arr < 0) | (indicator_arr > 100)] = 0
+    # convert Kelvin to Celsius
+    # see https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_AgERA5/README.md
+    elif indicator_name in ["tmin", "tmax", "tavg"]:
+        indicator_arr = indicator_arr - 273.15
+    # rescale ndvi
+    # https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_MOD09CMG/README.md
+    elif indicator_name == "ndvi":
+        indicator_arr = (indicator_arr - 50) / 200
+
     geom_mask = indicator_arr.mask
     # skip extraction if no pixels caught by geom
     if np.all(geom_mask):
@@ -721,6 +736,7 @@ def geom_extract(
 
         if afi_thresh is not None:
             # afi must be between 0 and 100
+            # https://github.com/BigDataWUR/AgML-CY-Bench/blob/main/data_preparation/global_crop_AFIs_ESA_WC/README.md
             afi_arr[(afi_arr < 0) | (afi_arr > 100)] = 0
             if thresh_type == "Fixed":
                 afi_arr[
@@ -860,6 +876,7 @@ def process_file(
         stats = geom_extract(
             geometry,
             indicator_file,
+            indicator_name,
             stats_out=(aggr,),
             afi=crop_mask_path,
             afi_thresh=0,
@@ -868,12 +885,6 @@ def process_file(
         if (stats is not None) and (aggr in stats):
             aggr_val = stats["stats"][aggr]
             if is_time_series:
-                # convert Kelvin to Celsius
-                if indicator_name in ["tmin", "tmax", "tavg"]:
-                    aggr_val = aggr_val - 273.15
-                elif indicator_name == "ndvi":
-                    aggr_val = (aggr_val - 50) / 200
-
                 data_row = [crop, adm_id, date_str, aggr_val]
             else:
                 data_row = [crop, adm_id, aggr_val]
