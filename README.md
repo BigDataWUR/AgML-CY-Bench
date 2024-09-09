@@ -178,7 +178,7 @@ dataset = Dataset.load("maize_US")
 production / harvest_area)
 
 ### Leaderboard
-See [baseline results]([results_baselines/tables/])
+See [baseline results](results_baselines/tables/)
 
 ### How to cite
 
