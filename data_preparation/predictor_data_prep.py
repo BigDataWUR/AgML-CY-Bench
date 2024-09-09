@@ -882,7 +882,7 @@ def process_file(
             afi_thresh=0,
             thresh_type="Fixed",
         )
-        if (stats is not None) and (aggr in stats):
+        if (stats is not None) and (aggr in stats["stats"]):
             aggr_val = stats["stats"][aggr]
             if is_time_series:
                 data_row = [crop, adm_id, date_str, aggr_val]
@@ -942,8 +942,8 @@ def get_shapes(region="US"):
             os.path.join(AGML_ROOT, "shapefiles", "shapefiles_EU.zip")
         )
         sel_shapes = geo_df[
-            (geo_df[EU_COUNTRY_CODE_KEY] == cn)
-            & (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[cn])
+            (geo_df[EU_COUNTRY_CODE_KEY] == region)
+            & (geo_df[EU_ADMIN_LEVEL_KEY] == EU_COUNTRIES[region])
         ]
         sel_shapes["adm_id"] = sel_shapes["NUTS_ID"]
 
