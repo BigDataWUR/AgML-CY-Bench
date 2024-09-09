@@ -163,7 +163,7 @@ dataset = Dataset.load("maize_US")
 | [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md)                                |
 | [Mali](data_preparation/crop_statistics_ML/README.md) (1)                 | Use Africa shapefiles from FEWSNET                                   | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md)                        |
 | [Argentina](data_preparation/crop_statistics_AR/README.md)                | [Argentina](data_preparation/shapefiles_AR/README.md)                | Soil moisture: [GLDAS](data_preparation/global_soil_moisture_GLDAS/README.md)              |
-| [Australia](data_preparation/crop_statistics_AU/README.md)                | [Australia](data_preparation/shapefiles_AU/README.md)                | Evapotranspiration: [FAO](data_preparation/global_ETO_FAO/README.md)                       |
+| [Australia](data_preparation/crop_statistics_AU/README.md)                | [Australia](data_preparation/shapefiles_AU/README.md)                | Evapotranspiration: [FAO](data_preparation/global_ET0_FAO/README.md)                       |
 | [Brazil](data_preparation/crop_statistics_BR/README.md)                   | [Brazil](data_preparation/shapefiles_BR/README.md)                   | FAPAR: [JRC FAPAR](data_preparation/global_fpar_500m/README.md)                            |
 | [China](data_preparation/crop_statistics_CN/README.md)                    | [China](data_preparation/shapefiles_CN/README.md)                    | Crop calendars: [ESA WorldCereal](data_preparation/global_crop_calendars_ESA_WC/README.md) |
 | [EU](data_preparation/crop_statistics_EU/README.md)                       | [EU](data_preparation/shapefiles_EU/README.md)                       | NDVI: [MOD09CMG](data_preparation/global_ndvi_MOD09CMG/README.md)                               |
@@ -178,31 +178,7 @@ dataset = Dataset.load("maize_US")
 production / harvest_area)
 
 ### Leaderboard
-
-#### Maize
-
-| Country | Lead time | Naive (1) NRMSE | Trend (2) NRMSE | Ridge (3) NRMSE | RF (4) NRMSE | LSTM (5) NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
-|----|-------------------|--------|--------|--------|--------|--------|---------|---------|---------|---------|---------|
-| AO | middle-of-season  | 41.365 | 37.143 | 47.915 | 44.090 | 45.619 | 144.500 | 141.337 | 178.321 | 189.434 | 281.368 |
-| AO | quarter-of-season | 41.365 | 37.143 | 63.806 | 43.094 | 43.805 | 144.500 | 141.337 | 151.382 | 187.496 | 248.149 |
-| ES | middle-of-season  | 15.996 | 12.021 | 27.674 | 20.263 | 27.692 | 15.058  | 11.374  | 34.200  | 19.968  | 32.791 |
-| ES | quarter-of-season | 15.996 | 12.021 | 24.505 | 18.779 | 23.021 | 15.058  | 11.374  | 28.716  | 18.862  | 26.063 |
-| NL | middle-of-season  | 15.315 | 15.510 | 18.116 | 16.361 | 50.878 | 13.888  | 14.045  | 16.023  | 14.865  | 47.849 |
-| NL | quarter-of-season | 15.315 | 15.510 | 16.112 | 15.640 | 49.786 | 13.888  | 14.045  | 14.619  | 14.407  | 46.681 |
-
-#### Wheat
-
-| Country | Lead time  | Naive NRMSE | Trend NRMSE | Ridge NRMSE | RF NRMSE | LSTM NRMSE | Naice MAPE | Trend MAPE | Ridge MAPE | RF MAPE | LSTM MAPE |
-|----|-------------------|--------|--------|--------|--------|-|--------|---------|---------|----------|--|
-| NL | middle-of-season  | 7.556 | 7.796 | 56.841 | 8.529 | 18.261 | 6.686  | 6.935  | 56.102  | 7.591  | 16.190 |
-| NL | quarter-of-season | 7.556 | 7.796 | 66.091 | 8.705 | 18.916 | 6.686  | 6.935  | 65.531  | 7.813  | 16.670 |
-
-NOTES:
-1. Naive: Predicts average yield per admin region from the training set. If admin region is not present in the training set, it predicts the global average.
-2. Trend: Linear Trend model fits a line through the training labels. The test year can be in the middle of training years or on either side of them.
-3. Ridge: Ridge estimator from scikit-learn with feature selection (keeping 20, 25 or 30 features using Lasso as a selector) and optimization of `alpha` (or weight decay) hyperparameter.
-4. RF: RandomForestRegressor from scikit-learn without feature selection but optimization of one hyperparameter (`n_estimators` selected from 50, 100, 500).
-5. LSTM: One LSTM layer for time series inputs followed by concatenation with static inputs fed to a linear prediction layer. Number of epochs trained is 50.
+See [baseline results](results_baselines/tables/)
 
 ### How to cite
 
