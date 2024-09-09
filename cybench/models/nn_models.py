@@ -279,9 +279,9 @@ class BaseNNModel(BaseModel, nn.Module):
         val_losses = []
 
         # Training loop
+        pbar = tqdm(train_loader, desc=f"{self.__class__.__name__}")
         for epoch in range(epochs):
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(
                 pbar,
                 device,
@@ -290,7 +290,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 loss_kwargs=loss_kwargs,
                 scheduler=scheduler,
             )
-            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
             if val_loader is not None and (
@@ -298,12 +297,8 @@ class BaseNNModel(BaseModel, nn.Module):
             ):
                 with torch.no_grad():
                     self.eval()
-                    tqdm_val = tqdm(
-                        val_loader, desc=f"Validation Epoch {epoch + 1}/{epochs}"
-                    )
-
                     losses = []
-                    for batch in tqdm_val:
+                    for batch in val_loader:
                         targets = batch[KEY_TARGET]
                         batch_preds = self._forward_pass(batch, device)
                         loss = loss_fn(batch_preds, targets, **loss_kwargs)
@@ -374,9 +369,9 @@ class BaseNNModel(BaseModel, nn.Module):
         )
 
         train_losses = []
+        pbar = tqdm(train_loader, desc=f"{self.__class__.__name__}")
         for epoch in range(epochs):
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(
                 pbar,
                 device,
@@ -385,7 +380,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 loss_kwargs=loss_kwargs,
                 scheduler=scheduler,
             )
-            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
         return train_losses
