@@ -1059,8 +1059,9 @@ def process_indicators(crop, region, sel_indicators):
                             repeat(is_categorical),
                         ),
                     )
-                    result_yr = pd.concat(dfs, axis=0)
-                    result_final = pd.concat([result_final, result_yr], axis=0)
+                    if (len(dfs) > 0):
+                        result_yr = pd.concat(dfs, axis=0)
+                        result_final = pd.concat([result_final, result_yr], axis=0)
 
             out_csv = "_".join([indicator, crop, region]) + ".csv"
             result_final.to_csv(os.path.join(output_path, out_csv), index=False)
