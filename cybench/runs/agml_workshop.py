@@ -558,7 +558,7 @@ def get_cybench_data_aligned_to_crop_season():
         if "dekad" not in df_x.columns:
             continue
 
-        df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "dekad"])
+        df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
         df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_dekads).reset_index()
         df_x = df_x.drop(columns=["dekad", "index"])
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)

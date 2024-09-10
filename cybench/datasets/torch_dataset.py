@@ -15,65 +15,20 @@ class TorchDataset(torch.utils.data.Dataset):
         PyTorch Dataset wrapper for compatibility with torch DataLoader objects
         :param dataset:
         """
-        self._df_y = dataset._df_y
-        self._dfs_x = {}
-
+        self._dataset = dataset
+    
         # NOTE: Crop calendar data comes with KEY_LOC, KEY_YEAR, sos_date, eos_date.
-        df_crop_cal = dataset._dfs_x["crop_calendar"]
+        # df_crop_cal = dataset._dfs_x["crop_calendar"]
 
-        for x in dataset._dfs_x:
-            df_x = dataset._dfs_x[x]
-            if len(df_x.index.names) < 3:
-                self._dfs_x[x] = df_x
-            else:
-                # NOTE: Code to compute sos_date and eos_date.
-                df_x = df_x.merge(df_crop_cal, on=[KEY_LOC])
-                df_x["sos_date"] = pd.to_datetime(
-                    df_x[KEY_YEAR] * 1000 + df_x["sos"], format="%Y%j"
-                )
-                df_x["eos_date"] = pd.to_datetime(
-                    df_x[KEY_YEAR] * 1000 + df_x["eos"], format="%Y%j"
-                )
-
-                # Fix sos_date for data that are in a different year than sos_date.
-                # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
-                # We want the data from 20020101 to 20020615 to have the sos_date of
-                # 20011124.
-                df_x["sos_date"] = np.where(
-                    (df_x["date"] <= df_x["eos_date"]) & (df_x["sos"] > df_x["eos"]),
-                    # select sos_date for the previous year because season started
-                    # in the previous year.
-                    df_x["sos_date"] + pd.offsets.DateOffset(years=-1),
-                    df_x["sos_date"],
-                )
-
-                # Validate sos_date: date - sos_date should not be more than 366 days
-                assert df_x[(df_x["date"] - df_x["sos_date"]).dt.days > 366].empty
-
-                # Fix eos_date for data that are after the current season's eos_date.
-                # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
-                # the season that ends in 2002. We change the eos_date for those data to be
-                # next year's eos_date.
-                # NOTE: This works only for static crop calendar.
-                df_x["eos_date"] = np.where(
-                    (df_x["date"] > df_x["eos_date"]),
-                    # select eos_date for the next year
-                    df_x["eos_date"] + pd.offsets.DateOffset(years=1),
-                    df_x["eos_date"],
-                )
-
-                # Validate eos_date: eos_date - date should not be more than 366 days
-                assert df_x[(df_x["eos_date"] - df_x["date"]).dt.days > 366].empty
-
-                # NOTE:
-                # data can be in different resolution
-                # data can have different dates
-                # some dates in one location and year, different dates in another location and year
-                # data can have different number of dates and values
-                # TODO interpolation
-                # TODO aggregation to dekadal resolution
-                # TODO Ensure number of time steps is the same for all locations, years and
-                # time series data sources.
+        # NOTE:
+        # data can be in different resolution
+        # data can have different dates
+        # some dates in one location and year, different dates in another location and year
+        # data can have different number of dates and values
+        # TODO interpolation
+        # TODO aggregation to dekadal resolution
+        # TODO Ensure number of time steps is the same for all locations, years and
+        # time series data sources.
 
     def get_normalization_params(self, normalization="standard"):
         """

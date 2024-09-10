@@ -256,7 +256,10 @@ class Dataset:
         :return: a dict containing normalization parameters (e.g. mean and std)
         """
         norm_params = {}
-        for df in self._dfs_x:
+        for x, df in self._dfs_x.items():
+            if (x == "crop_calendar"):
+                continue
+
             for c in df.columns:
                 if normalization == "standard":
                     norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
