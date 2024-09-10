@@ -8,7 +8,7 @@ import logging
 from sklearn.model_selection import ParameterGrid
 from tsai.models.InceptionTime import InceptionTime
 
-from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.torch_dataset import TorchDataset
 from cybench.datasets.dataset import Dataset
 
 from cybench.models.model import BaseModel

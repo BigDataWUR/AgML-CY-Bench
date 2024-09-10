@@ -251,6 +251,7 @@ def test_sklearn_res_model():
     print("SklearnRidge", metrics_ridge)
     print("RidgeRes", metrics_ridge_res)
 
+
 # TODO: Uncomment after fixing TorchDataset.
 # def test_nn_model():
 #     train_dataset = Dataset.load("maize_NL")

@@ -6,7 +6,7 @@ import random
 import torch
 from torch import nn
 
-from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.torch_dataset import TorchDataset
 from cybench.models.model import BaseModel
 from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import normalized_rmse, evaluate_predictions
@@ -23,6 +23,7 @@ from cybench.config import (
     STATIC_PREDICTORS,
     TIME_SERIES_PREDICTORS,
     CROP_CALENDAR_ENTRIES,
+    CROP_CALENDAR_DATES,
 )
 
 
@@ -335,9 +336,14 @@ def date_from_dekad(dekad, year):
     return date_str
 
 
-from cybench.datasets.alignment import align_data, trim_to_lead_time
-from cybench.datasets.dataset import Dataset
+
 from cybench.util.features import dekad_from_date
+from cybench.datasets.dataset import Dataset
+from cybench.datasets.configured import preprocess_crop_calendar
+from cybench.datasets.alignment import (
+    trim_to_lead_time,
+    align_inputs_and_labels,
+)
 
 
 def get_workshop_data():
@@ -374,7 +380,7 @@ def get_workshop_data():
     df_x_soil = df_x_soil[[KEY_LOC] + SOIL_PROPERTIES]
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
-    dfs_x = [df_x_soil]
+    dfs_x = {"soil": df_x_soil}
     for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
@@ -392,9 +398,9 @@ def get_workshop_data():
         else:
             df_x = df_x[[RS_FPAR]]
 
-        dfs_x.append(df_x)
+        dfs_x[input] = df_x
 
-    return align_data(df_y, dfs_x)
+    return align_inputs_and_labels(df_y, dfs_x)
 
 
 def get_cybench_data():
@@ -431,7 +437,7 @@ def get_cybench_data():
     df_x_soil = df_x_soil[[KEY_LOC] + SOIL_PROPERTIES]
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
-    dfs_x = [df_x_soil]
+    dfs_x = {"soil": df_x_soil}
     for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
@@ -470,9 +476,9 @@ def get_cybench_data():
         df_x = df_x.drop(columns=["dekad"])
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
 
-        dfs_x.append(df_x)
+        dfs_x[input] = df_x
 
-    return align_data(df_y, dfs_x)
+    return align_inputs_and_labels(df_y, dfs_x)
 
 
 def get_cybench_data_aligned_to_crop_season():
@@ -495,8 +501,10 @@ def get_cybench_data_aligned_to_crop_season():
         os.path.join(path_data_cn, "crop_calendar_maize_US.csv"),
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
+    index_y_years = set([year for _, year in df_y.index.values])
+    df_crop_cal = preprocess_crop_calendar(df_crop_cal, min(index_y_years), max(index_y_years))
 
-    dfs_x = [df_x_soil]
+    dfs_x = {"soil": df_x_soil}
     min_dekads = 36
     for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
@@ -538,14 +546,15 @@ def get_cybench_data_aligned_to_crop_season():
         if num_dekads < min_dekads:
             min_dekads = num_dekads
 
-        dfs_x.append(df_x)
+        dfs_x[input] = df_x
 
     # Ensure same number of dekads.
     # NOTE: Number of dekads can be different due to daily vs dekadal resolution
     #       of original data and crop season alignment.
     # get_cybench_data() does not seem to be have this issue because
     # data is not aligned to crop season.
-    for i, df_x in enumerate(dfs_x):
+    for input in dfs_x:
+        df_x = dfs_x[input]
         if "dekad" not in df_x.columns:
             continue
 
@@ -553,9 +562,13 @@ def get_cybench_data_aligned_to_crop_season():
         df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_dekads).reset_index()
         df_x = df_x.drop(columns=["dekad", "index"])
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
-        dfs_x[i] = df_x
+        dfs_x[input] = df_x
 
-    return align_data(df_y, dfs_x)
+    df_crop_cal.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    df_crop_cal = df_crop_cal[CROP_CALENDAR_DATES]
+    dfs_x["crop_calendar"] = df_crop_cal
+
+    return align_inputs_and_labels(df_y, dfs_x)
 
 
 def validate_agml_workshop_results(df_y, dfs_x):

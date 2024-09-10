@@ -13,7 +13,7 @@ from cybench.config import (
     RS_FPAR,
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
-    CROP_CALENDAR_ENTRIES,
+    CROP_CALENDAR_DATES,
 )
 
 
@@ -24,7 +24,7 @@ def test_dataset_item():
     assert isinstance(dataset[0], dict)
     expected_indices = [KEY_LOC, KEY_YEAR, KEY_DATES]
     expected_data = SOIL_PROPERTIES + METEO_INDICATORS + [RS_FPAR, RS_NDVI]
-    expected_data += SOIL_MOISTURE_INDICATORS + CROP_CALENDAR_ENTRIES + [KEY_TARGET]
+    expected_data += SOIL_MOISTURE_INDICATORS + CROP_CALENDAR_DATES + [KEY_TARGET]
     assert len(dataset[0]) == len(expected_indices + expected_data)
     assert set(dataset[0].keys()) == set(expected_indices + expected_data)
 
@@ -36,7 +36,7 @@ def test_split():
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    dataset_cv = Dataset("maize", train_yields, { "combined" : train_features })
+    dataset_cv = Dataset("maize", train_yields, {"combined": train_features})
 
     even_years = {x for x in dataset_cv.years if x % 2 == 0}
     odd_years = dataset_cv.years - even_years

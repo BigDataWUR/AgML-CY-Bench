@@ -136,6 +136,7 @@ ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
 
 # Crop calendar entries: start of season, end of season
 CROP_CALENDAR_ENTRIES = ["sos", "eos"]
+CROP_CALENDAR_DATES = ["sos_date", "eos_date"]
 
 # Feature design
 # Base temperature for corn and wheat for growing degree days wheat:0 maize:10.

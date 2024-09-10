@@ -34,27 +34,41 @@ def _add_cutoff_days(df: pd.DataFrame, lead_time: str):
     return df
 
 
-def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
+def trim_to_lead_time(
+    df: pd.DataFrame, crop_cal_df: pd.DataFrame, lead_time: str = FORECAST_LEAD_TIME
+):
     """Align time series data to crop season.
 
     Args:
         df (pd.DataFrame): time series data
         crop_cal_df (pd.DataFrame): crop calendar data
+        lead_time (str): lead time option
 
     Returns:
-        the same DataFrame with dates aligned to crop season
+        a tuple with the input DataFrame and crop calendar (sos_date, eos_date)
+        NOTE: We are returning crop calendar as dynamic data (including year in it)
     """
     select_cols = list(df.columns)
 
     # Merge with crop calendar
-    crop_cal_cols = [KEY_LOC, "sos", "eos"]
-    crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
-    df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
-    df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
+    df = df.merge(crop_cal_df, on=[KEY_LOC, KEY_YEAR])
 
     # The next new year starts right after this year's harvest.
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df[KEY_YEAR] = np.where(df["date"] > df["eos_date"], df[KEY_YEAR] + 1, df[KEY_YEAR])
+
+    # Fix sos_date for data that are after the eos_date.
+    # NOTE: In _preprocess_crop_calendar, we use sos_date from previous year
+    # for the case where sos > eos. We add 1 year to make
+    # sure sos_date and eos_date make sense when date > eos_date.
+    df["sos_date"] = np.where(
+        (df["date"] > df["eos_date"]) & (df["sos"] > df["eos"]),
+        df["sos_date"] + pd.offsets.DateOffset(years=1),
+        df["sos_date"],
+    )
+
+    # Validate sos_date: date - sos_date should not be more than 366 days
+    assert df[(df["date"] - df["sos_date"]).dt.days > 366].empty
 
     # Fix eos_date for data that are after the current season's eos_date.
     # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
@@ -71,12 +85,6 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
     # Validate eos_date: eos_date - date should not be more than 366 days
     assert df[(df["eos_date"] - df["date"]).dt.days > 366].empty
 
-    # Calculate season length. Handle seasons crossing calendar year.
-    df["season_length"] = np.where(
-        (df["eos"] > df["sos"]),
-        (df["eos"] - df["sos"]),
-        (365 - df["sos"]) + df["eos"],
-    )
     # Total time series length including spinup days before the start of season.
     df["ts_length"] = np.where(
         df["season_length"] + SPINUP_DAYS <= 365,
@@ -98,7 +106,7 @@ def trim_to_lead_time(df: pd.DataFrame, crop_cal_df: pd.DataFrame):
     df = df[(df["eos_date"] - df["date"]).dt.days >= df["ts_length"]]
 
     # Trim to lead time
-    df = _add_cutoff_days(df, FORECAST_LEAD_TIME)
+    df = _add_cutoff_days(df, lead_time)
     df = df[(df["eos_date"] - df["date"]).dt.days >= df["cutoff_days"]]
 
     return df[select_cols]
