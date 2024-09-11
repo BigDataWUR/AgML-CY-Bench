@@ -1041,8 +1041,10 @@ def process_indicators(crop, region, sel_indicators):
                 files = get_time_series_files(indicator_dir, year=yr)
 
                 print("There are " + str(len(files)) + " files!")
-                start_time = time.time()
+                if (len(files) == 0):
+                    continue
 
+                start_time = time.time()
                 files = sorted([os.path.join(indicator_dir, f) for f in files])
                 with mp.Pool(processes=None) as pool:
                     # NOTE: multiprocessing using a target function with multiple arguments.
@@ -1059,9 +1061,8 @@ def process_indicators(crop, region, sel_indicators):
                             repeat(is_categorical),
                         ),
                     )
-                    if (len(dfs) > 0):
-                        result_yr = pd.concat(dfs, axis=0)
-                        result_final = pd.concat([result_final, result_yr], axis=0)
+                    result_yr = pd.concat(dfs, axis=0)
+                    result_final = pd.concat([result_final, result_yr], axis=0)
 
             out_csv = "_".join([indicator, crop, region]) + ".csv"
             result_final.to_csv(os.path.join(output_path, out_csv), index=False)
