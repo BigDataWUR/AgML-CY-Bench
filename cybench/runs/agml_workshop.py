@@ -2,6 +2,7 @@ import os
 import logging
 import pandas as pd
 import numpy as np
+from datetime import datetime
 import random
 import torch
 from torch import nn
@@ -311,30 +312,26 @@ class LSTMModel(BaseModel, nn.Module):
 
 def date_from_dekad(dekad, year):
     """Reconstruct date string from dekad and year.
+    NOTE: Don't use this with CY-Bench data aligned to crop season.
+    For aligned data, KEY_YEAR and year in "date" can be different.
+    So it's incorrect to infer data based on dekad and year.
 
     Args:
         dekad (int): a number from 1-36 indicating ~10-day periods
         year (int): year in YYYY format
 
     Returns:
-        Date string in the format YYYYmmdd
+        datetime in YYYYmmdd format
     """
-    date_str = str(year)
     month = int(np.ceil(dekad / 3))
-    if month < 10:
-        date_str += "0" + str(month)
-    else:
-        date_str += str(month)
-
     if dekad % 3 == 1:
-        date_str += "01"
+        day = 1
     elif dekad % 3 == 2:
-        date_str += "11"
+        day = 11
     else:
-        date_str += "21"
+        day = 21
 
-    return date_str
-
+    return datetime(year, month, day)
 
 
 from cybench.util.features import dekad_from_date
@@ -442,9 +439,8 @@ def get_cybench_data():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
-        df_x["date"] = df_x["date"].astype(str)
-        df_x[KEY_YEAR] = df_x["date"].str[:4]
-        df_x[KEY_YEAR] = df_x[KEY_YEAR].astype(int)
+        df_x["date"] = pd.to_datetime(df_x["date"], format="%Y%m%d")
+        df_x[KEY_YEAR] = df_x["date"].dt.year
         df_x["dekad"] = df_x.apply(lambda r: dekad_from_date(r["date"]), axis=1)
 
         # Aggregate time series data to dekadal resolution
@@ -460,12 +456,10 @@ def get_cybench_data():
                         "prec": "sum",
                         "cwb": "sum",
                         "rad": "mean",
+                        "date": "min",
                     }
                 )
                 .reset_index()
-            )
-            df_x["date"] = df_x.apply(
-                lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
         elif input == "fpar":
             # fpar is already at dekadal resolution
@@ -502,7 +496,9 @@ def get_cybench_data_aligned_to_crop_season():
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
     index_y_years = set([year for _, year in df_y.index.values])
-    df_crop_cal = preprocess_crop_calendar(df_crop_cal, min(index_y_years), max(index_y_years))
+    df_crop_cal = preprocess_crop_calendar(
+        df_crop_cal, min(index_y_years), max(index_y_years)
+    )
 
     dfs_x = {"soil": df_x_soil}
     min_dekads = 36
@@ -510,9 +506,8 @@ def get_cybench_data_aligned_to_crop_season():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
-        df_x["date"] = df_x["date"].astype(str)
-        df_x[KEY_YEAR] = df_x["date"].str[:4]
-        df_x[KEY_YEAR] = df_x[KEY_YEAR].astype(int)
+        df_x["date"] = pd.to_datetime(df_x["date"], format="%Y%m%d")
+        df_x[KEY_YEAR] = df_x["date"].dt.year
         # df_x = df_x.dropna(axis=0)
         df_x = trim_to_lead_time(df_x, df_crop_cal, lead_time="1-day")
         df_x["dekad"] = df_x.apply(lambda r: dekad_from_date(r["date"]), axis=1)
@@ -530,12 +525,10 @@ def get_cybench_data_aligned_to_crop_season():
                         "prec": "sum",
                         "cwb": "sum",
                         "rad": "mean",
+                        "date": "min",
                     }
                 )
                 .reset_index()
-            )
-            df_x["date"] = df_x.apply(
-                lambda r: date_from_dekad(r["dekad"], r[KEY_YEAR]), axis=1
             )
         elif input == "fpar":
             df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
@@ -589,10 +582,6 @@ def validate_agml_workshop_results(df_y, dfs_x):
         if model_name == "workshop_lstm":
             lstm_model = LSTMModel()
         else:
-            # NOTE: config.py requires these updates to test with BaselineLSTM.
-            # 1. SOIL_PROPERTIES = ["awc"]
-            # 2. TIME_SERIES_PREDICTORS = METEO_INDICATORS + [RS_FPAR]
-            # The workshop data does not include other inputs from the benchmark.
             lstm_model = BaselineLSTM(transforms=[])
 
         lstm_model.fit(train_dataset, epochs=10)

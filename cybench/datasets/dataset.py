@@ -6,8 +6,8 @@ from cybench.config import (
     KEY_YEAR,
     KEY_TARGET,
     KEY_DATES,
+    CROP_CALENDAR_DATES,
     DATASETS,
-    FORECAST_LEAD_TIME,
 )
 
 
@@ -61,6 +61,7 @@ class Dataset:
         self._dfs_x = data_inputs
 
         # Sort all data for faster lookups
+        # also fix dates
         self._df_y.sort_index(inplace=True)
         for x in self._dfs_x:
             self._dfs_x[x].sort_index(inplace=True)
@@ -158,6 +159,12 @@ class Dataset:
             KEY_TARGET: sample_y[KEY_TARGET],
         }
 
+        # crop calendar dates are datetime objects
+        if "crop_calendar" in self._dfs_x:
+            sample_cc = self._dfs_x["crop_calendar"].loc[(loc_id, year)]
+            data_cc = {k: sample_cc[k] for k in CROP_CALENDAR_DATES}
+            sample = {**data_cc, **sample}
+
         # Get feature data corresponding to the label
         data_x = self._get_feature_data(loc_id, year)
         # Merge label and feature data
@@ -190,6 +197,10 @@ class Dataset:
         }
         # For all feature dataframes
         for x in self._dfs_x:
+            # handled in __get_item__
+            if x == "crop_calendar":
+                continue
+
             df = self._dfs_x[x]
             # Check in which category the dataframe fits:
             #   (1) static data -- indexed only by location
@@ -257,7 +268,7 @@ class Dataset:
         """
         norm_params = {}
         for x, df in self._dfs_x.items():
-            if (x == "crop_calendar"):
+            if x == "crop_calendar":
                 continue
 
             for c in df.columns:

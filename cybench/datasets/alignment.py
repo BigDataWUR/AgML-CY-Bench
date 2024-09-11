@@ -54,7 +54,6 @@ def trim_to_lead_time(
     df = df.merge(crop_cal_df, on=[KEY_LOC, KEY_YEAR])
 
     # The next new year starts right after this year's harvest.
-    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df[KEY_YEAR] = np.where(df["date"] > df["eos_date"], df[KEY_YEAR] + 1, df[KEY_YEAR])
 
     # Fix sos_date for data that are after the eos_date.

@@ -1,9 +1,14 @@
 import torch
 import torch.utils.data
-import pandas as pd
-import numpy as np
 
-from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_DATES,
+    CROP_CALENDAR_DATES,
+    ALL_PREDICTORS,
+)
 
 from cybench.datasets.dataset import Dataset
 from cybench.util.torch import batch_tensors
@@ -16,7 +21,7 @@ class TorchDataset(torch.utils.data.Dataset):
         :param dataset:
         """
         self._dataset = dataset
-    
+
         # NOTE: Crop calendar data comes with KEY_LOC, KEY_YEAR, sos_date, eos_date.
         # df_crop_cal = dataset._dfs_x["crop_calendar"]
 
@@ -59,43 +64,55 @@ class TorchDataset(torch.utils.data.Dataset):
         :param sample: the sample to convert
         :return: the converted data sample
         """
-        return {
+        nontensors1 = {
             KEY_LOC: sample[KEY_LOC],
             KEY_YEAR: sample[KEY_YEAR],
-            KEY_TARGET: torch.tensor(sample[KEY_TARGET], dtype=torch.float32),
             KEY_DATES: sample[KEY_DATES],
-            **{
-                key: torch.tensor(sample[key], dtype=torch.float32)
-                for key in sample.keys()
-                if key not in [KEY_LOC, KEY_YEAR, KEY_TARGET, KEY_DATES]
-            },  # TODO -- support nonnumeric data?
         }
+
+        # crop calendar dates are datetime objects
+        nontensors2 = {k: sample[k] for k in CROP_CALENDAR_DATES if k in sample}
+
+        tensors1 = {
+            KEY_TARGET: torch.tensor(sample[KEY_TARGET], dtype=torch.float32),
+        }
+
+        tensors2 = {
+            key: torch.tensor(sample[key], dtype=torch.float32)
+            for key in ALL_PREDICTORS
+        }  # TODO -- support nonnumeric data?
+
+        return {**nontensors1, **nontensors2, **tensors1, **tensors2}
 
     @classmethod
     def collate_fn(cls, samples: list) -> dict:
         """
-        Function that takes a list of data samples (as dicts, containing torch tensors) and converts it to a dict of
-        batched torch tensors
+        Function that takes a list of data samples (as dicts, containing torch tensors)
+        and converts it to a dict of batched torch tensors
         :param samples: a list of data samples
         :return: a dict with batched data
         """
         assert len(samples) > 0
 
-        feature_names = set.intersection(*[set(sample.keys()) for sample in samples])
-        feature_names.remove(KEY_TARGET)
-        feature_names.remove(KEY_LOC)
-        feature_names.remove(KEY_YEAR)
-        feature_names.remove(KEY_DATES)
-
-        batched_samples = {
-            KEY_TARGET: batch_tensors(*[sample[KEY_TARGET] for sample in samples]),
+        nontensors1 = {
             KEY_LOC: [sample[KEY_LOC] for sample in samples],
             KEY_YEAR: [sample[KEY_YEAR] for sample in samples],
             KEY_DATES: samples[0][KEY_DATES],
-            **{
-                key: batch_tensors(*[sample[key] for sample in samples])
-                for key in feature_names
-            },
         }
 
-        return batched_samples
+        # crop calendar dates are datetime objects
+        nontensors2 = {
+            k: [sample[k] for sample in samples if k in sample]
+            for k in CROP_CALENDAR_DATES
+        }
+
+        tensors1 = {
+            KEY_TARGET: batch_tensors(*[sample[KEY_TARGET] for sample in samples])
+        }
+
+        tensors2 = {
+            key: batch_tensors(*[sample[key] for sample in samples])
+            for key in ALL_PREDICTORS
+        }
+
+        return {**nontensors1, **nontensors2, **tensors1, **tensors2}

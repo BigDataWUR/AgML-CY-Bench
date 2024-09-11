@@ -134,8 +134,9 @@ TIME_SERIES_PREDICTORS = (
 # All predictors. Add more when available
 ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
 
-# Crop calendar entries: start of season, end of season
-CROP_CALENDAR_ENTRIES = ["sos", "eos"]
+# Crop calendar entries: start of season, end of season.
+# doy = day of year (1 to 366).
+CROP_CALENDAR_DOYS = ["sos", "eos"]
 CROP_CALENDAR_DATES = ["sos_date", "eos_date"]
 
 # Feature design

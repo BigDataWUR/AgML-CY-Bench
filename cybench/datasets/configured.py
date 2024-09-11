@@ -14,7 +14,7 @@ from cybench.config import (
     RS_FPAR,
     RS_NDVI,
     SOIL_MOISTURE_INDICATORS,
-    CROP_CALENDAR_ENTRIES,
+    CROP_CALENDAR_DOYS,
     CROP_CALENDAR_DATES,
 )
 
@@ -22,22 +22,6 @@ from cybench.datasets.alignment import (
     trim_to_lead_time,
     align_inputs_and_labels,
 )
-
-
-def _add_year(df: pd.DataFrame) -> pd.DataFrame:
-    """Add a year column.
-
-    Args:
-        df (pd.DataFrame): time series data
-
-    Returns:
-        the same DataFrame with year column added
-    """
-    df["date"] = df["date"].astype(str)
-    df[KEY_YEAR] = df["date"].str[:4]
-    df[KEY_YEAR] = df[KEY_YEAR].astype(int)
-
-    return df
 
 
 def preprocess_crop_calendar(df, min_year, max_year):
@@ -52,28 +36,27 @@ def preprocess_crop_calendar(df, min_year, max_year):
         the same dataframe with start of season date, end of season date and season_length
         added
     """
-    df = df[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
-    df = df.astype({k: int for k in CROP_CALENDAR_ENTRIES})
+    df = df[[KEY_LOC] + CROP_CALENDAR_DOYS]
+    df = df.astype({k: int for k in CROP_CALENDAR_DOYS})
     df = pd.concat(
-        [df.assign(**{KEY_YEAR: yr}) for yr in range(min_year, max_year + 1)], ignore_index=True
+        [df.assign(**{KEY_YEAR: yr}) for yr in range(min_year, max_year + 1)],
+        ignore_index=True,
     )
     df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
-    # Fix sos_date for data that are in a different year than sos_date.
-    # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
-    # We want the data from 20020101 to 20020615 to have the sos_date of
-    # 20011124.
+    # Fix sos_date for cases where sos > eos.
+    # For example, sos_date is 20011124 and eos_date is 20010615.
+    # For 2001, select sos_date for the previous year because season started
+    # in the previous year.
     df["sos_date"] = np.where(
         (df["sos"] > df["eos"]),
-        # select sos_date for the previous year because season started
-        # in the previous year.
         df["sos_date"] + pd.offsets.DateOffset(years=-1),
         df["sos_date"],
     )
 
     df["season_length"] = (df["eos_date"] - df["sos_date"]).dt.days
-    assert (df[df["season_length"] > 366].empty)
+    assert df[df["season_length"] > 366].empty
 
     return df
 
@@ -99,7 +82,8 @@ def _load_and_preprocess_time_series_data(
         os.path.join(path_data_cn, "_".join([ts_input, crop, country_code]) + ".csv"),
         header=0,
     )
-    df_ts = _add_year(df_ts)
+    df_ts["date"] = pd.to_datetime(df_ts["date"], format="%Y%m%d")
+    df_ts[KEY_YEAR] = df_ts["date"].dt.year
     df_ts = df_ts[index_cols + ts_cols]
     df_ts = trim_to_lead_time(df_ts, df_crop_cal)
     df_ts.set_index(index_cols, inplace=True)
@@ -146,9 +130,11 @@ def load_dfs(crop: str, country_code: str) -> tuple:
             path_data_cn, "_".join(["crop_calendar", crop, country_code]) + ".csv"
         ),
         header=0,
-    )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
+    )[[KEY_LOC] + CROP_CALENDAR_DOYS]
     index_y_years = set([year for _, year in df_y.index.values])
-    df_crop_cal = preprocess_crop_calendar(df_crop_cal, min(index_y_years), max(index_y_years))
+    df_crop_cal = preprocess_crop_calendar(
+        df_crop_cal, min(index_y_years), max(index_y_years)
+    )
 
     # Time series data
     # NOTE: All time series data have to be rotated by crop calendar.
