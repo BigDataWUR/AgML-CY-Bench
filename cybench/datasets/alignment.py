@@ -102,7 +102,7 @@ def trim_to_lead_time(
     )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
     # Keep spinup_days before sos, i.e. keep season_length + spinup_days
-    df = df[(df["eos_date"] - df["date"]).dt.days >= df["ts_length"]]
+    df = df[(df["eos_date"] - df["date"]).dt.days <= df["ts_length"]]
 
     # Trim to lead time
     df = _add_cutoff_days(df, lead_time)

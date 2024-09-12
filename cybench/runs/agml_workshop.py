@@ -23,7 +23,7 @@ from cybench.config import (
     RS_FPAR,
     STATIC_PREDICTORS,
     TIME_SERIES_PREDICTORS,
-    CROP_CALENDAR_ENTRIES,
+    CROP_CALENDAR_DOYS,
     CROP_CALENDAR_DATES,
 )
 
@@ -445,7 +445,6 @@ def get_cybench_data():
 
         # Aggregate time series data to dekadal resolution
         if input == "meteo":
-            df_x["cwb"] = df_x["prec"] - df_x["et0"]
             df_x = (
                 df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
                 .agg(
@@ -494,7 +493,7 @@ def get_cybench_data_aligned_to_crop_season():
     df_crop_cal = pd.read_csv(
         os.path.join(path_data_cn, "crop_calendar_maize_US.csv"),
         header=0,
-    )[[KEY_LOC] + CROP_CALENDAR_ENTRIES]
+    )[[KEY_LOC] + CROP_CALENDAR_DOYS]
     index_y_years = set([year for _, year in df_y.index.values])
     df_crop_cal = preprocess_crop_calendar(
         df_crop_cal, min(index_y_years), max(index_y_years)
@@ -509,12 +508,11 @@ def get_cybench_data_aligned_to_crop_season():
         df_x["date"] = pd.to_datetime(df_x["date"], format="%Y%m%d")
         df_x[KEY_YEAR] = df_x["date"].dt.year
         # df_x = df_x.dropna(axis=0)
-        df_x = trim_to_lead_time(df_x, df_crop_cal, lead_time="1-day")
+        df_x = trim_to_lead_time(df_x, df_crop_cal, lead_time="60-days")
         df_x["dekad"] = df_x.apply(lambda r: dekad_from_date(r["date"]), axis=1)
 
         # Aggregate time series data to dekadal resolution
         if input == "meteo":
-            df_x["cwb"] = df_x["prec"] - df_x["et0"]
             df_x = (
                 df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
                 .agg(
@@ -533,8 +531,6 @@ def get_cybench_data_aligned_to_crop_season():
         elif input == "fpar":
             df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
 
-        # lead time = 6 dekads
-        df_x = df_x[df_x["dekad"] <= 30]
         num_dekads = df_x.groupby([KEY_LOC, KEY_YEAR])["dekad"].count().min()
         if num_dekads < min_dekads:
             min_dekads = num_dekads
