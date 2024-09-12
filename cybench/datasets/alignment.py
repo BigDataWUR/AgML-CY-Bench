@@ -57,7 +57,7 @@ def trim_to_lead_time(
     df[KEY_YEAR] = np.where(df["date"] > df["eos_date"], df[KEY_YEAR] + 1, df[KEY_YEAR])
 
     # Fix sos_date for data that are after the eos_date.
-    # NOTE: In _preprocess_crop_calendar, we use sos_date from previous year
+    # NOTE: In preprocess_crop_calendar, we use sos_date from previous year
     # for the case where sos > eos. We add 1 year to make
     # sure sos_date and eos_date make sense when date > eos_date.
     df["sos_date"] = np.where(
