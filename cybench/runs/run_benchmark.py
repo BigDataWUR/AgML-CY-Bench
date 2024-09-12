@@ -19,13 +19,15 @@ from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime
+from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
+from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
     RidgeRes,
     RandomForestRes,
     LSTMRes,
     InceptionTimeRes,
+    TransformerRes
 )
 
 
@@ -40,6 +42,8 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "LSTMRes": LSTMRes,
     "InceptionTime": BaselineInceptionTime,
     "InceptionTimeRes": InceptionTimeRes,
+    "Transformer": BaselineTransformer,
+    "TransformerRes": TransformerRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
@@ -48,18 +52,28 @@ _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
-    "epochs": 50,
+    "epochs": 5,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
+    "epochs": 5,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["Transformer"] = {
+    "epochs": 50,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["TransformerRes"] = {
     "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
@@ -131,6 +145,12 @@ def run_benchmark(
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
+        # TODO: put into generic function
+        seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
+        models_init_kwargs["Transformer"] = {"seq_len": seq_len}
+        models_init_kwargs["TransformerRes"] = {"seq_len": seq_len}
+
+
         labels = test_dataset.targets()
 
         model_output = {
@@ -140,6 +160,7 @@ def run_benchmark(
         }
 
         for model_name, model_constructor in model_constructors.items():
+
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
@@ -186,6 +207,9 @@ def load_results(
         df = pd.read_csv(path)
         df_all = pd.concat([df_all, df], axis=0)
 
+    if (KEY_COUNTRY not in df_all.columns):
+        df_all[KEY_COUNTRY] = df_all[KEY_LOC].str[:2]
+
     return df_all
 
 
@@ -213,7 +237,7 @@ def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
 
 def compute_metrics(
     run_name: str,
-    model_names: list,
+    model_names: list = None,
 ) -> pd.DataFrame:
     """
     Compute evaluation metrics on saved predictions.
@@ -236,6 +260,13 @@ def compute_metrics(
         for yr in all_years:
             df_yr = df_cn[df_cn[KEY_YEAR] == yr]
             y_true = df_yr[KEY_TARGET].values
+            if model_names is None:
+                model_names = [
+                    c
+                    for c in df_yr.columns
+                    if c not in [KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET]
+                ]
+
             for model_name in model_names:
                 metrics = evaluate_predictions(y_true, df_yr[model_name].values)
                 metrics_row = {

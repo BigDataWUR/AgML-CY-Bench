@@ -25,7 +25,7 @@ Abdelrahman Saleh
 
 **Temporal Coverage**: ETo is available from 1979-01-01 up to date.
 
-**ETo Values**: starts from 0 to maximum ETo (mm). Flags: -9999 is No-Data
+**ETo Values**: starts from 0 to maximum ET0 (mm). Flags: -9999 is No-Data
 
 **ETo Unit**: mm
 
