@@ -714,7 +714,6 @@ class BaselineTransformer(BaseNNModel):
          d_ffn (int): The dimension of the feedforward network model.
          output_size (int): The number of output classes. Defaults to 1.
          num_layers (1): The number of sub-encoder-layers in the encoder.
-         transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
          **kwargs: Additional keyword arguments passed to the base class.
     """
 
@@ -727,9 +726,6 @@ class BaselineTransformer(BaseNNModel):
         d_ff=256,
         output_size=1,
         num_layers=3,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
@@ -749,7 +745,6 @@ class BaselineTransformer(BaseNNModel):
             d_ff=d_ff
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -797,9 +792,6 @@ class BaselineTransformer(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts = x_ts.permute(0, 2, 1)
         x_ts = self._timeseries(x_ts)
