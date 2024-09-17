@@ -57,13 +57,16 @@ def results_to_residuals(model_names):
 
 # Function to format rows with the minimum value in bold
 def format_row(row, metric):
-    if (metric == "r2"):
+    if metric == "r2":
         highlight_value = row.max()
     else:
         highlight_value = row.min()
 
     return " ".join(
-        [f"**{value:.2f}**" if value == highlight_value else f"{value:.2f}" for value in row]
+        [
+            f"**{value:.2f}**" if value == highlight_value else f"{value:.2f}"
+            for value in row
+        ]
     )
 
 

@@ -8,6 +8,7 @@ from cybench.config import (
     KEY_YEAR,
     KEY_TARGET,
     KEY_DATES,
+    KEY_COMBINED_FEATURES,
     SOIL_PROPERTIES,
     METEO_INDICATORS,
     RS_FPAR,
@@ -36,7 +37,7 @@ def test_split():
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    dataset_cv = Dataset("maize", train_yields, {"combined": train_features})
+    dataset_cv = Dataset("maize", train_yields, {KEY_COMBINED_FEATURES: train_features})
 
     even_years = {x for x in dataset_cv.years if x % 2 == 0}
     odd_years = dataset_cv.years - even_years

@@ -1,3 +1,4 @@
+import pandas as pd
 import torch
 import torch.utils.data
 
@@ -6,6 +7,9 @@ from cybench.config import (
     KEY_YEAR,
     KEY_TARGET,
     KEY_DATES,
+    KEY_CROP_SEASON,
+    TIME_SERIES_AGGREGATIONS,
+    TIME_SERIES_PREDICTORS,
     CROP_CALENDAR_DATES,
     ALL_PREDICTORS,
 )
@@ -14,34 +18,80 @@ from cybench.datasets.dataset import Dataset
 from cybench.util.torch import batch_tensors
 
 
-class TorchDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset: Dataset):
+class TorchDataset(Dataset, torch.utils.data.Dataset):
+    def __init__(
+        self,
+        dataset: Dataset,
+        aggregate_to_dekads: bool = False,
+        max_season_window_length: int = None,
+    ):
         """
         PyTorch Dataset wrapper for compatibility with torch DataLoader objects
         :param dataset:
         """
-        self._dataset = dataset
+        self._crop = dataset.crop
+        self._df_y = dataset._df_y
 
-        # NOTE: Crop calendar data comes with KEY_LOC, KEY_YEAR, sos_date, eos_date.
-        # df_crop_cal = dataset._dfs_x["crop_calendar"]
+        self._aggregate_time_series = aggregate_to_dekads
+        if max_season_window_length is None:
+            self._max_season_window_length = dataset.max_season_window_length
+        else:
+            self._max_season_window_length = max_season_window_length
 
-        # NOTE:
-        # data can be in different resolution
-        # data can have different dates
-        # some dates in one location and year, different dates in another location and year
-        # data can have different number of dates and values
-        # TODO interpolation
-        # TODO aggregation to dekadal resolution
-        # TODO Ensure number of time steps is the same for all locations, years and
-        # time series data sources.
+        if aggregate_to_dekads:
+            assert self._max_season_window_length is not None
+            self._dfs_x = {}
+            ts_inputs = [
+                x for x in dataset._dfs_x if "date" in dataset._dfs_x[x].index.names
+            ]
+            for x in dataset._dfs_x:
+                if x not in ts_inputs:
+                    self._dfs_x[x] = dataset._dfs_x[x]
 
-    def get_normalization_params(self, normalization="standard"):
-        """
-        Compute normalization parameters for input data.
-        :param normalization: normalization method, default standard or z-score
-        :return: a dict containing normalization parameters (e.g. mean and std)
-        """
-        return self._dataset.get_normalization_params(normalization=normalization)
+            # combine time series data
+            df_ts = pd.concat(
+                [dataset._dfs_x[x] for x in ts_inputs], join="outer", axis=1
+            )
+            # df_crop_season.reset_index(inplace=True)
+            # create a dataframe with all dates for every location and year
+            df_all_dates = self._dfs_x[KEY_CROP_SEASON][["cutoff_date"]].copy()
+            df_all_dates["date"] = df_all_dates.apply(
+                lambda r: pd.date_range(
+                    end=r["cutoff_date"],
+                    periods=self._max_season_window_length,
+                    freq="D",
+                ),
+                axis=1,
+            )
+            df_all_dates = df_all_dates.explode("date").drop(columns=["cutoff_date"])
+            df_all_dates.reset_index(inplace=True)
+            df_all_dates.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+            df_ts = df_ts.merge(
+                df_all_dates, how="outer", on=[KEY_LOC, KEY_YEAR, "date"]
+            )
+            del df_all_dates
+            # interpolate
+            df_ts = df_ts.interpolate(method="linear")
+            df_ts.fillna(0.0, inplace=True)
+            df_ts.reset_index(inplace=True)
+            df_ts["week"] = df_ts["date"].dt.isocalendar().week
+            # Time series aggregation
+            ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in TIME_SERIES_PREDICTORS}
+            # Primarily to avoid losing the "date" column.
+            ts_aggrs["date"] = "min"
+            df_ts = (
+                df_ts.groupby([KEY_LOC, KEY_YEAR, "week"]).agg(ts_aggrs).reset_index()
+            )
+            df_ts.drop(columns=["week"], inplace=True)
+
+            # Add crop season and time series to self._dfs_x
+            self._dfs_x["combined_ts"] = df_ts.set_index([KEY_LOC, KEY_YEAR, "date"])
+        else:
+            self._dfs_x = dataset._dfs_x
+
+        # Bool value that specifies whether missing data values are allowed
+        # For now always set to False
+        self._allow_incomplete = False
 
     def __getitem__(self, index) -> dict:
         """
@@ -50,12 +100,8 @@ class TorchDataset(torch.utils.data.Dataset):
         :param index: index that is passed to the dataset
         :return: a dict containing the data sample
         """
-        return self._cast_to_tensor(
-            self._dataset[index],
-        )
-
-    def __len__(self):
-        return len(self._dataset)
+        sample = super(TorchDataset, self).__getitem__(index)
+        return self._cast_to_tensor(sample)
 
     @classmethod
     def _cast_to_tensor(cls, sample: dict) -> dict:

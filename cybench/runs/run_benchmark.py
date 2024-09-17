@@ -19,7 +19,11 @@ from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
+from cybench.models.nn_models import (
+    BaselineLSTM,
+    BaselineInceptionTime,
+    BaselineTransformer,
+)
 from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
@@ -27,7 +31,7 @@ from cybench.models.residual_models import (
     RandomForestRes,
     LSTMRes,
     InceptionTimeRes,
-    TransformerRes
+    TransformerRes,
 )
 
 
@@ -52,19 +56,19 @@ _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs": 5,
+    "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
-    "epochs": 5,
+    "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
-    "epochs": 5,
+    "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
-    "epochs": 5,
+    "epochs": 50,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
@@ -146,10 +150,12 @@ def run_benchmark(
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
         # TODO: put into generic function
-        seq_len = dekad_from_date(train_dataset.max_date) - dekad_from_date(train_dataset.min_date) + 1
-        models_init_kwargs["Transformer"] = {"seq_len": seq_len}
-        models_init_kwargs["TransformerRes"] = {"seq_len": seq_len}
-
+        models_init_kwargs["Transformer"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
+        models_init_kwargs["TransformerRes"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
 
         labels = test_dataset.targets()
 
@@ -160,7 +166,6 @@ def run_benchmark(
         }
 
         for model_name, model_constructor in model_constructors.items():
-
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
@@ -207,7 +212,7 @@ def load_results(
         df = pd.read_csv(path)
         df_all = pd.concat([df_all, df], axis=0)
 
-    if (KEY_COUNTRY not in df_all.columns):
+    if KEY_COUNTRY not in df_all.columns:
         df_all[KEY_COUNTRY] = df_all[KEY_LOC].str[:2]
 
     return df_all

@@ -24,6 +24,9 @@ class ModifiedTargetsDataset(Dataset):
         target_indices = self._df_y.index.values
         assert len(set(input_indices) - set(target_indices)) == 0
 
+        # max crop season window length
+        self._max_season_window_length = dataset.max_season_window_length
+
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
         self._allow_incomplete = False

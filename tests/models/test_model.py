@@ -12,7 +12,12 @@ from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import evaluate_predictions
 
 from cybench.config import PATH_DATA_DIR
-from cybench.config import KEY_LOC, KEY_YEAR, KEY_TARGET
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    KEY_TARGET,
+    KEY_COMBINED_FEATURES,
+)
 
 
 def test_average_yield_model():
@@ -33,7 +38,7 @@ def test_average_yield_model():
     # test prediction for an existing item
     sel_loc = "US-01-001"
     assert sel_loc in yield_df.index.get_level_values(0)
-    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs={})
     model.fit(dataset)
     sel_year = 2018
     filtered_df = yield_df[yield_df.index.get_level_values(0) == sel_loc]
@@ -57,7 +62,7 @@ def test_average_yield_model():
     # test prediction for a non-existent item
     sel_loc = "US-01-003"
     assert sel_loc not in yield_df.index.get_level_values(0)
-    dataset = Dataset("maize", data_target=yield_df, data_inputs=[])
+    dataset = Dataset("maize", data_target=yield_df, data_inputs={})
     model.fit(dataset)
     expected_pred = yield_df[KEY_TARGET].mean()
     test_data[KEY_LOC] = sel_loc
@@ -114,7 +119,7 @@ def test_trend_model():
                 train_yields = yield_loc_df[yield_loc_df[KEY_YEAR].isin(train_years)]
                 train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
                 test_yields = yield_loc_df[yield_loc_df[KEY_YEAR] == test_year]
-                train_dataset = Dataset("maize", train_yields, [])
+                train_dataset = Dataset("maize", train_yields, data_inputs={})
 
                 model = TrendModel()
                 model.fit(train_dataset)
@@ -130,7 +135,7 @@ def test_trend_model():
             train_years = [y for y in all_years if y != test_year]
             train_yields = yield_loc_df[yield_loc_df[KEY_YEAR].isin(train_years)]
             train_yields = train_yields.set_index([KEY_LOC, KEY_YEAR])
-            train_dataset = Dataset("maize", train_yields, [])
+            train_dataset = Dataset("maize", train_yields, data_inputs={})
 
             # Expect the average due to insufficient data or no trend
             model = TrendModel()
@@ -169,14 +174,16 @@ def test_sklearn_model():
     train_yields = train_df[[KEY_TARGET]].copy()
     feature_cols = [c for c in train_df.columns if c != KEY_TARGET]
     train_features = train_df[feature_cols].copy()
-    train_dataset = Dataset("maize", train_yields, {"combined": train_features})
+    train_dataset = Dataset(
+        "maize", train_yields, {KEY_COMBINED_FEATURES: train_features}
+    )
 
     # Test dataset
     test_csv = os.path.join(data_path, "grain_maize_US_train.csv")
     test_df = pd.read_csv(test_csv, index_col=[KEY_LOC, KEY_YEAR])
     test_yields = test_df[[KEY_TARGET]].copy()
     test_features = test_df[feature_cols].copy()
-    test_dataset = Dataset("maize", test_yields, {"combined": test_features})
+    test_dataset = Dataset("maize", test_yields, {KEY_COMBINED_FEATURES: test_features})
 
     # Model
     model = SklearnRidge(
@@ -252,67 +259,69 @@ def test_sklearn_res_model():
     print("RidgeRes", metrics_ridge_res)
 
 
-# TODO: Uncomment after fixing TorchDataset.
-# def test_nn_model():
-#     train_dataset = Dataset.load("maize_NL")
-#     test_dataset = Dataset.load("maize_NL")
-#     device = "cuda" if torch.cuda.is_available() else "cpu"
+# TODO: Uncomment after TorchDataset is working.
+def test_nn_model():
+    train_dataset = Dataset.load("maize_NL")
+    test_dataset = Dataset.load("maize_NL")
+    device = "cuda" if torch.cuda.is_available() else "cpu"
 
-#     # Initialize model, assumes that all features are in np.ndarray format
-#     model = BaselineLSTM(
-#         hidden_size=64,
-#         num_layers=1,
-#         output_size=1,
-#     )
-#     scheduler_fn = torch.optim.lr_scheduler.StepLR
+    # Initialize model, assumes that all features are in np.ndarray format
+    model = BaselineLSTM(
+        hidden_size=64,
+        num_layers=1,
+        output_size=1,
+    )
+    scheduler_fn = torch.optim.lr_scheduler.StepLR
 
-#     # Train model
-#     model.fit(
-#         train_dataset,
-#         batch_size=16,
-#         epochs=10,
-#         param_space={
-#             "lr": [0.0001, 0.00001],
-#             "weight_decay": [0.0001, 0.00001],
-#         },
-#         device=device,
-#         scheduler_fn=scheduler_fn,
-#         **{
-#             "optimize_hyperparameters": True,
-#             "validation_interval": 5,
-#             "loss_kwargs": {
-#                 "reduction": "mean",
-#             },
-#             "sched_kwargs": {
-#                 "step_size": 2,
-#                 "gamma": 0.5,
-#             },
-#         },
-#     )
+    # Train model
+    model.fit(
+        train_dataset,
+        batch_size=16,
+        epochs=10,
+        param_space={
+            "lr": [0.0001, 0.00001],
+            "weight_decay": [0.0001, 0.00001],
+        },
+        device=device,
+        scheduler_fn=scheduler_fn,
+        **{
+            "optimize_hyperparameters": True,
+            "validation_interval": 5,
+            "loss_kwargs": {
+                "reduction": "mean",
+            },
+            "sched_kwargs": {
+                "step_size": 2,
+                "gamma": 0.5,
+            },
+        },
+    )
 
-#     # Test predict_items()
-#     num_test_items = len(test_dataset)
-#     test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
-#     test_preds, _ = model.predict_items(test_data)
-#     assert test_preds.shape[0] == min(num_test_items, 16)
+    # Test predict_items()
+    # TODO: Data items must be interpolated and aggregated.
+    # Decide whether we do that here or inside the model.
+    # num_test_items = len(test_dataset)
+    # test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
+    # test_preds, _ = model.predict_items(test_data)
+    # assert test_preds.shape[0] == min(num_test_items, 16)
 
-#     # Check if evaluation results are within expected range
-#     test_preds, _ = model.predict(test_dataset)
-#     targets = test_dataset.targets()
-#     evaluation_result = evaluate_predictions(targets, test_preds)
+    # Check if evaluation results are within expected range
+    test_preds, _ = model.predict(test_dataset)
+    targets = test_dataset.targets()
+    evaluation_result = evaluate_predictions(targets, test_preds)
 
-#     min_expected_values = {
-#         "normalized_rmse": 0,
-#         "mape": 0.00,
-#     }
-#     for metric, expected_value in min_expected_values.items():
-#         assert (
-#             metric in evaluation_result
-#         ), f"Metric '{metric}' not found in evaluation result"
-#         assert (
-#             evaluation_result[metric] >= expected_value
-#         ), f"Value of metric '{metric}' does not match expected value"
-#         # Check metric is not NaN
-#         assert not np.isnan(
-#             evaluation_result[metric]
-#         ), f"Value of metric '{metric}' is NaN"
+    min_expected_values = {
+        "normalized_rmse": 0,
+        "mape": 0.00,
+    }
+    for metric, expected_value in min_expected_values.items():
+        assert (
+            metric in evaluation_result
+        ), f"Metric '{metric}' not found in evaluation result"
+        assert (
+            evaluation_result[metric] >= expected_value
+        ), f"Value of metric '{metric}' does not match expected value"
+        # Check metric is not NaN
+        assert not np.isnan(
+            evaluation_result[metric]
+        ), f"Value of metric '{metric}' is NaN"

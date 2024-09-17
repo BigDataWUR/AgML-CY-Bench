@@ -18,6 +18,8 @@ from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,
+    MIN_INPUT_YEAR,
+    MAX_INPUT_YEAR,
     SOIL_PROPERTIES,
     METEO_INDICATORS,
     RS_FPAR,
@@ -336,9 +338,9 @@ def date_from_dekad(dekad, year):
 
 from cybench.util.features import dekad_from_date
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.configured import preprocess_crop_calendar
 from cybench.datasets.alignment import (
-    trim_to_lead_time,
+    compute_crop_season_window,
+    align_to_crop_season_window,
     align_inputs_and_labels,
 )
 
@@ -494,62 +496,19 @@ def get_cybench_data_aligned_to_crop_season():
         os.path.join(path_data_cn, "crop_calendar_maize_US.csv"),
         header=0,
     )[[KEY_LOC] + CROP_CALENDAR_DOYS]
-    index_y_years = set([year for _, year in df_y.index.values])
-    df_crop_cal = preprocess_crop_calendar(
-        df_crop_cal, min(index_y_years), max(index_y_years)
+    df_crop_cal = compute_crop_season_window(
+        df_crop_cal, MIN_INPUT_YEAR, MAX_INPUT_YEAR, lead_time="60-days"
     )
 
     dfs_x = {"soil": df_x_soil}
-    min_dekads = 36
+    # min_dekads = 36
     for input in ["meteo", "fpar"]:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
         df_x["date"] = pd.to_datetime(df_x["date"], format="%Y%m%d")
         df_x[KEY_YEAR] = df_x["date"].dt.year
-        # df_x = df_x.dropna(axis=0)
-        df_x = trim_to_lead_time(df_x, df_crop_cal, lead_time="60-days")
-        df_x["dekad"] = df_x.apply(lambda r: dekad_from_date(r["date"]), axis=1)
-
-        # Aggregate time series data to dekadal resolution
-        if input == "meteo":
-            df_x = (
-                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
-                .agg(
-                    {
-                        "tmin": "min",
-                        "tmax": "max",
-                        "tavg": "mean",
-                        "prec": "sum",
-                        "cwb": "sum",
-                        "rad": "mean",
-                        "date": "min",
-                    }
-                )
-                .reset_index()
-            )
-        elif input == "fpar":
-            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
-
-        num_dekads = df_x.groupby([KEY_LOC, KEY_YEAR])["dekad"].count().min()
-        if num_dekads < min_dekads:
-            min_dekads = num_dekads
-
-        dfs_x[input] = df_x
-
-    # Ensure same number of dekads.
-    # NOTE: Number of dekads can be different due to daily vs dekadal resolution
-    #       of original data and crop season alignment.
-    # get_cybench_data() does not seem to be have this issue because
-    # data is not aligned to crop season.
-    for input in dfs_x:
-        df_x = dfs_x[input]
-        if "dekad" not in df_x.columns:
-            continue
-
-        df_x = df_x.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-        df_x = df_x.groupby([KEY_LOC, KEY_YEAR]).tail(min_dekads).reset_index()
-        df_x = df_x.drop(columns=["dekad", "index"])
+        df_x = align_to_crop_season_window(df_x, df_crop_cal)
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
         dfs_x[input] = df_x
 

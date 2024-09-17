@@ -6,6 +6,8 @@ from cybench.config import (
     KEY_YEAR,
     KEY_TARGET,
     KEY_DATES,
+    KEY_CROP_SEASON,
+    KEY_COMBINED_FEATURES,
     CROP_CALENDAR_DATES,
     DATASETS,
 )
@@ -60,8 +62,16 @@ class Dataset:
         self._df_y = data_target
         self._dfs_x = data_inputs
 
+        # no input data or predesigned features
+        if (len(self._dfs_x) == 0) or (KEY_COMBINED_FEATURES in self._dfs_x):
+            self._max_season_window_length = None
+        else:
+            assert KEY_CROP_SEASON in self._dfs_x
+            self._max_season_window_length = self._dfs_x[KEY_CROP_SEASON][
+                "season_window_length"
+            ].max()
+
         # Sort all data for faster lookups
-        # also fix dates
         self._df_y.sort_index(inplace=True)
         for x in self._dfs_x:
             self._dfs_x[x].sort_index(inplace=True)
@@ -130,6 +140,10 @@ class Dataset:
     def indices(self) -> list:
         return self._df_y.index.values
 
+    @property
+    def max_season_window_length(self) -> int:
+        return self._max_season_window_length
+
     def __getitem__(self, index) -> dict:
         """
         Get a single data point in the dataset
@@ -159,9 +173,9 @@ class Dataset:
             KEY_TARGET: sample_y[KEY_TARGET],
         }
 
-        # crop calendar dates are datetime objects
-        if "crop_calendar" in self._dfs_x:
-            sample_cc = self._dfs_x["crop_calendar"].loc[(loc_id, year)]
+        # crop season dates are datetime objects
+        if KEY_CROP_SEASON in self._dfs_x:
+            sample_cc = self._dfs_x[KEY_CROP_SEASON].loc[(loc_id, year)]
             data_cc = {k: sample_cc[k] for k in CROP_CALENDAR_DATES}
             sample = {**data_cc, **sample}
 
@@ -198,7 +212,7 @@ class Dataset:
         # For all feature dataframes
         for x in self._dfs_x:
             # handled in __get_item__
-            if x == "crop_calendar":
+            if x == KEY_CROP_SEASON:
                 continue
 
             df = self._dfs_x[x]
@@ -268,7 +282,7 @@ class Dataset:
         """
         norm_params = {}
         for x, df in self._dfs_x.items():
-            if x == "crop_calendar":
+            if x == KEY_CROP_SEASON:
                 continue
 
             for c in df.columns:

@@ -108,6 +108,15 @@ KEY_YEAR = "year"
 KEY_TARGET = "yield"
 # Key used for dates matching observations
 KEY_DATES = "dates"
+# Key used for crop season data
+KEY_CROP_SEASON = "crop_season"
+# Key used for combined input features
+KEY_COMBINED_FEATURES = "combined_features"
+
+# Minimum and maximum year in input data.
+# Used to add years to crop calendar data.
+MIN_INPUT_YEAR = 2000
+MAX_INPUT_YEAR = 2023
 
 # Soil properties
 SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
@@ -131,13 +140,26 @@ TIME_SERIES_PREDICTORS = (
     METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
 )
 
+# Aggregation functions
+TIME_SERIES_AGGREGATIONS = {
+    "tmin": "min",
+    "tmax": "max",
+    "tavg": "mean",
+    "prec": "sum",
+    "cwb": "sum",
+    "rad": "mean",
+    RS_FPAR: "mean",
+    RS_NDVI: "mean",
+    "ssm": "mean",
+}
+
 # All predictors. Add more when available
 ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
 
 # Crop calendar entries: start of season, end of season.
 # doy = day of year (1 to 366).
 CROP_CALENDAR_DOYS = ["sos", "eos"]
-CROP_CALENDAR_DATES = ["sos_date", "eos_date"]
+CROP_CALENDAR_DATES = ["sos_date", "eos_date", "cutoff_date"]
 
 # Feature design
 # Base temperature for corn and wheat for growing degree days wheat:0 maize:10.

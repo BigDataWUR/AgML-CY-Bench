@@ -245,9 +245,17 @@ class BaseNNModel(BaseModel, nn.Module):
         assert epochs > 0
 
         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
-
-        train_dataset = TorchDataset(train_dataset)
-        val_dataset = TorchDataset(val_dataset)
+        max_season_window_length = train_dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            train_dataset,
+            aggregate_to_dekads=True,
+            max_season_window_length=max_season_window_length,
+        )
+        val_dataset = TorchDataset(
+            val_dataset,
+            aggregate_to_dekads=True,
+            max_season_window_length=max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -341,7 +349,12 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         self.to(device)
 
-        train_dataset = TorchDataset(dataset)
+        self._max_season_window_length = dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            dataset,
+            aggregate_to_dekads=True,
+            max_season_window_length=self._max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -508,7 +521,11 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         self.to(device)
         self.eval()
-        test_dataset = TorchDataset(dataset)
+        test_dataset = TorchDataset(
+            dataset,
+            aggregate_to_dekads=True,
+            max_season_window_length=self._max_season_window_length,
+        )
         test_loader = torch.utils.data.DataLoader(
             test_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
         )
@@ -708,13 +725,14 @@ class BaselineTransformer(BaseNNModel):
     """Transformer model.
 
     Args:
-         hidden_size (int): The number of resulting timeseries features.
-         d_moodel (int): Total dimension of the model.
-         n_head (int): Parallel attention heads.
-         d_ffn (int): The dimension of the feedforward network model.
-         output_size (int): The number of output classes. Defaults to 1.
-         num_layers (1): The number of sub-encoder-layers in the encoder.
-         **kwargs: Additional keyword arguments passed to the base class.
+        seq_len (int): length of time series sequence (in days)
+        hidden_size (int): The number of resulting timeseries features.
+        d_moodel (int): Total dimension of the model.
+        n_head (int): Parallel attention heads.
+        d_ffn (int): The dimension of the feedforward network model.
+        output_size (int): The number of output classes. Defaults to 1.
+        num_layers (1): The number of sub-encoder-layers in the encoder.
+        **kwargs: Additional keyword arguments passed to the base class.
     """
 
     def __init__(
@@ -737,12 +755,20 @@ class BaselineTransformer(BaseNNModel):
         kwargs["d_ff"] = d_ff
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
+        # TODO: Check this computation matches number of dekads
+        assert seq_len is not None
+        seq_len = int(np.ceil(seq_len / 7))
         kwargs["seq_len"] = seq_len
 
         super().__init__(**kwargs)
         self._timeseries = TST(
-            c_in=n_ts_inputs, c_out=hidden_size, seq_len=seq_len, n_layers=num_layers, d_model=d_model, n_heads=n_head,
-            d_ff=d_ff
+            c_in=n_ts_inputs,
+            c_out=hidden_size,
+            seq_len=seq_len,
+            n_layers=num_layers,
+            d_model=d_model,
+            n_heads=n_head,
+            d_ff=d_ff,
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
 

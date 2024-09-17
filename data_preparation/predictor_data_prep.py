@@ -1041,7 +1041,7 @@ def process_indicators(crop, region, sel_indicators):
                 files = get_time_series_files(indicator_dir, year=yr)
 
                 print("There are " + str(len(files)) + " files!")
-                if (len(files) == 0):
+                if len(files) == 0:
                     continue
 
                 start_time = time.time()

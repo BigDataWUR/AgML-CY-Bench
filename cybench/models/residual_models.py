@@ -7,7 +7,11 @@ from cybench.datasets.modified_dataset import ModifiedTargetsDataset
 from cybench.models.model import BaseModel
 from cybench.models.trend_models import TrendModel
 from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
-from cybench.models.nn_models import BaselineLSTM, BaselineInceptionTime, BaselineTransformer
+from cybench.models.nn_models import (
+    BaselineLSTM,
+    BaselineInceptionTime,
+    BaselineTransformer,
+)
 from cybench.util.data import data_to_pandas
 
 from cybench.config import (
