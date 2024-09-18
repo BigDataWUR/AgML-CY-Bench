@@ -18,6 +18,7 @@ from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
     KEY_TARGET,
+    KEY_CROP_SEASON,
     MIN_INPUT_YEAR,
     MAX_INPUT_YEAR,
     SOIL_PROPERTIES,
@@ -32,9 +33,19 @@ from cybench.config import (
 
 class LSTMModel(BaseModel, nn.Module):
     def __init__(
-        self, num_rnn_layers=1, rnn_hidden_size=64, num_outputs=1, *args, **kwargs
+        self,
+        time_series_have_same_length=False,
+        num_rnn_layers=1,
+        rnn_hidden_size=64,
+        num_outputs=1,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self._aggregate_time_series_to = None
+        if not time_series_have_same_length:
+            self._aggregate_time_series_to = "week"
+
         num_ts_inputs = len(TIME_SERIES_PREDICTORS)
         num_other_inputs = len(STATIC_PREDICTORS)
         self._batch_norm1 = nn.BatchNorm1d(num_ts_inputs)
@@ -81,7 +92,12 @@ class LSTMModel(BaseModel, nn.Module):
             sel_lr = 0.0001
             sel_wt_decay = 0.00001
 
-        torch_dataset = TorchDataset(train_dataset)
+        self._max_season_window_length = train_dataset.max_season_window_length
+        torch_dataset = TorchDataset(
+            train_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         data_loader = torch.utils.data.DataLoader(
             torch_dataset,
             collate_fn=torch_dataset.collate_fn,
@@ -177,7 +193,14 @@ class LSTMModel(BaseModel, nn.Module):
                     train_dataset2, valid_dataset = train_dataset.split_on_years(
                         (train_years2, valid_years)
                     )
-                    torch_dataset = TorchDataset(train_dataset2)
+                    self._max_season_window_length = (
+                        train_dataset2.max_season_window_length
+                    )
+                    torch_dataset = TorchDataset(
+                        train_dataset2,
+                        aggregate_time_series_to=self._aggregate_time_series_to,
+                        max_season_window_length=self._max_season_window_length,
+                    )
                     data_loader = torch.utils.data.DataLoader(
                         torch_dataset,
                         collate_fn=torch_dataset.collate_fn,
@@ -264,7 +287,11 @@ class LSTMModel(BaseModel, nn.Module):
 
     def predict(self, test_dataset):
         self.eval()
-        torch_dataset = TorchDataset(test_dataset)
+        torch_dataset = TorchDataset(
+            test_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         data_loader = torch.utils.data.DataLoader(
             torch_dataset,
             collate_fn=torch_dataset.collate_fn,
@@ -414,11 +441,11 @@ def get_cybench_data():
         NOTE: These should match the definitions of STATIC_PREDICTORS
               and TIME_SERIES_PREDICTORS.
         NOTE: All time series inputs are at the same (dekadal) resolution.
-              This means `ExampleLSTM` does not need to aggregate time series data.
+              This means `BaselineLSTM` does not need to aggregate time series data.
 
         epochs=10
         lr=0.0001
-        weight_decay=0.0001. Since `ExampleLSTM` uses weight_decay=0.00001, the same value
+        weight_decay=0.0001. Since `BaselineLSTM` uses weight_decay=0.00001, the same value
         is now used for the workshop `LSTMModel` implementation above.
     """
     path_data_cn = os.path.join(PATH_DATA_DIR, "maize", "US")
@@ -513,14 +540,18 @@ def get_cybench_data_aligned_to_crop_season():
         dfs_x[input] = df_x
 
     df_crop_cal.set_index([KEY_LOC, KEY_YEAR], inplace=True)
-    df_crop_cal = df_crop_cal[CROP_CALENDAR_DATES]
-    dfs_x["crop_calendar"] = df_crop_cal
+    dfs_x[KEY_CROP_SEASON] = df_crop_cal
 
     return align_inputs_and_labels(df_y, dfs_x)
 
 
-def validate_agml_workshop_results(df_y, dfs_x):
-    dataset = Dataset("maize", data_target=df_y, data_inputs=dfs_x)
+def validate_agml_workshop_results(df_y, dfs_x, time_series_have_same_length=False):
+    dataset = Dataset(
+        "maize",
+        data_target=df_y,
+        data_inputs=dfs_x,
+        time_series_have_same_length=time_series_have_same_length,
+    )
     all_years = dataset.years
     test_years = [2012, 2018]
     train_years = [yr for yr in all_years if yr not in test_years]
@@ -535,9 +566,13 @@ def validate_agml_workshop_results(df_y, dfs_x):
 
     for model_name in ["workshop_lstm", "benchmark_lstm"]:
         if model_name == "workshop_lstm":
-            lstm_model = LSTMModel()
+            lstm_model = LSTMModel(
+                time_series_have_same_length=time_series_have_same_length
+            )
         else:
-            lstm_model = BaselineLSTM(transforms=[])
+            lstm_model = BaselineLSTM(
+                time_series_have_same_length=time_series_have_same_length
+            )
 
         lstm_model.fit(train_dataset, epochs=10)
         test_preds, _ = lstm_model.predict(test_dataset)
@@ -559,12 +594,12 @@ if __name__ == "__main__":
     # 1. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with workshop data
     df_y, dfs_x = get_workshop_data()
-    validate_agml_workshop_results(df_y, dfs_x)
+    validate_agml_workshop_results(df_y, dfs_x, time_series_have_same_length=True)
 
     # 2. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with CY-Bench data
     df_y, dfs_x = get_cybench_data()
-    validate_agml_workshop_results(df_y, dfs_x)
+    validate_agml_workshop_results(df_y, dfs_x, time_series_have_same_length=True)
 
     # 3. Validate performance of LSTMModel (from AgML Workshop)
     #    and ExampleLSTM with CY-Bench data aligned to crop season

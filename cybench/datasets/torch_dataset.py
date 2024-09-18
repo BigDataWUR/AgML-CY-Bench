@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import torch
 import torch.utils.data
 
@@ -8,37 +9,46 @@ from cybench.config import (
     KEY_TARGET,
     KEY_DATES,
     KEY_CROP_SEASON,
-    TIME_SERIES_AGGREGATIONS,
-    TIME_SERIES_PREDICTORS,
     CROP_CALENDAR_DATES,
+    TIME_SERIES_PREDICTORS,
+    TIME_SERIES_AGGREGATIONS,
     ALL_PREDICTORS,
 )
 
 from cybench.datasets.dataset import Dataset
 from cybench.util.torch import batch_tensors
+from cybench.util.features import dekad_from_date
 
 
 class TorchDataset(Dataset, torch.utils.data.Dataset):
     def __init__(
         self,
         dataset: Dataset,
-        aggregate_to_dekads: bool = False,
+        aggregate_time_series_to: str = None,
         max_season_window_length: int = None,
     ):
         """
         PyTorch Dataset wrapper for compatibility with torch DataLoader objects
-        :param dataset:
+        :param dataset: Dataset
+        :param aggregate_time_series_to: aggregation resolution for time series data
+                                         ("week" and "dekad" are supported)
+        :param max_season_window_length: maximum length of time series
         """
         self._crop = dataset.crop
         self._df_y = dataset._df_y
 
-        self._aggregate_time_series = aggregate_to_dekads
         if max_season_window_length is None:
             self._max_season_window_length = dataset.max_season_window_length
         else:
             self._max_season_window_length = max_season_window_length
 
-        if aggregate_to_dekads:
+        self._aggregate_time_series_to = aggregate_time_series_to
+        if aggregate_time_series_to is not None:
+            if aggregate_time_series_to not in ["week", "dekad"]:
+                raise Exception(
+                    f"Unsupported time series aggregation resolution {aggregate_time_series_to}"
+                )
+
             assert self._max_season_window_length is not None
             self._dfs_x = {}
             ts_inputs = [
@@ -52,7 +62,7 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
             df_ts = pd.concat(
                 [dataset._dfs_x[x] for x in ts_inputs], join="outer", axis=1
             )
-            # df_crop_season.reset_index(inplace=True)
+
             # create a dataframe with all dates for every location and year
             df_all_dates = self._dfs_x[KEY_CROP_SEASON][["cutoff_date"]].copy()
             df_all_dates["date"] = df_all_dates.apply(
@@ -66,26 +76,41 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
             df_all_dates = df_all_dates.explode("date").drop(columns=["cutoff_date"])
             df_all_dates.reset_index(inplace=True)
             df_all_dates.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+
+            # merge to get all dates in time series data
             df_ts = df_ts.merge(
                 df_all_dates, how="outer", on=[KEY_LOC, KEY_YEAR, "date"]
             )
             del df_all_dates
-            # interpolate
-            df_ts = df_ts.interpolate(method="linear")
+
+            # NOTE: interpolate fills data in forward direction.
+            df_ts = df_ts.sort_index().interpolate(method="linear")
+            # fill NAs in the front with 0.0
             df_ts.fillna(0.0, inplace=True)
+
+            # aggregate
             df_ts.reset_index(inplace=True)
-            df_ts["week"] = df_ts["date"].dt.isocalendar().week
-            # Time series aggregation
+            if self._aggregate_time_series_to == "week":
+                df_ts["week"] = df_ts["date"].dt.isocalendar().week
+            else:
+                df_ts["dekad"] = df_ts.apply(
+                    lambda r: dekad_from_date(r["date"]), axis=1
+                )
+
             ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in TIME_SERIES_PREDICTORS}
             # Primarily to avoid losing the "date" column.
             ts_aggrs["date"] = "min"
             df_ts = (
-                df_ts.groupby([KEY_LOC, KEY_YEAR, "week"]).agg(ts_aggrs).reset_index()
+                df_ts.groupby([KEY_LOC, KEY_YEAR, self._aggregate_time_series_to])
+                .agg(ts_aggrs)
+                .reset_index()
             )
-            df_ts.drop(columns=["week"], inplace=True)
+            df_ts.drop(columns=[self._aggregate_time_series_to], inplace=True)
 
-            # Add crop season and time series to self._dfs_x
-            self._dfs_x["combined_ts"] = df_ts.set_index([KEY_LOC, KEY_YEAR, "date"])
+            # Add time series to self._dfs_x
+            self._dfs_x["combined_ts"] = df_ts.set_index(
+                [KEY_LOC, KEY_YEAR, "date"]
+            ).sort_index()
         else:
             self._dfs_x = dataset._dfs_x
 
@@ -101,6 +126,24 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
         :return: a dict containing the data sample
         """
         sample = super(TorchDataset, self).__getitem__(index)
+        if self._aggregate_time_series_to is not None:
+            if self._aggregate_time_series_to == "week":
+                num_time_steps = int(np.ceil(self._max_season_window_length / 7))
+            else:
+                num_time_steps = int(np.ceil(self._max_season_window_length / 10))
+
+            # make sure time series data has the same number of time steps
+            for k in TIME_SERIES_PREDICTORS:
+                if sample[k].shape[0] > num_time_steps:
+                    sample[k] = sample[k][-num_time_steps:]
+                elif sample[k].shape[0] < num_time_steps:
+                    sample[k] = np.pad(
+                        sample[k],
+                        (num_time_steps - sample[k].shape[0], 0),
+                        mode="constant",
+                        constant_values=0.0,
+                    )
+
         return self._cast_to_tensor(sample)
 
     @classmethod

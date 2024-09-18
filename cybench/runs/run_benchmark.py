@@ -54,31 +54,32 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
+NN_MODELS_EPOCHS = 50
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
 _BASELINE_MODEL_FIT_KWARGS["Transformer"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
 _BASELINE_MODEL_FIT_KWARGS["TransformerRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 

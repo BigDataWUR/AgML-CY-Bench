@@ -67,7 +67,6 @@ def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_T
         df["sos_date"],
     )
 
-    df.drop(columns=CROP_CALENDAR_DOYS, inplace=True)
     df["season_length"] = (df["eos_date"] - df["sos_date"]).dt.days
     assert df[df["season_length"] > 366].empty
 
@@ -78,6 +77,9 @@ def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_T
         df["season_length"] + SPINUP_DAYS - df["cutoff_days"],
         365 - df["cutoff_days"],
     )
+
+    # drop redundant information
+    df.drop(columns=CROP_CALENDAR_DOYS + ["season_length", "cutoff_days"], inplace=True)
 
     return df
 
@@ -99,7 +101,6 @@ def align_to_crop_season_window(df: pd.DataFrame, crop_season_df: pd.DataFrame):
     df = df.merge(
         crop_season_df[[KEY_LOC, KEY_YEAR] + CROP_CALENDAR_DATES],
         on=[KEY_LOC, KEY_YEAR],
-        how="left",
     )
 
     # The next crop season starts right after current year's harvest.
@@ -107,7 +108,7 @@ def align_to_crop_season_window(df: pd.DataFrame, crop_season_df: pd.DataFrame):
     df.drop(columns=CROP_CALENDAR_DATES, inplace=True)
 
     # merge with crop season data again because we changed KEY_YEAR
-    df = df.merge(crop_season_df, on=[KEY_LOC, KEY_YEAR], how="left")
+    df = df.merge(crop_season_df, on=[KEY_LOC, KEY_YEAR])
 
     # Validate sos_date: date - sos_date should not be more than 366 days
     assert df[(df["date"] - df["sos_date"]).dt.days > 366].empty
@@ -125,8 +126,8 @@ def align_to_crop_season_window(df: pd.DataFrame, crop_season_df: pd.DataFrame):
         "max"
     )
     df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_window_length"]]
-    # Keep season_window_length, i.e. season_length + SPINUP_DAYS
-    df = df[(df["eos_date"] - df["date"]).dt.days <= df["season_window_length"]]
+    # Keep season_window_length, i.e. season_length + SPINUP_DAYS - cutoff_days
+    df = df[(df["cutoff_date"] - df["date"]).dt.days <= df["season_window_length"]]
 
     # Trim to lead time
     df = df[df["date"] <= df["cutoff_date"]]

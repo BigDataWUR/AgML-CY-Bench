@@ -24,6 +24,8 @@ class ModifiedTargetsDataset(Dataset):
         target_indices = self._df_y.index.values
         assert len(set(input_indices) - set(target_indices)) == 0
 
+        # whether time series have same length
+        self._time_series_have_same_length = dataset.time_series_have_same_length
         # max crop season window length
         self._max_season_window_length = dataset.max_season_window_length
 
