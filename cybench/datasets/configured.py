@@ -39,7 +39,7 @@ def _load_and_preprocess_time_series_data(
         df_crop_cal (pd.DataFrame): crop calendar data
 
     Returns:
-        the same dataframe after preprocessing
+        the same DataFrame after preprocessing and aligning to crop season
     """
     path_data_cn = os.path.join(PATH_DATA_DIR, crop, country_code)
     df_ts = pd.read_csv(
@@ -100,8 +100,8 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     )
 
     # Time series data
-    # NOTE: All time series data have to be rotated by crop calendar.
-    # Set index to ts_index_cols after rotation.
+    # NOTE: All time series data have to be aligned to crop season.
+    # Set index to ts_index_cols after alignment.
     ts_index_cols = [KEY_LOC, KEY_YEAR, "date"]
     ts_inputs = {
         "meteo": METEO_INDICATORS,
@@ -116,9 +116,8 @@ def load_dfs(crop: str, country_code: str) -> tuple:
         )
         dfs_x[x] = df_ts
 
-    df_crop_cal.set_index([KEY_LOC, KEY_YEAR], inplace=True)
     # crop season based on SPINUP_DAYS and lead time
-    dfs_x[KEY_CROP_SEASON] = df_crop_cal
+    dfs_x[KEY_CROP_SEASON] = df_crop_cal.set_index([KEY_LOC, KEY_YEAR])
     df_y, dfs_x = align_inputs_and_labels(df_y, dfs_x)
 
     return df_y, dfs_x

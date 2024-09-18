@@ -148,7 +148,7 @@ class Dataset:
         return self._df_y.index.values
 
     @property
-    def time_series_have_same_length(self) -> int:
+    def time_series_have_same_length(self) -> bool:
         return self._time_series_have_same_length
 
     @property
@@ -222,7 +222,7 @@ class Dataset:
         }
         # For all feature dataframes
         for x in self._dfs_x:
-            # handled in __get_item__
+            # handled in __getitem__()
             if x == KEY_CROP_SEASON:
                 continue
 

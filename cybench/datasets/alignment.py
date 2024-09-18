@@ -45,8 +45,8 @@ def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_T
         max_year (int): latest year in target data
         lead_time (str): forecast lead time option
 
-    returns:
-        the same dataframe with crop season window information
+    Returns:
+        the same DataFrame with crop season window information
     """
     df = df[[KEY_LOC] + CROP_CALENDAR_DOYS]
     df = df.astype({k: int for k in CROP_CALENDAR_DOYS})
