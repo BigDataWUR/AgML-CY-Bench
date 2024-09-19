@@ -114,7 +114,7 @@ If run sequentially in a single capable GPU, the whole benchmark should take 50-
 #### Downloading dataset
 
 Get the dataset
-from [Google Drive](https://drive.google.com/drive/folders/1lHfCZKiicIDLmYAsmB8Row-zeC-c4yeJ?usp=sharing) or [Zenodo](https://doi.org/10.5281/zenodo.11502143).
+from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
 
 #### Running the benchmark
 
