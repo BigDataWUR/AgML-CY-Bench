@@ -224,7 +224,7 @@ Please cite CY-bench as follows:
   year         = 2024,
   publisher    = {AgML (https://www.agml.org/)},
   version      = {1.0},
-  doi          = {10.5281/zenodo.11502143},
+  doi          = {10.5281/zenodo.11502142},
 }
 </pre>
 
