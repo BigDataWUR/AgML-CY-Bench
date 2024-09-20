@@ -3,6 +3,7 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
+import argparse
 
 from cybench.config import (
     DATASETS,
@@ -92,9 +93,11 @@ def run_benchmark(
     model_fit_kwargs: dict = None,
     baseline_models: list = None,
     dataset_name: str = "maize_NL",
+    sel_years: list = None,
+    nn_models_epochs: int = None,
 ) -> dict:
     """
-    Run the AgML benchmark.
+    Run CY-Bench.
     Args:
         run_name (str): The name of the run. Will be used to store log files and model results
         model_name (str): The name of the model. Will be used to store log files and model results
@@ -104,6 +107,8 @@ def run_benchmark(
         baseline_models (list): A list of names of baseline models to run next to the provided model.
                                 If unspecified, a default list of baseline models will be used.
         dataset_name (str): The name of the dataset to load
+        sel_years (list): a list of years to run leave one year out (for tests)
+        nn_models_epochs (int): Number of epochs to run for nn-models (for tests)
 
     Returns:
         a dictionary containing the results of the benchmark
@@ -125,15 +130,20 @@ def run_benchmark(
     ), f"Model name {model_name} already occurs in the baseline"
 
     model_constructors = {
-        **_BASELINE_MODEL_CONSTRUCTORS,
+        k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models
     }
 
     models_init_kwargs = defaultdict(dict)
-    for name, kwargs in _BASELINE_MODEL_INIT_KWARGS.items():
-        models_init_kwargs[name] = kwargs
+    for name in baseline_models:
+        models_init_kwargs[name] = _BASELINE_MODEL_INIT_KWARGS[name]
 
     models_fit_kwargs = defaultdict(dict)
-    for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
+    for name in baseline_models:
+        kwargs = _BASELINE_MODEL_FIT_KWARGS[name]
+        # override epochs for nn-models (mainly for testing)
+        if ("epochs" in kwargs) and (nn_models_epochs is not None):
+            kwargs["epochs"] = nn_models_epochs
+
         models_fit_kwargs[name] = kwargs
 
     if model_name is not None:
@@ -145,7 +155,12 @@ def run_benchmark(
     dataset = Dataset.load(dataset_name)
 
     all_years = sorted(dataset.years)
-    for test_year in all_years:
+    if (sel_years is not None):
+        assert all([yr in all_years for yr in sel_years])
+    else:
+        sel_years = all_years
+
+    for test_year in sel_years:
         train_years = [y for y in all_years if y != test_year]
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
@@ -303,3 +318,41 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="run_benchmark.py", description="Run cybench")
+    parser.add_argument("-r", "--run-name")
+    parser.add_argument("-d", "--dataset-name")
+    args = parser.parse_args()
+    dataset_name = args.dataset_name
+    assert dataset_name is not None
+
+    if args.run_name is not None:
+        run_name = args.run_name
+    else:
+        run_name = dataset_name
+
+    # skipping some models
+    baseline_models = [
+        "AverageYieldModel",
+        "LinearTrend",
+        "SklearnRidge",
+        "RidgeRes",
+        "LSTM",
+        "LSTMRes",
+    ]
+    # override epochs for nn-models
+    nn_models_epochs = 5
+    results = run_benchmark(
+        run_name=run_name,
+        dataset_name=dataset_name,
+        baseline_models=baseline_models,
+        nn_models_epochs=nn_models_epochs,
+    )
+    df_metrics = results["df_metrics"].reset_index()
+    print(
+        df_metrics.groupby("model").agg(
+            {"normalized_rmse": "mean", "mape": "mean", "r2": "mean"}
+        )
+    )

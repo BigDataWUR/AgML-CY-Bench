@@ -956,7 +956,7 @@ def get_shapes(region="US"):
         sel_shapes = gpd.read_file(
             os.path.join(AGML_ROOT, "shapefiles", "shapefiles_AU.zip")
         )
-        sel_shapes["adm_id"] = "AU" + "-" + sel_shapes["AAGIS"]
+        sel_shapes["adm_id"] = "AU" + "-" + sel_shapes["AAGIS"].astype(str)
     elif region == "BR":
         sel_shapes = gpd.read_file(
             os.path.join(AGML_ROOT, "shapefiles", "shapefiles_BR.zip")
@@ -1002,7 +1002,11 @@ def get_shapes(region="US"):
             "US" + "-" + sel_shapes["STATEFP"] + "-" + sel_shapes["COUNTYFP"]
         )
 
-    sel_shapes = sel_shapes.to_crs(4326)
+    # Project to EPSG 4326
+    # shapes for BR don't have crs info. See #343.
+    if region not in ["BR"]:
+        sel_shapes = sel_shapes.to_crs(4326)
+
     return sel_shapes
 
 

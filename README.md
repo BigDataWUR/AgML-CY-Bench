@@ -114,7 +114,7 @@ If run sequentially in a single capable GPU, the whole benchmark should take 50-
 #### Downloading dataset
 
 Get the dataset
-from [Google Drive](https://drive.google.com/drive/folders/1lHfCZKiicIDLmYAsmB8Row-zeC-c4yeJ?usp=sharing) or [Zenodo](https://doi.org/10.5281/zenodo.11502143).
+from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
 
 #### Running the benchmark
 
@@ -224,7 +224,7 @@ Please cite CY-bench as follows:
   year         = 2024,
   publisher    = {AgML (https://www.agml.org/)},
   version      = {1.0},
-  doi          = {10.5281/zenodo.11502143},
+  doi          = {10.5281/zenodo.11502142},
 }
 </pre>
 
