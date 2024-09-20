@@ -1,7 +1,7 @@
 from cybench.runs.run_benchmark import run_benchmark
 
 
-def test_run_cybench():
+def test_run_benchmark():
     # skipping some models
     baseline_models = [
         "AverageYieldModel",
