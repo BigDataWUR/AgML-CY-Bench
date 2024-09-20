@@ -307,8 +307,8 @@ class BaseNNModel(BaseModel, nn.Module):
                     self.eval()
                     losses = []
                     for batch in val_loader:
-                        targets = batch[KEY_TARGET]
                         batch_preds = self._forward_pass(batch, device)
+                        targets = batch[KEY_TARGET]
                         loss = loss_fn(batch_preds, targets, **loss_kwargs)
                         losses.append(loss.item())
 
