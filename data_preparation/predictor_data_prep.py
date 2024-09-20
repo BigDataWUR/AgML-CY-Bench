@@ -1004,7 +1004,7 @@ def get_shapes(region="US"):
 
     # Project to EPSG 4326
     # shapes for BR don't have crs info. See #343.
-    if (region not in ["BR"]):
+    if region not in ["BR"]:
         sel_shapes = sel_shapes.to_crs(4326)
 
     return sel_shapes
@@ -1045,7 +1045,7 @@ def process_indicators(crop, region, sel_indicators):
                 files = get_time_series_files(indicator_dir, year=yr)
 
                 print("There are " + str(len(files)) + " files!")
-                if (len(files) == 0):
+                if len(files) == 0:
                     continue
 
                 start_time = time.time()

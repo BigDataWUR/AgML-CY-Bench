@@ -131,7 +131,7 @@ def box_plots_residuals(
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey="none"
     )
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         axes = axes.flatten()
 
     font = {
@@ -165,7 +165,7 @@ def box_plots_residuals(
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
 
@@ -184,7 +184,7 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
     fig, axes = plt.subplots(
         num_rows, subplots_per_row, figsize=(21, 4 * num_rows), sharey=True
     )
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         axes = axes.flatten()
 
     # Plot boxplots for each country
@@ -212,7 +212,7 @@ def box_plots_metrics(data, crop, countries, metric, metric_label, subplots_per_
         ax.xaxis.grid(False)
 
     # Remove any empty subplots
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
 
@@ -226,7 +226,7 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
     all_years = sorted(data_filtered[KEY_YEAR].unique())
     num_rows = 2
     fig, axes = plt.subplots(num_rows, 1, figsize=(12, 5 * num_rows), sharey=True)
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         axes = axes.flatten()
 
     num_years = len(all_years)
@@ -257,7 +257,7 @@ def plot_yearly_metrics(data, crop, country, metric, metric_label):
             ax.get_legend().remove()
 
     # Remove any empty subplots
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
 
@@ -273,7 +273,7 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
     num_years = len(all_years)
     num_cols = int(num_years / 2) + 1
     fig, axes = plt.subplots(2, num_cols, figsize=(5 * num_cols, 12), sharey="none")
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         axes = axes.flatten()
 
     font = {
@@ -319,7 +319,7 @@ def plot_yearly_residuals(data, crop, country, residual_cols, residual_labels):
             b.set_ylabel(None)
 
     # Remove any empty subplots
-    if (isinstance(axes, np.ndarray)):
+    if isinstance(axes, np.ndarray):
         for j in range(i + 1, len(axes)):
             fig.delaxes(axes[j])
 

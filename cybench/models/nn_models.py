@@ -765,8 +765,13 @@ class BaselineTransformer(BaseNNModel):
 
         super().__init__(**kwargs)
         self._timeseries = TST(
-            c_in=n_ts_inputs, c_out=hidden_size, seq_len=seq_len, n_layers=num_layers, d_model=d_model, n_heads=n_head,
-            d_ff=d_ff
+            c_in=n_ts_inputs,
+            c_out=hidden_size,
+            seq_len=seq_len,
+            n_layers=num_layers,
+            d_model=d_model,
+            n_heads=n_head,
+            d_ff=d_ff,
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
         self._transforms = transforms
