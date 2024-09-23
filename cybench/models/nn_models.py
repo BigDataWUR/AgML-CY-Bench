@@ -605,9 +605,7 @@ class BaselineLSTM(BaseNNModel):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
-        if time_series_have_same_length:
-            kwargs["aggregate_time_series_to"] = None
-        else:
+        if not time_series_have_same_length:
             kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
 
@@ -696,9 +694,7 @@ class BaselineInceptionTime(BaseNNModel):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
-        if time_series_have_same_length:
-            kwargs["aggregate_time_series_to"] = None
-        else:
+        if not time_series_have_same_length:
             kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
 
@@ -797,9 +793,7 @@ class BaselineTransformer(BaseNNModel):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
-        if time_series_have_same_length:
-            kwargs["aggregate_time_series_to"] = None
-        else:
+        if not time_series_have_same_length:
             kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
             # NOTE: Should match num_time_steps in TorchDataset __getitem__().

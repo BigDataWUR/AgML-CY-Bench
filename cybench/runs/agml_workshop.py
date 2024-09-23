@@ -11,10 +11,6 @@ from cybench.datasets.torch_dataset import TorchDataset
 from cybench.models.model import BaseModel
 from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import normalized_rmse, evaluate_predictions
-from cybench.datasets.alignment import (
-    interpolate_data_items,
-    aggregate_time_series_data,
-)
 
 from cybench.config import (
     PATH_DATA_DIR,
@@ -31,7 +27,6 @@ from cybench.config import (
     TIME_SERIES_PREDICTORS,
     TIME_SERIES_AGGREGATIONS,
     CROP_CALENDAR_DOYS,
-    CROP_CALENDAR_DATES,
 )
 
 
@@ -50,7 +45,7 @@ class LSTMModel(BaseModel, nn.Module):
         self._aggregate_time_series_to = None
         if not time_series_have_same_length:
             self._interpolate_time_series = True
-            self._aggregate_time_series_to = "week"
+            self._aggregate_time_series_to = "dekad"
 
         num_ts_inputs = len(TIME_SERIES_PREDICTORS)
         num_other_inputs = len(STATIC_PREDICTORS)
@@ -480,7 +475,7 @@ def get_cybench_data():
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {"soil": df_x_soil}
-    for input, ts_cols in TIME_SERIES_INPUTS:
+    for input, ts_cols in TIME_SERIES_INPUTS.items():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -536,7 +531,7 @@ def get_cybench_data_aligned_to_crop_season():
 
     dfs_x = {"soil": df_x_soil}
     # min_dekads = 36
-    for input in ["meteo", "fpar"]:
+    for input in TIME_SERIES_INPUTS:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -595,7 +590,13 @@ if __name__ == "__main__":
     """
     NOTE: config.py requires these updates to compare with workshop results.
     1. SOIL_PROPERTIES = ["awc"]
-    2. TIME_SERIES_PREDICTORS = METEO_INDICATORS + [RS_FPAR]
+    2. TIME_SERIES_INPUTS = {
+            "meteo": METEO_INDICATORS,
+            "fpar": [RS_FPAR],
+        #    "ndvi": [RS_NDVI],
+        #    "soil_moisture": SOIL_MOISTURE_INDICATORS,
+        }
+    Comment out the last two entries.
     The workshop data does not include other inputs from the benchmark.
     """
     # 1. Validate performance of LSTMModel (from AgML Workshop)
