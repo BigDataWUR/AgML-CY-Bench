@@ -505,6 +505,14 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         self.to(device)
         self.eval()
+        if self._aggregate_time_series_to is not None:
+            assert self._interpolate_time_series
+            assert self._max_season_window_length is not None
+            X = TorchDataset.interpolate_and_aggregate(
+                X,
+                self._max_season_window_length,
+                aggregate_time_series_to=self._aggregate_time_series_to,
+            )
 
         with torch.no_grad():
             X_collated = TorchDataset.collate_fn(

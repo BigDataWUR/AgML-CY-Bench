@@ -119,7 +119,7 @@ MIN_INPUT_YEAR = 2000
 MAX_INPUT_YEAR = 2023
 
 # Soil properties
-SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
+SOIL_PROPERTIES = ["awc", "bulk_density"]  # , "drainage_class"]
 
 # Static predictors. Add more when available
 STATIC_PREDICTORS = SOIL_PROPERTIES
@@ -143,7 +143,7 @@ TIME_SERIES_INPUTS = {
 }
 
 # Time series predictors
-TIME_SERIES_PREDICTORS = sum(TIME_SERIES_INPUTS.values, [])
+TIME_SERIES_PREDICTORS = sum(TIME_SERIES_INPUTS.values(), [])
 
 # Aggregation functions
 TIME_SERIES_AGGREGATIONS = {

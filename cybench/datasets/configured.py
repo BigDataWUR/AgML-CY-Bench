@@ -76,7 +76,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     df_y = df_y[df_y[KEY_TARGET] > 0.0]
     df_y.set_index([KEY_LOC, KEY_YEAR], inplace=True)
     # check empty targets
-    if (df_y.empty):
+    if df_y.empty:
         return df_y, {}
 
     # soil

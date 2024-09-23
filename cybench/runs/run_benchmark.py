@@ -129,9 +129,7 @@ def run_benchmark(
         model_name not in BASELINE_MODELS
     ), f"Model name {model_name} already occurs in the baseline"
 
-    model_constructors = {
-        k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models
-    }
+    model_constructors = {k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models}
 
     models_init_kwargs = defaultdict(dict)
     for name in baseline_models:
@@ -155,7 +153,7 @@ def run_benchmark(
     dataset = Dataset.load(dataset_name)
 
     all_years = sorted(dataset.years)
-    if (sel_years is not None):
+    if sel_years is not None:
         assert all([yr in all_years for yr in sel_years])
     else:
         sel_years = all_years

@@ -298,12 +298,10 @@ def test_nn_model():
     )
 
     # Test predict_items()
-    # TODO: Data items must be interpolated and aggregated.
-    # Decide whether we do that here or inside the model.
-    # num_test_items = len(test_dataset)
-    # test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
-    # test_preds, _ = model.predict_items(test_data)
-    # assert test_preds.shape[0] == min(num_test_items, 16)
+    num_test_items = len(test_dataset)
+    test_data = [test_dataset[i] for i in range(min(num_test_items, 16))]
+    test_preds, _ = model.predict_items(test_data)
+    assert test_preds.shape[0] == min(num_test_items, 16)
 
     # Check if evaluation results are within expected range
     test_preds, _ = model.predict(test_dataset)

@@ -286,9 +286,18 @@ class LSTMModel(BaseModel, nn.Module):
         self.to(device)
         self.eval()
 
+        if self._aggregate_time_series_to is not None:
+            assert self._interpolate_time_series
+            assert self._max_season_window_length is not None
+            X = TorchDataset.interpolate_and_aggregate(
+                X,
+                self._max_season_window_length,
+                aggregate_time_series_to=self._aggregate_time_series_to,
+            )
+
         with torch.no_grad():
             X_collated = TorchDataset.collate_fn(
-                [TorchDataset._cast_to_tensor(x) for x in X]
+                [TorchDataset.cast_to_tensor(x) for x in X]
             )
             y_pred = self._forward_pass(X_collated, device)
             y_pred = y_pred.cpu().numpy()
@@ -484,7 +493,9 @@ def get_cybench_data():
             ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in ts_cols}
             # Primarily to avoid losing the "date" column.
             ts_aggrs["date"] = "min"
-            df_x = df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"]).agg(ts_aggrs).reset_index()
+            df_x = (
+                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"]).agg(ts_aggrs).reset_index()
+            )
         elif input == "fpar":
             # fpar is already at dekadal resolution
             df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad"] + ts_cols]

@@ -190,7 +190,7 @@ def _count_threshold(
 
 
 def unpack_time_series(df: pd.DataFrame, indicators: list):
-    """Unpack time series from lists into separate rows by date.
+    """Unpack time series data to rows per date.
 
     Args:
       df : pd.DataFrame

@@ -12,7 +12,10 @@ from sklearn.pipeline import Pipeline
 from cybench.models.model import BaseModel
 from cybench.datasets.dataset import Dataset
 from cybench.util.data import data_to_pandas
-from cybench.util.features import unpack_time_series, design_features
+from cybench.util.features import (
+    unpack_time_series,
+    design_features,
+)
 
 from cybench.config import (
     KEY_LOC,
@@ -193,13 +196,20 @@ class BaseSklearnModel(BaseModel):
         soil_df = data_to_pandas(data_items, data_cols=[KEY_LOC] + SOIL_PROPERTIES)
         soil_df = soil_df.drop_duplicates()
 
-        dfs_x = {"soil" : soil_df}
+        dfs_x = {"soil": soil_df}
         for x, ts_cols in TIME_SERIES_INPUTS.items():
             df_ts = data_to_pandas(
                 data_items, data_cols=[KEY_LOC, KEY_YEAR] + [KEY_DATES] + ts_cols
             )
             df_ts = unpack_time_series(df_ts, ts_cols)
-            dfs_x[x] = df_ts
+            # fill in NAs
+            df_ts = df_ts.astype({k: "float" for k in ts_cols})
+            df_ts = (
+                df_ts.set_index([KEY_LOC, KEY_YEAR, "date"])
+                .sort_index()
+                .interpolate(method="linear")
+            )
+            dfs_x[x] = df_ts.reset_index()
 
         features = design_features(crop, dfs_x)
 
