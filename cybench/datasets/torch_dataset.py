@@ -103,10 +103,10 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
                 sample, num_time_steps, TIME_SERIES_PREDICTORS
             )
 
-        return self._cast_to_tensor(sample)
+        return self.cast_to_tensor(sample)
 
     @classmethod
-    def _cast_to_tensor(cls, sample: dict) -> dict:
+    def cast_to_tensor(cls, sample: dict) -> dict:
         """
         Create a sample with all data cast to torch tensors
         :param sample: the sample to convert

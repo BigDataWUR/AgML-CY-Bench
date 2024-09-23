@@ -516,7 +516,7 @@ class BaseNNModel(BaseModel, nn.Module):
 
         with torch.no_grad():
             X_collated = TorchDataset.collate_fn(
-                [TorchDataset._cast_to_tensor(x) for x in X]
+                [TorchDataset.cast_to_tensor(x) for x in X]
             )
             y_pred = self._forward_pass(X_collated, device)
             y_pred = y_pred.cpu().numpy()
