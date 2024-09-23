@@ -12,10 +12,7 @@ from cybench.config import (
     MIN_INPUT_YEAR,
     MAX_INPUT_YEAR,
     SOIL_PROPERTIES,
-    METEO_INDICATORS,
-    RS_FPAR,
-    RS_NDVI,
-    SOIL_MOISTURE_INDICATORS,
+    TIME_SERIES_INPUTS,
 )
 
 from cybench.datasets.alignment import (
@@ -78,6 +75,9 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     df_y = df_y.dropna(axis=0)
     df_y = df_y[df_y[KEY_TARGET] > 0.0]
     df_y.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    # check empty targets
+    if (df_y.empty):
+        return df_y, {}
 
     # soil
     df_x_soil = pd.read_csv(
@@ -103,14 +103,7 @@ def load_dfs(crop: str, country_code: str) -> tuple:
     # NOTE: All time series data have to be aligned to crop season.
     # Set index to ts_index_cols after alignment.
     ts_index_cols = [KEY_LOC, KEY_YEAR, "date"]
-    ts_inputs = {
-        "meteo": METEO_INDICATORS,
-        "fpar": [RS_FPAR],
-        "ndvi": [RS_NDVI],
-        "soil_moisture": SOIL_MOISTURE_INDICATORS,
-    }
-
-    for x, ts_cols in ts_inputs.items():
+    for x, ts_cols in TIME_SERIES_INPUTS.items():
         df_ts = _load_and_preprocess_time_series_data(
             crop, country_code, x, ts_index_cols, ts_cols, df_crop_cal
         )

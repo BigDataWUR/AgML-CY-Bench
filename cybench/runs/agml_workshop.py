@@ -11,6 +11,10 @@ from cybench.datasets.torch_dataset import TorchDataset
 from cybench.models.model import BaseModel
 from cybench.models.nn_models import BaselineLSTM
 from cybench.evaluation.eval import normalized_rmse, evaluate_predictions
+from cybench.datasets.alignment import (
+    interpolate_data_items,
+    aggregate_time_series_data,
+)
 
 from cybench.config import (
     PATH_DATA_DIR,
@@ -22,10 +26,10 @@ from cybench.config import (
     MIN_INPUT_YEAR,
     MAX_INPUT_YEAR,
     SOIL_PROPERTIES,
-    METEO_INDICATORS,
-    RS_FPAR,
     STATIC_PREDICTORS,
+    TIME_SERIES_INPUTS,
     TIME_SERIES_PREDICTORS,
+    TIME_SERIES_AGGREGATIONS,
     CROP_CALENDAR_DOYS,
     CROP_CALENDAR_DATES,
 )
@@ -42,8 +46,10 @@ class LSTMModel(BaseModel, nn.Module):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self._interpolate_time_series = False
         self._aggregate_time_series_to = None
         if not time_series_have_same_length:
+            self._interpolate_time_series = True
             self._aggregate_time_series_to = "week"
 
         num_ts_inputs = len(TIME_SERIES_PREDICTORS)
@@ -95,6 +101,7 @@ class LSTMModel(BaseModel, nn.Module):
         self._max_season_window_length = train_dataset.max_season_window_length
         torch_dataset = TorchDataset(
             train_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -198,6 +205,7 @@ class LSTMModel(BaseModel, nn.Module):
                     )
                     torch_dataset = TorchDataset(
                         train_dataset2,
+                        interpolate_time_series=self._interpolate_time_series,
                         aggregate_time_series_to=self._aggregate_time_series_to,
                         max_season_window_length=self._max_season_window_length,
                     )
@@ -268,6 +276,7 @@ class LSTMModel(BaseModel, nn.Module):
 
         Args:
           X (list): a list of data items, each of which is a dict
+          NOTE: All items in X are expected have time series with the same length.
           device (str): str, the device to use
           **predict_params: Additional parameters
 
@@ -289,6 +298,7 @@ class LSTMModel(BaseModel, nn.Module):
         self.eval()
         torch_dataset = TorchDataset(
             test_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -407,7 +417,7 @@ def get_workshop_data():
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {"soil": df_x_soil}
-    for input in ["meteo", "fpar"]:
+    for input, ts_cols in TIME_SERIES_INPUTS.items():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -420,11 +430,8 @@ def get_workshop_data():
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
         if input == "meteo":
             df_x["cwb"] = df_x["prec"] = df_x["et0"]
-            df_x = df_x[METEO_INDICATORS]
-        else:
-            df_x = df_x[[RS_FPAR]]
 
-        dfs_x[input] = df_x
+        dfs_x[input] = df_x[ts_cols]
 
     return align_inputs_and_labels(df_y, dfs_x)
 
@@ -464,7 +471,7 @@ def get_cybench_data():
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {"soil": df_x_soil}
-    for input in ["meteo", "fpar"]:
+    for input, ts_cols in TIME_SERIES_INPUTS:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -474,24 +481,13 @@ def get_cybench_data():
 
         # Aggregate time series data to dekadal resolution
         if input == "meteo":
-            df_x = (
-                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
-                .agg(
-                    {
-                        "tmin": "min",
-                        "tmax": "max",
-                        "tavg": "mean",
-                        "prec": "sum",
-                        "cwb": "sum",
-                        "rad": "mean",
-                        "date": "min",
-                    }
-                )
-                .reset_index()
-            )
+            ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in ts_cols}
+            # Primarily to avoid losing the "date" column.
+            ts_aggrs["date"] = "min"
+            df_x = df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"]).agg(ts_aggrs).reset_index()
         elif input == "fpar":
             # fpar is already at dekadal resolution
-            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
+            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad"] + ts_cols]
 
         # lead time = 6 dekads
         df_x = df_x[df_x["dekad"] <= 30]

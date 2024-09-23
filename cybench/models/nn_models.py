@@ -44,8 +44,14 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self._norm_params = None
         self._init_args = kwargs
+        self._interpolate_time_series = False
+        if "interpolate_time_series" in kwargs:
+            self._interpolate_time_series = kwargs["interpolate_time_series"]
+
         self._aggregate_time_series_to = None
         if "aggregate_time_series_to" in kwargs:
+            # aggregation requires interpolation to ensure same number of time steps
+            assert "interpolate_time_series" in kwargs
             self._aggregate_time_series_to = kwargs["aggregate_time_series_to"]
 
         self._logger = logging.getLogger(__name__)
@@ -251,11 +257,13 @@ class BaseNNModel(BaseModel, nn.Module):
         max_season_window_length = train_dataset.max_season_window_length
         train_dataset = TorchDataset(
             train_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=max_season_window_length,
         )
         val_dataset = TorchDataset(
             val_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=max_season_window_length,
         )
@@ -355,6 +363,7 @@ class BaseNNModel(BaseModel, nn.Module):
         self._max_season_window_length = dataset.max_season_window_length
         train_dataset = TorchDataset(
             dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -526,6 +535,7 @@ class BaseNNModel(BaseModel, nn.Module):
         self.eval()
         test_dataset = TorchDataset(
             dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -590,6 +600,7 @@ class BaselineLSTM(BaseNNModel):
         if time_series_have_same_length:
             kwargs["aggregate_time_series_to"] = None
         else:
+            kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
 
         kwargs["hidden_size"] = hidden_size
@@ -680,6 +691,7 @@ class BaselineInceptionTime(BaseNNModel):
         if time_series_have_same_length:
             kwargs["aggregate_time_series_to"] = None
         else:
+            kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
 
         kwargs["hidden_size"] = hidden_size
@@ -780,6 +792,7 @@ class BaselineTransformer(BaseNNModel):
         if time_series_have_same_length:
             kwargs["aggregate_time_series_to"] = None
         else:
+            kwargs["interpolate_time_series"] = True
             kwargs["aggregate_time_series_to"] = "dekad"
             # NOTE: Should match num_time_steps in TorchDataset __getitem__().
             seq_len = int(np.ceil(seq_len / 10))

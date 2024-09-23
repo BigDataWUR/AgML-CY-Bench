@@ -11,25 +11,29 @@ from cybench.config import (
     KEY_CROP_SEASON,
     CROP_CALENDAR_DATES,
     TIME_SERIES_PREDICTORS,
-    TIME_SERIES_AGGREGATIONS,
     ALL_PREDICTORS,
 )
 
 from cybench.datasets.dataset import Dataset
 from cybench.util.torch import batch_tensors
-from cybench.util.features import dekad_from_date
+from cybench.datasets.alignment import (
+    interpolate_time_series_data,
+    aggregate_time_series_data,
+)
 
 
 class TorchDataset(Dataset, torch.utils.data.Dataset):
     def __init__(
         self,
         dataset: Dataset,
+        interpolate_time_series: bool = False,
         aggregate_time_series_to: str = None,
         max_season_window_length: int = None,
     ):
         """
         PyTorch Dataset wrapper for compatibility with torch DataLoader objects
         :param dataset: Dataset
+        :param interpolate_time_series: whether to interpolate time series data
         :param aggregate_time_series_to: aggregation resolution for time series data
                                          ("week" and "dekad" are supported)
         :param max_season_window_length: maximum length of time series
@@ -43,69 +47,27 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
             self._max_season_window_length = max_season_window_length
 
         self._aggregate_time_series_to = aggregate_time_series_to
-        if aggregate_time_series_to is not None:
-            if aggregate_time_series_to not in ["week", "dekad"]:
-                raise Exception(
-                    f"Unsupported time series aggregation resolution {aggregate_time_series_to}"
-                )
-
+        if (interpolate_time_series):
             assert self._max_season_window_length is not None
             self._dfs_x = {}
-            ts_inputs = [
-                x for x in dataset._dfs_x if "date" in dataset._dfs_x[x].index.names
-            ]
+            ts_inputs = {}
             for x in dataset._dfs_x:
-                if x not in ts_inputs:
+                if "date" not in dataset._dfs_x[x].index.names:
                     self._dfs_x[x] = dataset._dfs_x[x]
+                else:
+                    ts_inputs.append(dataset._dfs_x[x])
 
-            # combine time series data
-            df_ts = pd.concat(
-                [dataset._dfs_x[x] for x in ts_inputs], join="outer", axis=1
-            )
+            df_ts = interpolate_time_series_data(ts_inputs, self._dfs_x[KEY_CROP_SEASON],
+                                                 self._max_season_window_length)
 
-            # create a dataframe with all dates for every location and year
-            df_all_dates = self._dfs_x[KEY_CROP_SEASON][["cutoff_date"]].copy()
-            df_all_dates["date"] = df_all_dates.apply(
-                lambda r: pd.date_range(
-                    end=r["cutoff_date"],
-                    periods=self._max_season_window_length,
-                    freq="D",
-                ),
-                axis=1,
-            )
-            df_all_dates = df_all_dates.explode("date").drop(columns=["cutoff_date"])
-            df_all_dates.reset_index(inplace=True)
-            df_all_dates.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
-
-            # merge to get all dates in time series data
-            df_ts = df_ts.merge(
-                df_all_dates, how="outer", on=[KEY_LOC, KEY_YEAR, "date"]
-            )
-            del df_all_dates
-
-            # NOTE: interpolate fills data in forward direction.
-            df_ts = df_ts.sort_index().interpolate(method="linear")
-            # fill NAs in the front with 0.0
-            df_ts.fillna(0.0, inplace=True)
-
-            # aggregate
-            df_ts.reset_index(inplace=True)
-            if self._aggregate_time_series_to == "week":
-                df_ts["week"] = df_ts["date"].dt.isocalendar().week
-            else:
-                df_ts["dekad"] = df_ts.apply(
-                    lambda r: dekad_from_date(r["date"]), axis=1
-                )
-
-            ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in TIME_SERIES_PREDICTORS}
-            # Primarily to avoid losing the "date" column.
-            ts_aggrs["date"] = "min"
-            df_ts = (
-                df_ts.groupby([KEY_LOC, KEY_YEAR, self._aggregate_time_series_to])
-                .agg(ts_aggrs)
-                .reset_index()
-            )
-            df_ts.drop(columns=[self._aggregate_time_series_to], inplace=True)
+            if aggregate_time_series_to is not None:
+                if aggregate_time_series_to not in ["week", "dekad"]:
+                    raise Exception(
+                        f"Unsupported time series aggregation resolution {aggregate_time_series_to}"
+                    )
+                # aggregate
+                df_ts.reset_index(inplace=True)
+                df_ts = aggregate_time_series_data(df_ts, self._aggregate_time_series_to)
 
             # Add time series to self._dfs_x
             self._dfs_x["combined_ts"] = df_ts.set_index(

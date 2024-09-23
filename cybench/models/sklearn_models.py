@@ -20,10 +20,7 @@ from cybench.config import (
     KEY_TARGET,
     KEY_DATES,
     SOIL_PROPERTIES,
-    METEO_INDICATORS,
-    RS_FPAR,
-    RS_NDVI,
-    SOIL_MOISTURE_INDICATORS,
+    TIME_SERIES_INPUTS,
 )
 
 
@@ -196,32 +193,15 @@ class BaseSklearnModel(BaseModel):
         soil_df = data_to_pandas(data_items, data_cols=[KEY_LOC] + SOIL_PROPERTIES)
         soil_df = soil_df.drop_duplicates()
 
-        assert len(METEO_INDICATORS) > 0
-        weather_df = data_to_pandas(
-            data_items, data_cols=[KEY_LOC, KEY_YEAR] + [KEY_DATES] + METEO_INDICATORS
-        )
-        weather_df = unpack_time_series(weather_df, METEO_INDICATORS)
+        dfs_x = {"soil" : soil_df}
+        for x, ts_cols in TIME_SERIES_INPUTS.items():
+            df_ts = data_to_pandas(
+                data_items, data_cols=[KEY_LOC, KEY_YEAR] + [KEY_DATES] + ts_cols
+            )
+            df_ts = unpack_time_series(df_ts, ts_cols)
+            dfs_x[x] = df_ts
 
-        fpar_df = data_to_pandas(
-            data_items, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_FPAR]
-        )
-        fpar_df = unpack_time_series(fpar_df, [RS_FPAR])
-
-        ndvi_df = data_to_pandas(
-            data_items, data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + [RS_NDVI]
-        )
-        ndvi_df = unpack_time_series(ndvi_df, [RS_NDVI])
-
-        soil_moisture_df = data_to_pandas(
-            data_items,
-            data_cols=[KEY_LOC, KEY_YEAR, KEY_DATES] + SOIL_MOISTURE_INDICATORS,
-        )
-        soil_moisture_df = unpack_time_series(
-            soil_moisture_df, SOIL_MOISTURE_INDICATORS
-        )
-        features = design_features(
-            crop, weather_df, soil_df, fpar_df, ndvi_df, soil_moisture_df
-        )
+        features = design_features(crop, dfs_x)
 
         return features
 
