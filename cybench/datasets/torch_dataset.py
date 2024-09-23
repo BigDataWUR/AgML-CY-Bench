@@ -136,13 +136,16 @@ class TorchDataset(Dataset, torch.utils.data.Dataset):
     def interpolate_and_aggregate(
         cls,
         samples: list,
-        max_season_window_length,
+        max_season_window_length: int,
         aggregate_time_series_to: str = None,
     ):
         """
+        Function that takes a list of data samples (as dicts, containing numpy arrays)
+        and interpolates and (optionally) aggregates time series data
+        :param samples: a list of data samples
         :param max_season_window_length: maximum length of time series
         :param aggregate_time_series_to: resolution to aggregate time series to
-        :return: a dict with batched data
+        :return: the same data samples after interpolation and aggregation
         """
         assert max_season_window_length is not None
         df_ts = interpolate_time_series_data_items(samples, max_season_window_length)
