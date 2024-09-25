@@ -298,7 +298,12 @@ class Dataset:
 
             for c in df.columns:
                 if normalization == "standard":
-                    norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
+                    if (len(df.index) > 1):
+                        norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
+                    else:
+                        # only one value, set to a small number to avoid division by zero
+                        norm_params[c] = {"mean": df[c].mean(), "std": 1e-6}
+
                 elif normalization == "min-max":
                     norm_params[c] = {"min": df[c].min(), "max": df[c].max()}
                 else:

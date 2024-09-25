@@ -105,7 +105,6 @@ class LSTMModel(BaseModel, nn.Module):
             collate_fn=torch_dataset.collate_fn,
             shuffle=True,
             batch_size=batch_size,
-            drop_last=True,
         )
         optimizer = torch.optim.Adam(
             self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
@@ -209,7 +208,6 @@ class LSTMModel(BaseModel, nn.Module):
                         collate_fn=torch_dataset.collate_fn,
                         shuffle=True,
                         batch_size=batch_size,
-                        drop_last=True,
                     )
                     optimizer = torch.optim.Adam(
                         self.parameters(), lr=lr, weight_decay=wt_decay

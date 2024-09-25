@@ -272,7 +272,6 @@ class BaseNNModel(BaseModel, nn.Module):
             batch_size=batch_size,
             collate_fn=train_dataset.collate_fn,
             shuffle=True,
-            drop_last=True,
         )
         val_loader = torch.utils.data.DataLoader(
             val_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
@@ -372,7 +371,6 @@ class BaseNNModel(BaseModel, nn.Module):
             batch_size=batch_size,
             collate_fn=train_dataset.collate_fn,
             shuffle=True,
-            drop_last=True,
         )
 
         # Initialize optimizer and scheduler
