@@ -19,7 +19,6 @@ class Dataset:
         crop,
         data_target: pd.DataFrame = None,
         data_inputs: dict = None,
-        time_series_have_same_length=False,
     ):
         """
         Dataset class for regional yield forecasting
@@ -47,7 +46,6 @@ class Dataset:
                                     - `config.KEY_LOC` for the location
                                     - `config.KEY_YEAR` for the year
                                     - the name of the extra optional temporal level is ignored and has no requirement
-        :param time_series_have_same_length: bool indicating whether time series have the same length
         """
         assert crop in DATASETS
         self._crop = crop
@@ -63,17 +61,9 @@ class Dataset:
 
         self._df_y = data_target
         self._dfs_x = data_inputs
-        self._time_series_have_same_length = time_series_have_same_length
 
-        # no input data or predesigned features or time series with same length
-        if (
-            (len(self._dfs_x) == 0)
-            or (KEY_COMBINED_FEATURES in self._dfs_x)
-            or time_series_have_same_length
-        ):
-            self._max_season_window_length = None
-        else:
-            assert KEY_CROP_SEASON in self._dfs_x
+        self._max_season_window_length = None
+        if KEY_CROP_SEASON in self._dfs_x:
             self._max_season_window_length = self._dfs_x[KEY_CROP_SEASON][
                 "season_window_length"
             ].max()
@@ -146,10 +136,6 @@ class Dataset:
 
     def indices(self) -> list:
         return self._df_y.index.values
-
-    @property
-    def time_series_have_same_length(self) -> bool:
-        return self._time_series_have_same_length
 
     @property
     def max_season_window_length(self) -> int:
@@ -298,7 +284,7 @@ class Dataset:
 
             for c in df.columns:
                 if normalization == "standard":
-                    if (len(df.index) > 1):
+                    if len(df.index) > 1:
                         norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
                     else:
                         # only one value, set to a small number to avoid division by zero
@@ -416,12 +402,10 @@ class Dataset:
                 self._crop,
                 data_target=df_y_1,
                 data_inputs=data_dfs1,
-                time_series_have_same_length=self._time_series_have_same_length,
             ),
             Dataset(
                 self._crop,
                 data_target=df_y_2,
                 data_inputs=data_dfs2,
-                time_series_have_same_length=self._time_series_have_same_length,
             ),
         )

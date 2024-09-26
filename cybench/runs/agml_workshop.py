@@ -550,7 +550,6 @@ def validate_agml_workshop_results(df_y, dfs_x, time_series_have_same_length=Fal
         "maize",
         data_target=df_y,
         data_inputs=dfs_x,
-        time_series_have_same_length=time_series_have_same_length,
     )
     all_years = dataset.years
     test_years = [2012, 2018]
