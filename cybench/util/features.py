@@ -103,7 +103,7 @@ def _aggregate_by_period(
     # pivot to add a feature column for each period
     ft_df = (
         ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_cols.values())
-        .fillna(0)
+        .fillna(0.0)
         .reset_index()
     )
 
@@ -177,7 +177,7 @@ def _count_threshold(
     # pivot to add a feature column for each period
     ft_df = (
         ft_df.pivot_table(index=index_cols, columns=period_col, values=ft_name)
-        .fillna(0)
+        .fillna(0.0)
         .reset_index()
     )
 
