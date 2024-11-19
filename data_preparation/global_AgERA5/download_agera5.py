@@ -102,14 +102,18 @@ def download_agera5_year(cds, year, sel_param):
 def download_agera5(cds, num_requests, start_year, end_year):
     # NOTE: $HOME/.cdsapirc needs to contain API key
     # Example contents of .cdsapirc:
-    # url: https://cds.climate.copernicus.eu/api/v2
-    # key: {cdsapi.uid}:{cdsapi.api_key}
+    # url: https://cds.climate.copernicus.eu/api
+    # key: {cdsapi.api_key}
+    # NOTE: To get a cdsapi token, you will need an ECMWF account.
+    # See here for details:
+    #   https://confluence.ecmwf.int/x/uINmFw and
+    #   https://cds.climate.copernicus.eu/how-to-api
+    # Also you need to accept license terms before you can actually download data.
+    # For AgERA5, accept terms here:
+    #   https://cds.climate.copernicus.eu/datasets/sis-agrometeorological-indicators?tab=download#manage-licenses
     if not os.path.exists(os.path.join(os.environ["HOME"], ".cdsapirc")):
         raise Exception(".cdsapirc not found in $HOME")
 
-    # NOTE: CDS api seems to be changing.
-    # From Sept 2024, this script may need an update.
-    # Check https://confluence.ecmwf.int/x/uINmFw
     assert num_requests <= 16, Exception("Suggested number of requests is <= 16")
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         tasks = [
