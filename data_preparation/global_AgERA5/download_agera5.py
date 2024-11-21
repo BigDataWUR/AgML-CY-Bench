@@ -90,7 +90,7 @@ def get_agera5_params(sel_param, year, area=None):
 
 def download_agera5_year(cds, year, sel_param, download_path):
     download_dir = os.path.join(download_path, sel_param)
-    os.makedirs(download_path, exist_ok=True)
+    os.makedirs(download_dir, exist_ok=True)
     retrieve_params = get_agera5_params(sel_param, year)
     cds.retrieve(
         "sis-agrometeorological-indicators",
