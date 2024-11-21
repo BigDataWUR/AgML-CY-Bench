@@ -88,14 +88,14 @@ def get_agera5_params(sel_param, year, area=None):
         raise Exception(f"parameter '{sel_param}' is not supported")
 
 
-def download_agera5_year(cds, year, sel_param):
-    download_path = os.path.join("/path/to/downloads", sel_param)
+def download_agera5_year(cds, year, sel_param, download_path):
+    download_dir = os.path.join(download_path, sel_param)
     os.makedirs(download_path, exist_ok=True)
     retrieve_params = get_agera5_params(sel_param, year)
     cds.retrieve(
         "sis-agrometeorological-indicators",
         retrieve_params,
-        f"{download_path}/{sel_param}_{year}.zip",
+        f"{download_dir}/{sel_param}_{year}.zip",
     )
 
 
@@ -130,7 +130,8 @@ def download_agera5(cds, num_requests, start_year, end_year):
 # 1. Make sure you have enough disk space when you run the full script.
 # 2. Some zip files seem to have errors. You may need to download them again.
 cds = cdsapi.Client(progress=False)
-download_agera5(cds, 16, 2001, 2023)
+download_path = "/path/to/downloads"
+download_agera5(cds, 16, 2001, 2023, download_path)
 
 # NOTE:
 # After downloading data, you need 2 more steps before you can
