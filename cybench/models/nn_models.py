@@ -1,4 +1,3 @@
-import copy
 import random
 import torch
 import torch.nn as nn
@@ -7,10 +6,11 @@ import numpy as np
 import logging
 
 from sklearn.model_selection import ParameterGrid
+from tsai.models.InceptionTime import InceptionTime
+from tsai.models.TST import TST
 
-from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.torch_dataset import TorchDataset
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.transforms import transform_ts_inputs_to_dekadal
 
 from cybench.models.model import BaseModel
 
@@ -22,6 +22,21 @@ from cybench.config import (
 )
 
 
+def separate_ts_static_inputs(batch: dict) -> tuple:
+    """Stack time series and static inputs separately.
+
+    Args:
+      batch (dict): batched inputs
+
+    Returns:
+      A tuple of torch tensors for time series and static inputs
+    """
+    ts = torch.cat([batch[k].unsqueeze(2) for k in TIME_SERIES_PREDICTORS], dim=2)
+    static = torch.cat([batch[k].unsqueeze(1) for k in STATIC_PREDICTORS], dim=1)
+
+    return ts, static
+
+
 class BaseNNModel(BaseModel, nn.Module):
     def __init__(self, **kwargs):
         super(BaseModel, self).__init__()
@@ -29,6 +44,10 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self._norm_params = None
         self._init_args = kwargs
+        self._aggregate_time_series_to = None
+        if "aggregate_time_series_to" in kwargs:
+            self._aggregate_time_series_to = kwargs["aggregate_time_series_to"]
+
         self._logger = logging.getLogger(__name__)
 
     def fit(
@@ -229,11 +248,17 @@ class BaseNNModel(BaseModel, nn.Module):
         assert epochs > 0
 
         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
-        self._min_date = train_dataset.min_date
-        self._max_date = train_dataset.max_date
-
-        train_dataset = TorchDataset(train_dataset)
-        val_dataset = TorchDataset(val_dataset)
+        max_season_window_length = train_dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            train_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=max_season_window_length,
+        )
+        val_dataset = TorchDataset(
+            val_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -262,9 +287,9 @@ class BaseNNModel(BaseModel, nn.Module):
         val_losses = []
 
         # Training loop
+        pbar = tqdm(train_loader, desc=f"{self.__class__.__name__}")
         for epoch in range(epochs):
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(
                 pbar,
                 device,
@@ -273,7 +298,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 loss_kwargs=loss_kwargs,
                 scheduler=scheduler,
             )
-            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
             if val_loader is not None and (
@@ -281,14 +305,10 @@ class BaseNNModel(BaseModel, nn.Module):
             ):
                 with torch.no_grad():
                     self.eval()
-                    tqdm_val = tqdm(
-                        val_loader, desc=f"Validation Epoch {epoch + 1}/{epochs}"
-                    )
-
                     losses = []
-                    for batch in tqdm_val:
-                        targets = batch[KEY_TARGET]
+                    for batch in val_loader:
                         batch_preds = self._forward_pass(batch, device)
+                        targets = batch[KEY_TARGET]
                         loss = loss_fn(batch_preds, targets, **loss_kwargs)
                         losses.append(loss.item())
 
@@ -330,10 +350,14 @@ class BaseNNModel(BaseModel, nn.Module):
         Returns:
           A list of training losses (one value per epoch).
         """
-        self._min_date = dataset.min_date
-        self._max_date = dataset.max_date
+        self.to(device)
 
-        train_dataset = TorchDataset(dataset)
+        self._max_season_window_length = dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -356,9 +380,9 @@ class BaseNNModel(BaseModel, nn.Module):
         )
 
         train_losses = []
+        pbar = tqdm(train_loader, desc=f"{self.__class__.__name__}")
         for epoch in range(epochs):
             self.train()
-            pbar = tqdm(train_loader, desc=f"Epoch {epoch + 1}/{epochs}")
             train_loss = self._train_epoch(
                 pbar,
                 device,
@@ -367,7 +391,6 @@ class BaseNNModel(BaseModel, nn.Module):
                 loss_kwargs=loss_kwargs,
                 scheduler=scheduler,
             )
-            pbar.set_description(f"Epoch {epoch + 1}/{epochs} | Loss: {train_loss:.4f}")
             train_losses.append(train_loss)
 
         return train_losses
@@ -381,7 +404,7 @@ class BaseNNModel(BaseModel, nn.Module):
         loss_kwargs: dict = {"reduction": "mean"},
         scheduler: torch.optim.lr_scheduler.LRScheduler = None,
     ):
-        """Run one epoch during trainig
+        """Run one epoch during training
 
         Args:
           tqdm_loader (tqdm): data loader with progress bar
@@ -501,7 +524,11 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         self.to(device)
         self.eval()
-        test_dataset = TorchDataset(dataset)
+        test_dataset = TorchDataset(
+            dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         test_loader = torch.utils.data.DataLoader(
             test_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
         )
@@ -509,7 +536,7 @@ class BaseNNModel(BaseModel, nn.Module):
         with torch.no_grad():
             predictions = None
             for batch in test_loader:
-                batch_preds = self._forward_pass(batch, device)
+                batch_preds = self._forward_pass(batch, device).cpu().numpy()
                 if predictions is None:
                     predictions = batch_preds
                 else:
@@ -538,20 +565,33 @@ class BaseNNModel(BaseModel, nn.Module):
         return torch.load(model_name)
 
 
-class ExampleLSTM(BaseNNModel):
+class BaselineLSTM(BaseNNModel):
+    """LSTM model.
+
+    Args:
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of features InceptionTime outputs
+        num_layers (int): The number of InceptionBlocks. Defaults to 6.
+        output_size (int): The number of output classes. Defaults to 1.
+        **kwargs: Additional keyword arguments passed to the base class.
+    """
+
     def __init__(
         self,
+        time_series_have_same_length=False,
         hidden_size=64,
         num_layers=1,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
@@ -559,7 +599,6 @@ class ExampleLSTM(BaseNNModel):
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -606,26 +645,214 @@ class ExampleLSTM(BaseNNModel):
             **fit_params,
         )
 
-    def _separate_ts_static_inputs(self, batch: dict) -> tuple:
-        """Stack time series and static inputs separately.
-
-        Args:
-          batch (dict): batched inputs
-
-        Returns:
-          A tuple of torch tensors for time series and static inputs
-        """
-        ts = torch.cat([batch[k].unsqueeze(2) for k in TIME_SERIES_PREDICTORS], dim=2)
-        static = torch.cat([batch[k].unsqueeze(1) for k in STATIC_PREDICTORS], dim=1)
-
-        return ts, static
-
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
-        x_ts, x_static = self._separate_ts_static_inputs(x)
+        x_ts, x_static = separate_ts_static_inputs(x)
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
+        output = self._fc(x)
+        return output
+
+
+class BaselineInceptionTime(BaseNNModel):
+    """InceptionTime model.
+
+    Args:
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of features InceptionTime outputs
+        num_layers (int): The number of InceptionBlocks. Defaults to 6.
+        num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
+        output_size (int): The number of output classes. Defaults to 1.
+        **kwargs: Additional keyword arguments passed to the base class.
+    """
+
+    def __init__(
+        self,
+        time_series_have_same_length=False,
+        hidden_size=64,
+        num_layers=6,
+        num_features=32,
+        output_size=1,
+        **kwargs,
+    ):
+        # Add all arguments to init_args to enable model reconstruction in fit method
+        n_ts_inputs = len(TIME_SERIES_PREDICTORS)
+        n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+
+        kwargs["hidden_size"] = hidden_size
+        kwargs["num_layers"] = num_layers
+        kwargs["num_features"] = num_features
+        kwargs["output_size"] = output_size
+
+        super().__init__(**kwargs)
+        self._timeseries = InceptionTime(
+            c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers
+        )
+        self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
+
+    def fit(
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters: bool = False,
+        param_space: dict = {},
+        kfolds: int = 1,
+        epochs: int = 10,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        seed: int = 42,
+        **fit_params,
+    ):
+        """Fit or train the model.
+
+        Args:
+          dataset (Dataset): Training dataset.
+          optimize_hyperparameters (bool): Flag to tune hyperparameters.
+          param_space (dict): Each entry is a hyperparameter name and list or range of values.
+          kfolds (int): k in k-fold cv.
+          epochs (int): Number of epochs to train.
+          seed (float): seed for random number generator.
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        if ("scheduler_fn" in fit_params) and (fit_params["scheduler_fn"] is not None):
+            fit_params["sched_kwargs"] = {"step_size": 2, "gamma": 0.5}
+
+        if optimize_hyperparameters and not param_space:
+            param_space = {
+                "lr": [0.0001, 0.00001],
+                "weight_decay": [0.0001, 0.00001],
+            }
+
+        super().fit(
+            dataset,
+            optimize_hyperparameters=optimize_hyperparameters,
+            param_space=param_space,
+            kfolds=kfolds,
+            epochs=epochs,
+            device=device,
+            seed=seed,
+            **fit_params,
+        )
+
+    def forward(self, x):
+        x_ts, x_static = separate_ts_static_inputs(x)
+        x_ts = x_ts.permute(0, 2, 1)
+        x_ts = self._timeseries(x_ts)
+        x = torch.cat([x_ts, x_static], dim=1)
+        output = self._fc(x)
+        return output
+
+
+class BaselineTransformer(BaseNNModel):
+    """Transformer model.
+
+    Args:
+        seq_len (int): length of time series sequence (in days)
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of resulting timeseries features.
+        d_moodel (int): Total dimension of the model.
+        n_head (int): Parallel attention heads.
+        d_ffn (int): The dimension of the feedforward network model.
+        output_size (int): The number of output classes. Defaults to 1.
+        num_layers (1): The number of sub-encoder-layers in the encoder.
+        **kwargs: Additional keyword arguments passed to the base class.
+    """
+
+    def __init__(
+        self,
+        seq_len,
+        time_series_have_same_length=False,
+        hidden_size=64,
+        d_model=64,
+        n_head=1,
+        d_ff=256,
+        output_size=1,
+        num_layers=3,
+        **kwargs,
+    ):
+        # Add all arguments to init_args to enable model reconstruction in fit method
+        n_ts_inputs = len(TIME_SERIES_PREDICTORS)
+        n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+            # NOTE: Should match num_time_steps in TorchDataset __getitem__().
+            seq_len = int(np.ceil(seq_len / 10))
+
+        kwargs["hidden_size"] = hidden_size
+        kwargs["d_model"] = d_model
+        kwargs["n_head"] = n_head
+        kwargs["d_ff"] = d_ff
+        kwargs["num_layers"] = num_layers
+        kwargs["output_size"] = output_size
+        kwargs["seq_len"] = seq_len
+        super().__init__(**kwargs)
+
+        self._timeseries = TST(
+            c_in=n_ts_inputs,
+            c_out=hidden_size,
+            seq_len=seq_len,
+            n_layers=num_layers,
+            d_model=d_model,
+            n_heads=n_head,
+            d_ff=d_ff,
+        )
+        self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
+
+    def fit(
+        self,
+        dataset: Dataset,
+        optimize_hyperparameters: bool = False,
+        param_space: dict = {},
+        kfolds: int = 1,
+        epochs: int = 10,
+        device: str = "cuda" if torch.cuda.is_available() else "cpu",
+        seed: int = 42,
+        **fit_params,
+    ):
+        """Fit or train the model.
+
+        Args:
+          dataset (Dataset): Training dataset.
+          optimize_hyperparameters (bool): Flag to tune hyperparameters.
+          param_space (dict): Each entry is a hyperparameter name and list or range of values.
+          kfolds (int): k in k-fold cv.
+          epochs (int): Number of epochs to train.
+          seed (float): seed for random number generator.
+          **fit_params: Additional parameters.
+
+        Returns:
+          A tuple containing the fitted model and a dict with additional information.
+        """
+        if ("scheduler_fn" in fit_params) and (fit_params["scheduler_fn"] is not None):
+            fit_params["sched_kwargs"] = {"step_size": 2, "gamma": 0.5}
+
+        if optimize_hyperparameters and not param_space:
+            param_space = {
+                "lr": [0.0001, 0.00001],
+                "weight_decay": [0.0001, 0.00001],
+            }
+
+        super().fit(
+            dataset,
+            optimize_hyperparameters=optimize_hyperparameters,
+            param_space=param_space,
+            kfolds=kfolds,
+            epochs=epochs,
+            device=device,
+            seed=seed,
+            **fit_params,
+        )
+
+    def forward(self, x):
+        x_ts, x_static = separate_ts_static_inputs(x)
+        x_ts = x_ts.permute(0, 2, 1)
+        x_ts = self._timeseries(x_ts)
+        x = torch.cat([x_ts, x_static], dim=1)
         output = self._fc(x)
         return output

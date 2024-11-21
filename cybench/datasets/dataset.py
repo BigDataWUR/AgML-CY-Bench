@@ -6,8 +6,10 @@ from cybench.config import (
     KEY_YEAR,
     KEY_TARGET,
     KEY_DATES,
+    KEY_CROP_SEASON,
+    KEY_COMBINED_FEATURES,
+    CROP_CALENDAR_DATES,
     DATASETS,
-    FORECAST_LEAD_TIME,
 )
 
 
@@ -16,7 +18,8 @@ class Dataset:
         self,
         crop,
         data_target: pd.DataFrame = None,
-        data_inputs: list = None,
+        data_inputs: dict = None,
+        time_series_have_same_length=False,
     ):
         """
         Dataset class for regional yield forecasting
@@ -30,7 +33,7 @@ class Dataset:
                                   Expected column name is stored in `config.KEY_TARGET`
                                 - The dataframe is indexed by (location id, year) using the correct naming
                                   Expected names are stored in `config.KEY_LOC`, `config.KEY_YEAR`, resp.
-        :param data_inputs: list of pandas.Dataframe objects each containing inputs
+        :param data_inputs: dict of data source to pandas.Dataframe objects each containing inputs
                             Dataframes should meet the following requirements:
                                 - inputs are assumed to be numeric
                                 - Columns should be named by their respective feature names
@@ -44,6 +47,7 @@ class Dataset:
                                     - `config.KEY_LOC` for the location
                                     - `config.KEY_YEAR` for the year
                                     - the name of the extra optional temporal level is ignored and has no requirement
+        :param time_series_have_same_length: bool indicating whether time series have the same length
         """
         assert crop in DATASETS
         self._crop = crop
@@ -52,70 +56,62 @@ class Dataset:
         if data_target is None:
             data_target = self._empty_df_target()
         if data_inputs is None:
-            data_inputs = list()
+            data_inputs = {}
 
         # Validate input data
         assert self._validate_dfs(data_target, data_inputs)
 
         self._df_y = data_target
-        self._dfs_x = list(data_inputs)
+        self._dfs_x = data_inputs
+        self._time_series_have_same_length = time_series_have_same_length
+
+        # no input data or predesigned features or time series with same length
+        if (
+            (len(self._dfs_x) == 0)
+            or (KEY_COMBINED_FEATURES in self._dfs_x)
+            or time_series_have_same_length
+        ):
+            self._max_season_window_length = None
+        else:
+            assert KEY_CROP_SEASON in self._dfs_x
+            self._max_season_window_length = self._dfs_x[KEY_CROP_SEASON][
+                "season_window_length"
+            ].max()
 
         # Sort all data for faster lookups
-        # Also save min and max dates for time series
-        # NOTE: We need min and max dates to ensure
-        # the same number of time steps for some models, e.g. LSTM.
         self._df_y.sort_index(inplace=True)
-        self._min_date = None
-        self._max_date = None
-        for df in self._dfs_x:
-            df.sort_index(inplace=True)
-            if len(df.index.names) == 3:
-                df_min_date = min(df.index.get_level_values(2))
-                df_max_date = max(df.index.get_level_values(2))
-                if self._min_date is None:
-                    self._min_date = df_min_date
-                    self._max_date = df_max_date
-                else:
-                    self._min_date = min(self._min_date, df_min_date)
-                    self._max_date = max(self._max_date, df_max_date)
+        for x in self._dfs_x:
+            self._dfs_x[x].sort_index(inplace=True)
 
         # Bool value that specifies whether missing data values are allowed
         # For now always set to False
         self._allow_incomplete = False
 
     @staticmethod
-    def load(name: str) -> "Dataset":
-        crop_country = name.split("_")
-        if len(crop_country) > 2:
-            raise Exception(f'Unrecognized dataset name "{name}"')
+    def load(dataset_name: str) -> "Dataset":
+        from cybench.datasets.configured import load_dfs_crop
 
-        crop = crop_country[0]
-        country_code = None
-        if len(crop_country) == 2:
-            country_code = crop_country[1]
+        crop_countries = dataset_name.split("_")
+        crop = crop_countries[0]
+        assert crop in DATASETS, Exception(f'Unrecognized crop name "{crop}"')
 
-        assert crop in DATASETS
-        if country_code is None:
-            from cybench.datasets.configured import load_dfs_crop
-
-            df_y, dfs_x = load_dfs_crop(crop)
-            return Dataset(
-                crop,
-                df_y,
-                list(dfs_x),
-            )
+        # only crop is specified
+        if len(crop_countries) < 2:
+            country_codes = DATASETS[crop]
         else:
-            if country_code not in DATASETS[crop]:
-                raise Exception(f'Unrecognized dataset name "{name}"')
+            country_codes = crop_countries[1:]
 
-            from cybench.datasets.configured import load_dfs
-
-            df_y, dfs_x = load_dfs(crop, country_code)
-            return Dataset(
-                crop,
-                df_y,
-                list(dfs_x),
+        for cn in country_codes:
+            assert cn in DATASETS[crop], Exception(
+                f'Unrecognized dataset name "{dataset_name}"'
             )
+
+        df_y, dfs_x = load_dfs_crop(crop, country_codes)
+        return Dataset(
+            crop,
+            df_y,
+            dfs_x,
+        )
 
     @property
     def crop(self):
@@ -140,7 +136,7 @@ class Dataset:
         """
         Obtain a set containing all feature names
         """
-        return set.union(*[set(df.columns) for df in self._dfs_x])
+        return set.union(*[set(self._dfs_x[x].columns) for x in self._dfs_x])
 
     def targets(self) -> np.array:
         """
@@ -152,12 +148,12 @@ class Dataset:
         return self._df_y.index.values
 
     @property
-    def min_date(self) -> str:
-        return self._min_date
+    def time_series_have_same_length(self) -> bool:
+        return self._time_series_have_same_length
 
     @property
-    def max_date(self) -> str:
-        return self._max_date
+    def max_season_window_length(self) -> int:
+        return self._max_season_window_length
 
     def __getitem__(self, index) -> dict:
         """
@@ -188,6 +184,12 @@ class Dataset:
             KEY_TARGET: sample_y[KEY_TARGET],
         }
 
+        # crop season dates are datetime objects
+        if KEY_CROP_SEASON in self._dfs_x:
+            sample_cc = self._dfs_x[KEY_CROP_SEASON].loc[(loc_id, year)]
+            data_cc = {k: sample_cc[k] for k in CROP_CALENDAR_DATES}
+            sample = {**data_cc, **sample}
+
         # Get feature data corresponding to the label
         data_x = self._get_feature_data(loc_id, year)
         # Merge label and feature data
@@ -208,7 +210,7 @@ class Dataset:
         for i in range(len(self)):
             yield self[i]
 
-    def _get_feature_data(self, loc_id: int, year: int) -> dict:
+    def _get_feature_data(self, loc_id: str, year: int) -> dict:
         """
         Helper function for obtaining feature data corresponding to some index
         :param loc_id: location index value
@@ -219,7 +221,12 @@ class Dataset:
             KEY_DATES: dict(),
         }
         # For all feature dataframes
-        for df in self._dfs_x:
+        for x in self._dfs_x:
+            # handled in __getitem__()
+            if x == KEY_CROP_SEASON:
+                continue
+
+            df = self._dfs_x[x]
             # Check in which category the dataframe fits:
             #   (1) static data -- indexed only by location
             #   (2) yearly data -- indexed by (location, year)
@@ -267,8 +274,6 @@ class Dataset:
                 data_loc = {key: df_loc[key].values for key in df_loc.columns}
                 dates = {key: df_loc.index.values for key in df_loc.columns}
 
-                dates = {key: df_loc.index.values for key in df_loc.columns}
-
                 data = {
                     **data_loc,
                     **data,
@@ -287,7 +292,10 @@ class Dataset:
         :return: a dict containing normalization parameters (e.g. mean and std)
         """
         norm_params = {}
-        for df in self._dfs_x:
+        for x, df in self._dfs_x.items():
+            if x == KEY_CROP_SEASON:
+                continue
+
             for c in df.columns:
                 if normalization == "standard":
                     norm_params[c] = {"mean": df[c].mean(), "std": df[c].std()}
@@ -310,12 +318,12 @@ class Dataset:
         return df
 
     @staticmethod
-    def _validate_dfs(df_y: pd.DataFrame, dfs_x: list) -> bool:
+    def _validate_dfs(df_y: pd.DataFrame, dfs_x: dict) -> bool:
         """
         Helper function that implements some checks on whether the input dataframes are correctly formatted
 
         :param df_y: dataframe containing yield statistics
-        :param dfs_x: list of dataframes each containing feature data
+        :param dfs_x: dict of data source to dataframes each containing feature data
         :return: a bool indicating whether the test has passed
         """
 
@@ -326,7 +334,7 @@ class Dataset:
 
         # Make sure columns are named properly
         if len(dfs_x) > 0:
-            column_names = set.union(*[set(df.columns) for df in dfs_x])
+            column_names = set.union(*[set(dfs_x[x].columns) for x in dfs_x])
             assert KEY_LOC not in column_names
             assert KEY_YEAR not in column_names
             assert KEY_TARGET not in column_names
@@ -334,7 +342,7 @@ class Dataset:
 
         # Make sure there are no overlaps in feature names
         if len(dfs_x) > 1:
-            assert len(set.intersection(*[set(df.columns) for df in dfs_x])) == 0
+            assert len(set.intersection(*[set(dfs_x[x].columns) for x in dfs_x])) == 0
 
         return True
 
@@ -373,8 +381,8 @@ class Dataset:
         :param years_split: tuple e.g ([2012, 2014], [2013, 2015])
         :return: two data sets
         """
-        data_dfs1 = []
-        data_dfs2 = []
+        data_dfs1 = {}
+        data_dfs2 = {}
 
         # Check existing index.
         # TODO: There might be a better way to do this.
@@ -384,7 +392,8 @@ class Dataset:
             list(set(years_split[1]).intersection(index_years)),
         )
 
-        for src_df in self._dfs_x:
+        for x in self._dfs_x:
+            src_df = self._dfs_x[x]
             n_levels = len(src_df.index.names)
             if (n_levels) >= 2:
                 src_df_1, src_df_2 = self._split_df_on_index(
@@ -393,8 +402,8 @@ class Dataset:
             else:
                 src_df_1 = src_df.copy()
                 src_df_2 = src_df.copy()
-            data_dfs1.append(src_df_1)
-            data_dfs2.append(src_df_2)
+            data_dfs1[x] = src_df_1
+            data_dfs2[x] = src_df_2
 
         df_y_1, df_y_2 = self._split_df_on_index(self._df_y, years_split, level=1)
         return (
@@ -402,10 +411,12 @@ class Dataset:
                 self._crop,
                 data_target=df_y_1,
                 data_inputs=data_dfs1,
+                time_series_have_same_length=self._time_series_have_same_length,
             ),
             Dataset(
                 self._crop,
                 data_target=df_y_2,
                 data_inputs=data_dfs2,
+                time_series_have_same_length=self._time_series_have_same_length,
             ),
         )

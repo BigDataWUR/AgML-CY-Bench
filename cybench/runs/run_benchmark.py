@@ -3,38 +3,84 @@ from collections import defaultdict
 
 import pandas as pd
 import torch
+import argparse
 
 from cybench.config import (
     DATASETS,
     PATH_DATA_DIR,
     PATH_RESULTS_DIR,
+    KEY_COUNTRY,
     KEY_LOC,
     KEY_YEAR,
+    KEY_TARGET,
 )
 
 from cybench.datasets.dataset import Dataset
 from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
-from cybench.models.sklearn_models import SklearnRidge
-from cybench.models.sklearn_models import SklearnRandomForest
-from cybench.models.nn_models import ExampleLSTM
+from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
+from cybench.models.nn_models import (
+    BaselineLSTM,
+    BaselineInceptionTime,
+    BaselineTransformer,
+)
+from cybench.util.features import dekad_from_date
+
+from cybench.models.residual_models import (
+    RidgeRes,
+    RandomForestRes,
+    LSTMRes,
+    InceptionTimeRes,
+    TransformerRes,
+)
 
 
 _BASELINE_MODEL_CONSTRUCTORS = {
     "AverageYieldModel": AverageYieldModel,
     "LinearTrend": TrendModel,
     "SklearnRidge": SklearnRidge,
+    "RidgeRes": RidgeRes,
     "SklearnRF": SklearnRandomForest,
-    "LSTM": ExampleLSTM,
+    "RFRes": RandomForestRes,
+    "LSTM": BaselineLSTM,
+    "LSTMRes": LSTMRes,
+    "InceptionTime": BaselineInceptionTime,
+    "InceptionTimeRes": InceptionTimeRes,
+    "Transformer": BaselineTransformer,
+    "TransformerRes": TransformerRes,
 }
 
 BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
+NN_MODELS_EPOCHS = 50
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
+    "epochs": NN_MODELS_EPOCHS,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+_BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
+    "epochs": NN_MODELS_EPOCHS,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+_BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
+    "epochs": NN_MODELS_EPOCHS,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+_BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
+    "epochs": NN_MODELS_EPOCHS,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["Transformer"] = {
+    "epochs": NN_MODELS_EPOCHS,
+    "device": "cuda" if torch.cuda.is_available() else "cpu",
+}
+
+_BASELINE_MODEL_FIT_KWARGS["TransformerRes"] = {
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
@@ -47,9 +93,11 @@ def run_benchmark(
     model_fit_kwargs: dict = None,
     baseline_models: list = None,
     dataset_name: str = "maize_NL",
+    sel_years: list = None,
+    nn_models_epochs: int = None,
 ) -> dict:
     """
-    Run the AgML benchmark.
+    Run CY-Bench.
     Args:
         run_name (str): The name of the run. Will be used to store log files and model results
         model_name (str): The name of the model. Will be used to store log files and model results
@@ -59,6 +107,8 @@ def run_benchmark(
         baseline_models (list): A list of names of baseline models to run next to the provided model.
                                 If unspecified, a default list of baseline models will be used.
         dataset_name (str): The name of the dataset to load
+        sel_years (list): a list of years to run leave one year out (for tests)
+        nn_models_epochs (int): Number of epochs to run for nn-models (for tests)
 
     Returns:
         a dictionary containing the results of the benchmark
@@ -80,15 +130,20 @@ def run_benchmark(
     ), f"Model name {model_name} already occurs in the baseline"
 
     model_constructors = {
-        **_BASELINE_MODEL_CONSTRUCTORS,
+        k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models
     }
 
     models_init_kwargs = defaultdict(dict)
-    for name, kwargs in _BASELINE_MODEL_INIT_KWARGS.items():
-        models_init_kwargs[name] = kwargs
+    for name in baseline_models:
+        models_init_kwargs[name] = _BASELINE_MODEL_INIT_KWARGS[name]
 
     models_fit_kwargs = defaultdict(dict)
-    for name, kwargs in _BASELINE_MODEL_FIT_KWARGS.items():
+    for name in baseline_models:
+        kwargs = _BASELINE_MODEL_FIT_KWARGS[name]
+        # override epochs for nn-models (mainly for testing)
+        if ("epochs" in kwargs) and (nn_models_epochs is not None):
+            kwargs["epochs"] = nn_models_epochs
+
         models_fit_kwargs[name] = kwargs
 
     if model_name is not None:
@@ -100,32 +155,41 @@ def run_benchmark(
     dataset = Dataset.load(dataset_name)
 
     all_years = sorted(dataset.years)
-    for test_year in all_years:
+    if (sel_years is not None):
+        assert all([yr in all_years for yr in sel_years])
+    else:
+        sel_years = all_years
+
+    for test_year in sel_years:
         train_years = [y for y in all_years if y != test_year]
         test_years = [test_year]
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
+
+        # TODO: put into generic function
+        models_init_kwargs["Transformer"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
+        models_init_kwargs["TransformerRes"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
 
         labels = test_dataset.targets()
 
         model_output = {
             KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
             KEY_YEAR: [year for _, year in test_dataset.indices()],
-            "targets": labels,
+            KEY_TARGET: labels,
         }
 
-        compiled_results = {}
         for model_name, model_constructor in model_constructors.items():
             model = model_constructor(**models_init_kwargs[model_name])
             model.fit(train_dataset, **models_fit_kwargs[model_name])
             predictions, _ = model.predict(test_dataset)
-            # save predictions
-            results = evaluate_predictions(labels, predictions)
-            compiled_results[model_name] = results
-
             model_output[model_name] = predictions
 
         df = pd.DataFrame.from_dict(model_output)
-        df.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+        df[KEY_COUNTRY] = df[KEY_LOC].str[:2]
+        df.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
         df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
 
     df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
@@ -156,13 +220,16 @@ def load_results(
 
     # No files, return an empty data frame
     if not files:
-        return pd.DataFrame(columns=[KEY_LOC, KEY_YEAR, "targets"])
+        return pd.DataFrame(columns=[KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET])
 
     df_all = pd.DataFrame()
     for file in files:
         path = os.path.join(path_results, file)
         df = pd.read_csv(path)
         df_all = pd.concat([df_all, df], axis=0)
+
+    if KEY_COUNTRY not in df_all.columns:
+        df_all[KEY_COUNTRY] = df_all[KEY_LOC].str[:2]
 
     return df_all
 
@@ -182,16 +249,16 @@ def get_prediction_residuals(run_name: str, model_names: dict) -> pd.DataFrame:
         return df_all
 
     for model_name, model_short_name in model_names.items():
-        df_all[model_short_name + "_res"] = df_all[model_name] - df_all["targets"]
+        df_all[model_short_name + "_res"] = df_all[model_name] - df_all[KEY_TARGET]
 
-    df_all.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    df_all.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
 
     return df_all
 
 
 def compute_metrics(
     run_name: str,
-    model_names: list,
+    model_names: list = None,
 ) -> pd.DataFrame:
     """
     Compute evaluation metrics on saved predictions.
@@ -204,27 +271,38 @@ def compute_metrics(
     """
     df_all = load_results(run_name)
     if df_all.empty:
-        return pd.DataFrame(columns=["model", "year"])
+        return pd.DataFrame(columns=[KEY_COUNTRY, "model", KEY_YEAR])
 
     rows = []
-    all_years = sorted(df_all[KEY_YEAR].unique())
-    for yr in all_years:
-        df_yr = df_all[df_all[KEY_YEAR] == yr]
-        y_true = df_yr["targets"].values
-        for model_name in model_names:
-            metrics = evaluate_predictions(y_true, df_yr[model_name].values)
-            metrics_row = {
-                "model": model_name,
-                "year": yr,
-            }
+    country_codes = df_all[KEY_COUNTRY].unique()
+    for cn in country_codes:
+        df_cn = df_all[df_all[KEY_COUNTRY] == cn]
+        all_years = sorted(df_cn[KEY_YEAR].unique())
+        for yr in all_years:
+            df_yr = df_cn[df_cn[KEY_YEAR] == yr]
+            y_true = df_yr[KEY_TARGET].values
+            if model_names is None:
+                model_names = [
+                    c
+                    for c in df_yr.columns
+                    if c not in [KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET]
+                ]
 
-            for metric_name, value in metrics.items():
-                metrics_row[metric_name] = value
+            for model_name in model_names:
+                metrics = evaluate_predictions(y_true, df_yr[model_name].values)
+                metrics_row = {
+                    KEY_COUNTRY: cn,
+                    "model": model_name,
+                    KEY_YEAR: yr,
+                }
 
-            rows.append(metrics_row)
+                for metric_name, value in metrics.items():
+                    metrics_row[metric_name] = value
+
+                rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
-    df_all.set_index(["model", KEY_YEAR], inplace=True)
+    df_all.set_index([KEY_COUNTRY, "model", KEY_YEAR], inplace=True)
 
     return df_all
 
@@ -240,3 +318,41 @@ def run_benchmark_on_all_data():
                 # run_name = datetime.now().strftime(f"{dataset_name}_%H_%M_%d_%m_%Y.run")
                 run_name = dataset_name
                 run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(prog="run_benchmark.py", description="Run cybench")
+    parser.add_argument("-r", "--run-name")
+    parser.add_argument("-d", "--dataset-name")
+    args = parser.parse_args()
+    dataset_name = args.dataset_name
+    assert dataset_name is not None
+
+    if args.run_name is not None:
+        run_name = args.run_name
+    else:
+        run_name = dataset_name
+
+    # skipping some models
+    baseline_models = [
+        "AverageYieldModel",
+        "LinearTrend",
+        "SklearnRidge",
+        "RidgeRes",
+        "LSTM",
+        "LSTMRes",
+    ]
+    # override epochs for nn-models
+    nn_models_epochs = 5
+    results = run_benchmark(
+        run_name=run_name,
+        dataset_name=dataset_name,
+        baseline_models=baseline_models,
+        nn_models_epochs=nn_models_epochs,
+    )
+    df_metrics = results["df_metrics"].reset_index()
+    print(
+        df_metrics.groupby("model").agg(
+            {"normalized_rmse": "mean", "mape": "mean", "r2": "mean"}
+        )
+    )
