@@ -92,34 +92,53 @@ git clone https://github.com/BigDataWUR/AgML-CY-Bench
 
 #### Requirements
 
-The benchmark results were produced in the following test environment:
+Create a virtual python environment and activate the environment. The exact step depends on whether you are using `conda` or `virtualenv`. See [this post] about why you need python environments. Example steps when using `conda`.
 
 ```
-Operating system: Ubuntu 18.04
-CPU: Intel Xeon Gold 6448Y (32 Cores)
-memory (RAM): 256GB
-disk storage: 2TB
-GPU: NVIDIA RTX A6000
+conda create --name agml-cybench python=3.12
+conda activate agml-cybench
+
 ```
 
-**Benchmark run time**
+Run the following commands to install dependencies or requirements.
 
-During the benchmark run with the baseline models, several countries were run in parallel, each in a GPU in a
-distributed cluster.
-The larger countries took approximately 18 hours to complete.
-If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
+```
+pip install poetry
+cd AgML-CY-Bench
+poetry install
 
-**Software requirements**: Python 3.9.4, scikit-learn 1.4.2, PyTorch 2.3.0+cu118.
+```
 
 #### Downloading dataset
+You can work with a small sample of the dataset by running
 
-Get the dataset
-from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
+```
+git clone https://github.com/BigDataWUR/sample_data.git cybench/data
+```
+from AgML-CY-Bench folder.
 
 #### Running the benchmark
 
-First write a model class `your_model` that extends the `BaseModel` class. The base model class definition is
-inside `models.model`.
+To check everything is set up correctly, run
+```
+poetry run python cybench/runs/run_benchmark -d maize_NL
+```
+
+### Running the full benchmark
+To run the benchmark for many crops and countries, follow the steps for [installation](#installation) and
+[requirements](#requirements) from the previous section  in a machine with significant amount of resources (memory and storage).
+
+Get the dataset from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
+After downloading the dataset, unzip the data to `AgML-CY-Bench/cybench/data`.
+
+Run the benchmark for all datasets and models using
+```
+poetry run python cybench/runs/run_benchmark -d all
+```
+
+If you want to write your own model and compare performance with the benchmark,
+write a model class `your_model` that extends the `BaseModel` class.
+The base model class definition is inside `models.model`.
 
 ```
 from cybench.models.model import BaseModel
@@ -140,21 +159,22 @@ run_benchmark(run_name=run_name,
 
 ```
 
-### Dataset
-
-Dataset can be loaded by crop and (optionally by country).
-
-For example
+#### Reproducing the results
+The benchmark results were produced in the following test environment:
 
 ```
-dataset = Dataset.load("maize")
+Operating system: Ubuntu 18.04
+CPU: Intel Xeon Gold 6448Y (32 Cores)
+memory (RAM): 256GB
+disk storage: 2TB
+GPU: NVIDIA RTX A6000
 ```
 
-will load data for countries covered by the maize dataset. Maize data for the US can be loaded as follows:
+**Benchmark run time**
 
-```
-dataset = Dataset.load("maize_US")
-```
+During the benchmark run with the baseline models, several countries were run in parallel, each in a GPU in a
+distributed cluster. The larger countries took approximately 18 hours to complete.
+If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
 
 #### Data sources
 
