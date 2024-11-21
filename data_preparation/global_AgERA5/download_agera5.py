@@ -99,7 +99,7 @@ def download_agera5_year(cds, year, sel_param, download_path):
     )
 
 
-def download_agera5(cds, num_requests, start_year, end_year):
+def download_agera5(cds, num_requests, start_year, end_year, download_path):
     # NOTE: $HOME/.cdsapirc needs to contain API key
     # Example contents of .cdsapirc:
     # url: https://cds.climate.copernicus.eu/api
@@ -117,7 +117,7 @@ def download_agera5(cds, num_requests, start_year, end_year):
     assert num_requests <= 16, Exception("Suggested number of requests is <= 16")
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_requests) as executor:
         tasks = [
-            executor.submit(download_agera5_year, cds, year, parameter)
+            executor.submit(download_agera5_year, cds, year, parameter, download_path)
             for year in range(start_year, end_year + 1)
             for parameter in AgERA5_params
         ]
