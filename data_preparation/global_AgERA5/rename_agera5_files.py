@@ -14,9 +14,6 @@ start_year = int(sys.argv[2])
 end_year = int(sys.argv[3])
 
 # rename files in the current directory
-# NOTE: CDS api seems to be changing.
-# From Sept 2024, this script may need an update.
-# Check https://confluence.ecmwf.int/x/uINmFw.
 for yr in list(range(start_year, end_year + 1)):
     files = [f for f in os.listdir(".") if f.endswith(".nc") and str(yr) in f]
     for f in files:

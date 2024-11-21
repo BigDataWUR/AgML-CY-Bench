@@ -135,7 +135,7 @@ download_agera5(cds, 16, 2001, 2023, download_path)
 
 # NOTE:
 # After downloading data, you need 2 more steps before you can
-# use `../predictor_data_prep.r` to mask and aggregate AgERA5 data to admin regions.
+# use `../predictor_data_prep.py` to mask and aggregate AgERA5 data to admin regions.
 # 1. Data will be downloaded to folders named "Maximum_Temperature",
 #    "Minimum_Temperature", etc. Run the `rename_agera5_files.py` in each folder.
 # 2. Rename folder names as follows:
