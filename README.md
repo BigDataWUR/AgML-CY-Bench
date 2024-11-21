@@ -92,14 +92,6 @@ git clone https://github.com/BigDataWUR/AgML-CY-Bench
 
 #### Requirements
 
-Create a virtual python environment and activate the environment. The exact step depends on whether you are using `conda` or `virtualenv`. See [this post] about why you need python environments. Example steps when using `conda`.
-
-```
-conda create --name agml-cybench python=3.12
-conda activate agml-cybench
-
-```
-
 Run the following commands to install dependencies or requirements.
 
 ```
@@ -121,7 +113,7 @@ from AgML-CY-Bench folder.
 
 To check everything is set up correctly, run
 ```
-poetry run python cybench/runs/run_benchmark -d maize_NL
+poetry run python cybench/runs/run_benchmark.py -d maize_NL -m test
 ```
 
 ### Running the full benchmark
@@ -131,9 +123,9 @@ To run the benchmark for many crops and countries, follow the steps for [install
 Get the dataset from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
 After downloading the dataset, unzip the data to `AgML-CY-Bench/cybench/data`.
 
-Run the benchmark for all datasets and models using
+Run the benchmark on a dataset using
 ```
-poetry run python cybench/runs/run_benchmark -d all
+poetry run python cybench/runs/run_benchmark.py -d maize_NL
 ```
 
 If you want to write your own model and compare performance with the benchmark,
