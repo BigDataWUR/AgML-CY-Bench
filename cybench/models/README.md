@@ -10,4 +10,8 @@
 
     d. Random Forest model. Ramdom Forest from scikit-learn acts as a non-linear baseline with expert-designed features. Both `Ridge` and `RandomForestRegressor` can be passed to `SklearnModel` as the sklearn estimator without having to change other code. Hyperparameter optimization is possible by passing the search space to `fit` method and setting the `optimize_hyperparameters` flag to True.
 
-    e. LSTM. An example LSTM model is included as a deep learning or representation learning baseline.
+    e. LSTM. An example LSTM model is included as a deep learning (RNN) or representation learning baseline.
+
+    f. InceptionTime. An example InceptionTime model is included as a deep learning (1D-CNN) or representation learning baseline.
+
+    g. Transformer. An example Transformer model is included as a deep learning (Transformer) or representation learning baseline.

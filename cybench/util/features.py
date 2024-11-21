@@ -1,6 +1,6 @@
-import os
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
 from cybench.config import (
     KEY_LOC,
@@ -11,38 +11,37 @@ from cybench.config import (
 )
 
 
-def fortnight_from_date(date_str: str):
+def fortnight_from_date(dt: datetime):
     """Get the fortnight number from date.
 
     Args:
-      date_str: date string in YYYYmmdd format
+      dt: date
 
     Returns:
       Fortnight number, "YYYY0101" to "YYYY0115" -> 1.
     """
-    month = date_str[4:6]
-    day_of_month = int(date_str[6:])
-    fortnight_number = (int(month) - 1) * 2
+    month = dt.month
+    day_of_month = dt.day
+    fortnight_number = (month - 1) * 2
     if day_of_month <= 15:
         return fortnight_number + 1
     else:
         return fortnight_number + 2
 
 
-def dekad_from_date(date_str: str):
+def dekad_from_date(dt: datetime):
     """Get the dekad number from date.
 
     Args:
-      date_str: date string in YYYYmmdd format
+      dt: date
 
     Returns:
-      Dekad number, e.g. "YYYY0101" to "YYYY010" -> 1,
+      Dekad number, e.g. "YYYY0101" to "YYYY0110" -> 1,
                          "YYYY0111" to "YYYY0120" -> 2,
                          "YYYY0121" to "YYYY0131" -> 3
     """
-    date_str = date_str.replace("-", "").replace("/", "")
-    month = int(date_str[4:6])
-    day_of_month = int(date_str[6:])
+    month = dt.month
+    day_of_month = dt.day
     dekad = (month - 1) * 3
     if day_of_month <= 10:
         dekad += 1
@@ -67,7 +66,7 @@ def _add_period(df: pd.DataFrame, period_length: str):
     # NOTE expects data column in string format
     # add a period column based on time step
     if period_length == "month":
-        df["period"] = df["date"].str[4:6]
+        df["period"] = df["date"].dt.month
     elif period_length == "fortnight":
         df["period"] = df.apply(lambda r: fortnight_from_date(r["date"]), axis=1)
     elif period_length == "dekad":
@@ -108,7 +107,8 @@ def _aggregate_by_period(
     )
 
     # combine names of two column levels
-    ft_df.columns = [first + second for first, second in ft_df.columns]
+    # second level is period number
+    ft_df.columns = [first + str(second) for first, second in ft_df.columns]
 
     return ft_df
 
@@ -183,7 +183,7 @@ def _count_threshold(
 
     # rename period cols
     period_cols = df["period"].unique()
-    rename_cols = {p: ft_name + "p" + p for p in period_cols}
+    rename_cols = {p: ft_name + "p" + str(p) for p in period_cols}
     ft_df = ft_df.rename(columns=rename_cols)
 
     return ft_df
@@ -201,7 +201,7 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
       pd.DataFrame
     """
     # If indicators are not in the dataframe
-    if (set(indicators).intersection(set(df.columns)) != set(indicators)):
+    if set(indicators).intersection(set(df.columns)) != set(indicators):
         return None
 
     # for a data source, dates should match across all indicators
@@ -209,9 +209,6 @@ def unpack_time_series(df: pd.DataFrame, indicators: list):
 
     # explode time series columns and dates
     df = df.explode(indicators + ["date"]).drop(columns=[KEY_DATES])
-    df = df.astype({"date": str})
-    # pandas tends to format date as "YYYY-mm-dd", remove the hyphens
-    df["date"] = df["date"].str.replace("-", "")
 
     return df
 
