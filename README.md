@@ -106,7 +106,7 @@ You can work with a small sample of the dataset by running
 ```
 git clone https://github.com/BigDataWUR/sample_data.git cybench/data
 ```
-from AgML-CY-Bench folder.
+from the `AgML-CY-Bench` folder.
 
 #### Running a reduced version of the benchmark
 
@@ -121,7 +121,7 @@ To run the benchmark for many crops and countries, follow the steps for [install
 
 Get the dataset from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
 After downloading the dataset, move the unzipped data inside `AgML-CY-Bench/cybench/data` or
-`AgML-CY-Bench/cybench/data` points to the directory containing unzipped data.
+make sure `AgML-CY-Bench/cybench/data` points to the directory containing unzipped data.
 
 Unzip the downloaded data:
 ```
@@ -131,7 +131,7 @@ Move the data to the expected data path:
 ```
 mv <target_dir>/* cybench/data
 ```
-or create a symbolic link to the same effect:
+or create a symbolic link from `cybench/data` to the target directory:
 ```
 ln -sf <target_dir> cybench/data
 ```
@@ -192,8 +192,8 @@ See [tables inside `results_baselines`](results_baselines/tables/)
 
 #### Data sources
 
-| Crop Statistics                                                           | Shapefiles or administrative boundaries                              | Predictors, crop masks, crop calendars                                                     |
-|---------------------------------------------------------------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Crop Statistics | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
+|-----------------|-----------------------------------------|----------------------------------------|
 | [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md)                                |
 | [Mali](data_preparation/crop_statistics_ML/README.md) (1)                 | Use Africa shapefiles from FEWSNET                                   | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md)                        |
 | [Argentina](data_preparation/crop_statistics_AR/README.md)                | [Argentina](data_preparation/shapefiles_AR/README.md)                | Soil moisture: [GLDAS](data_preparation/global_soil_moisture_GLDAS/README.md)              |
