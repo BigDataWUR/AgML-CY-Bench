@@ -98,10 +98,9 @@ Run the following commands to install dependencies or requirements.
 pip install poetry
 cd AgML-CY-Bench
 poetry install
-
 ```
 
-#### Downloading dataset
+#### Downloading the sample dataset
 You can work with a small sample of the dataset by running
 
 ```
@@ -109,7 +108,7 @@ git clone https://github.com/BigDataWUR/sample_data.git cybench/data
 ```
 from AgML-CY-Bench folder.
 
-#### Running the benchmark
+#### Running a reduced version of the benchmark
 
 To check everything is set up correctly, run
 ```
@@ -121,7 +120,21 @@ To run the benchmark for many crops and countries, follow the steps for [install
 [requirements](#requirements) from the previous section  in a machine with significant amount of resources (memory and storage).
 
 Get the dataset from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
-After downloading the dataset, unzip the data to `AgML-CY-Bench/cybench/data`.
+After downloading the dataset, move the unzipped data inside `AgML-CY-Bench/cybench/data` or
+`AgML-CY-Bench/cybench/data` points to the directory containing unzipped data.
+
+Unzip the downloaded data:
+```
+unzip cybench-data.zip -d <target_dir>
+```
+Move the data to the expected data path:
+```
+mv <target_dir>/* cybench/data
+```
+or create a symbolic link to the same effect:
+```
+ln -sf <target_dir> cybench/data
+```
 
 Run the benchmark on a dataset using
 ```
