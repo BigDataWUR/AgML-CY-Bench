@@ -20,7 +20,7 @@ benchmark is called CY-Bench (crop yield benchmark).
 
 * [Overview](#overview)
 * [Getting started](#getting-started)
-* [Dataset](#dataset)
+* [Running the full benchmark](#running-the-full-benchmark)
 * [Leaderboard](#leaderboard)
 * [How to cite](#how-to-cite)
 * [How to contribute](#how-to-contribute)
@@ -155,17 +155,23 @@ class MyModel(BaseModel):
 
 run_name = <run_name>
 dataset_name = "maize_US"
-run_benchmark(run_name=run_name, 
-              model_name="my_model",
-              model_constructor=MyModel,
-              model_init_kwargs: <int args>,
-              model_fit_kwargs: <fit params>,
-              dataset_name=dataset_name)
+result = run_benchmark(run_name=run_name, 
+                       model_name="my_model",
+                       model_constructor=MyModel,
+                       model_init_kwargs: <int args>,
+                       model_fit_kwargs: <fit params>,
+                       dataset_name=dataset_name)
+
+metrics = ["normalized_rmse", "mape", "r2"]
+df_metrics = result["df_metrics"].reset_index()
+print(df_metrics.groupby("model").agg({ m : "mean" for m in metrics }))
 
 ```
 
-#### Reproducing the results
-The benchmark results were produced in the following test environment:
+Compare the results (values of metrics for the specified dataset) with [the baseline results](results_baselines/tables/) for the same dataset.
+
+#### Reproducing the baseline results
+The baseline results were produced in the following test environment:
 
 ```
 Operating system: Ubuntu 18.04
@@ -180,6 +186,9 @@ GPU: NVIDIA RTX A6000
 During the benchmark run with the baseline models, several countries were run in parallel, each in a GPU in a
 distributed cluster. The larger countries took approximately 18 hours to complete.
 If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
+
+### Leaderboard
+See [tables inside `results_baselines`](results_baselines/tables/)
 
 #### Data sources
 
@@ -201,9 +210,6 @@ If run sequentially in a single capable GPU, the whole benchmark should take 50-
 
 2: Germany data is also included in the EU dataset, but there most of the data fails coherence tests (e.g. yield =
 production / harvest_area)
-
-### Leaderboard
-See [baseline results](results_baselines/tables/)
 
 ### How to cite
 
