@@ -129,7 +129,7 @@ unzip cybench-data.zip -d <target_dir>
 ```
 Move the data to the expected data path:
 ```
-mv <target_dir>/* cybench/data
+mv <target_dir> cybench/data
 ```
 or create a symbolic link from `cybench/data` to the target directory:
 ```
