@@ -22,12 +22,11 @@ from cybench.config import (
     MIN_INPUT_YEAR,
     MAX_INPUT_YEAR,
     SOIL_PROPERTIES,
-    METEO_INDICATORS,
-    RS_FPAR,
     STATIC_PREDICTORS,
+    TIME_SERIES_INPUTS,
     TIME_SERIES_PREDICTORS,
+    TIME_SERIES_AGGREGATIONS,
     CROP_CALENDAR_DOYS,
-    CROP_CALENDAR_DATES,
 )
 
 
@@ -42,9 +41,11 @@ class LSTMModel(BaseModel, nn.Module):
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
+        self._interpolate_time_series = False
         self._aggregate_time_series_to = None
         if not time_series_have_same_length:
-            self._aggregate_time_series_to = "week"
+            self._interpolate_time_series = True
+            self._aggregate_time_series_to = "dekad"
 
         num_ts_inputs = len(TIME_SERIES_PREDICTORS)
         num_other_inputs = len(STATIC_PREDICTORS)
@@ -95,6 +96,7 @@ class LSTMModel(BaseModel, nn.Module):
         self._max_season_window_length = train_dataset.max_season_window_length
         torch_dataset = TorchDataset(
             train_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -103,7 +105,6 @@ class LSTMModel(BaseModel, nn.Module):
             collate_fn=torch_dataset.collate_fn,
             shuffle=True,
             batch_size=batch_size,
-            drop_last=True,
         )
         optimizer = torch.optim.Adam(
             self.parameters(), lr=sel_lr, weight_decay=sel_wt_decay
@@ -198,6 +199,7 @@ class LSTMModel(BaseModel, nn.Module):
                     )
                     torch_dataset = TorchDataset(
                         train_dataset2,
+                        interpolate_time_series=self._interpolate_time_series,
                         aggregate_time_series_to=self._aggregate_time_series_to,
                         max_season_window_length=self._max_season_window_length,
                     )
@@ -206,7 +208,6 @@ class LSTMModel(BaseModel, nn.Module):
                         collate_fn=torch_dataset.collate_fn,
                         shuffle=True,
                         batch_size=batch_size,
-                        drop_last=True,
                     )
                     optimizer = torch.optim.Adam(
                         self.parameters(), lr=lr, weight_decay=wt_decay
@@ -268,6 +269,7 @@ class LSTMModel(BaseModel, nn.Module):
 
         Args:
           X (list): a list of data items, each of which is a dict
+          NOTE: All items in X are expected have time series with the same length.
           device (str): str, the device to use
           **predict_params: Additional parameters
 
@@ -277,9 +279,18 @@ class LSTMModel(BaseModel, nn.Module):
         self.to(device)
         self.eval()
 
+        if self._aggregate_time_series_to is not None:
+            assert self._interpolate_time_series
+            assert self._max_season_window_length is not None
+            X = TorchDataset.interpolate_and_aggregate(
+                X,
+                self._max_season_window_length,
+                aggregate_time_series_to=self._aggregate_time_series_to,
+            )
+
         with torch.no_grad():
             X_collated = TorchDataset.collate_fn(
-                [TorchDataset._cast_to_tensor(x) for x in X]
+                [TorchDataset.cast_to_tensor(x) for x in X]
             )
             y_pred = self._forward_pass(X_collated, device)
             y_pred = y_pred.cpu().numpy()
@@ -289,6 +300,7 @@ class LSTMModel(BaseModel, nn.Module):
         self.eval()
         torch_dataset = TorchDataset(
             test_dataset,
+            interpolate_time_series=self._interpolate_time_series,
             aggregate_time_series_to=self._aggregate_time_series_to,
             max_season_window_length=self._max_season_window_length,
         )
@@ -407,7 +419,7 @@ def get_workshop_data():
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {"soil": df_x_soil}
-    for input in ["meteo", "fpar"]:
+    for input, ts_cols in TIME_SERIES_INPUTS.items():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -420,11 +432,8 @@ def get_workshop_data():
         df_x.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
         if input == "meteo":
             df_x["cwb"] = df_x["prec"] = df_x["et0"]
-            df_x = df_x[METEO_INDICATORS]
-        else:
-            df_x = df_x[[RS_FPAR]]
 
-        dfs_x[input] = df_x
+        dfs_x[input] = df_x[ts_cols]
 
     return align_inputs_and_labels(df_y, dfs_x)
 
@@ -464,7 +473,7 @@ def get_cybench_data():
     df_x_soil.set_index([KEY_LOC], inplace=True)
 
     dfs_x = {"soil": df_x_soil}
-    for input in ["meteo", "fpar"]:
+    for input, ts_cols in TIME_SERIES_INPUTS.items():
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -474,24 +483,15 @@ def get_cybench_data():
 
         # Aggregate time series data to dekadal resolution
         if input == "meteo":
+            ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in ts_cols}
+            # Primarily to avoid losing the "date" column.
+            ts_aggrs["date"] = "min"
             df_x = (
-                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"])
-                .agg(
-                    {
-                        "tmin": "min",
-                        "tmax": "max",
-                        "tavg": "mean",
-                        "prec": "sum",
-                        "cwb": "sum",
-                        "rad": "mean",
-                        "date": "min",
-                    }
-                )
-                .reset_index()
+                df_x.groupby([KEY_LOC, KEY_YEAR, "dekad"]).agg(ts_aggrs).reset_index()
             )
         elif input == "fpar":
             # fpar is already at dekadal resolution
-            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad", RS_FPAR]]
+            df_x = df_x[[KEY_LOC, KEY_YEAR, "date", "dekad"] + ts_cols]
 
         # lead time = 6 dekads
         df_x = df_x[df_x["dekad"] <= 30]
@@ -529,7 +529,7 @@ def get_cybench_data_aligned_to_crop_season():
 
     dfs_x = {"soil": df_x_soil}
     # min_dekads = 36
-    for input in ["meteo", "fpar"]:
+    for input in TIME_SERIES_INPUTS:
         df_x = pd.read_csv(
             os.path.join(path_data_cn, input + "_maize_US.csv"), header=0
         )
@@ -550,7 +550,6 @@ def validate_agml_workshop_results(df_y, dfs_x, time_series_have_same_length=Fal
         "maize",
         data_target=df_y,
         data_inputs=dfs_x,
-        time_series_have_same_length=time_series_have_same_length,
     )
     all_years = dataset.years
     test_years = [2012, 2018]
@@ -588,7 +587,13 @@ if __name__ == "__main__":
     """
     NOTE: config.py requires these updates to compare with workshop results.
     1. SOIL_PROPERTIES = ["awc"]
-    2. TIME_SERIES_PREDICTORS = METEO_INDICATORS + [RS_FPAR]
+    2. TIME_SERIES_INPUTS = {
+            "meteo": METEO_INDICATORS,
+            "fpar": [RS_FPAR],
+        #    "ndvi": [RS_NDVI],
+        #    "soil_moisture": SOIL_MOISTURE_INDICATORS,
+        }
+    Comment out the last two entries.
     The workshop data does not include other inputs from the benchmark.
     """
     # 1. Validate performance of LSTMModel (from AgML Workshop)
