@@ -7,12 +7,10 @@ import logging
 
 from sklearn.model_selection import ParameterGrid
 from tsai.models.InceptionTime import InceptionTime
-from tsai.models.TransformerModel import TransformerModel
 from tsai.models.TST import TST
 
-from cybench.datasets.dataset_torch import TorchDataset
+from cybench.datasets.torch_dataset import TorchDataset
 from cybench.datasets.dataset import Dataset
-from cybench.datasets.transforms import transform_ts_inputs_to_dekadal
 
 from cybench.models.model import BaseModel
 
@@ -46,6 +44,10 @@ class BaseNNModel(BaseModel, nn.Module):
 
         self._norm_params = None
         self._init_args = kwargs
+        self._aggregate_time_series_to = None
+        if "aggregate_time_series_to" in kwargs:
+            self._aggregate_time_series_to = kwargs["aggregate_time_series_to"]
+
         self._logger = logging.getLogger(__name__)
 
     def fit(
@@ -246,11 +248,17 @@ class BaseNNModel(BaseModel, nn.Module):
         assert epochs > 0
 
         train_dataset, val_dataset = dataset.split_on_years((train_years, val_years))
-        self._min_date = train_dataset.min_date
-        self._max_date = train_dataset.max_date
-
-        train_dataset = TorchDataset(train_dataset)
-        val_dataset = TorchDataset(val_dataset)
+        max_season_window_length = train_dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            train_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=max_season_window_length,
+        )
+        val_dataset = TorchDataset(
+            val_dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -299,8 +307,8 @@ class BaseNNModel(BaseModel, nn.Module):
                     self.eval()
                     losses = []
                     for batch in val_loader:
-                        targets = batch[KEY_TARGET]
                         batch_preds = self._forward_pass(batch, device)
+                        targets = batch[KEY_TARGET]
                         loss = loss_fn(batch_preds, targets, **loss_kwargs)
                         losses.append(loss.item())
 
@@ -343,10 +351,13 @@ class BaseNNModel(BaseModel, nn.Module):
           A list of training losses (one value per epoch).
         """
         self.to(device)
-        self._min_date = dataset.min_date
-        self._max_date = dataset.max_date
 
-        train_dataset = TorchDataset(dataset)
+        self._max_season_window_length = dataset.max_season_window_length
+        train_dataset = TorchDataset(
+            dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         train_loader = torch.utils.data.DataLoader(
             train_dataset,
             batch_size=batch_size,
@@ -513,7 +524,11 @@ class BaseNNModel(BaseModel, nn.Module):
         """
         self.to(device)
         self.eval()
-        test_dataset = TorchDataset(dataset)
+        test_dataset = TorchDataset(
+            dataset,
+            aggregate_time_series_to=self._aggregate_time_series_to,
+            max_season_window_length=self._max_season_window_length,
+        )
         test_loader = torch.utils.data.DataLoader(
             test_dataset, batch_size=batch_size, collate_fn=TorchDataset.collate_fn
         )
@@ -551,19 +566,32 @@ class BaseNNModel(BaseModel, nn.Module):
 
 
 class BaselineLSTM(BaseNNModel):
+    """LSTM model.
+
+    Args:
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of features InceptionTime outputs
+        num_layers (int): The number of InceptionBlocks. Defaults to 6.
+        output_size (int): The number of output classes. Defaults to 1.
+        **kwargs: Additional keyword arguments passed to the base class.
+    """
+
     def __init__(
         self,
+        time_series_have_same_length=False,
         hidden_size=64,
         num_layers=1,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
@@ -571,7 +599,6 @@ class BaselineLSTM(BaseNNModel):
         super().__init__(**kwargs)
         self._lstm = nn.LSTM(n_ts_inputs, hidden_size, num_layers, batch_first=True)
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -619,9 +646,6 @@ class BaselineLSTM(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts, _ = self._lstm(x_ts)
         x = torch.cat([x_ts[:, -1, :], x_static], dim=1)
@@ -633,28 +657,31 @@ class BaselineInceptionTime(BaseNNModel):
     """InceptionTime model.
 
     Args:
-         hidden_size (int): The number of features InceptionTime outputs
-         num_layers (int): The number of InceptionBlocks. Defaults to 6.
-         num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
-         output_size (int): The number of output classes. Defaults to 1.
-         transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
-         **kwargs: Additional keyword arguments passed to the base class.
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of features InceptionTime outputs
+        num_layers (int): The number of InceptionBlocks. Defaults to 6.
+        num_features (int): The number of features within the InceptionBlocks. Defaults to 32.
+        output_size (int): The number of output classes. Defaults to 1.
+        **kwargs: Additional keyword arguments passed to the base class.
     """
 
     def __init__(
         self,
+        time_series_have_same_length=False,
         hidden_size=64,
         num_layers=6,
         num_features=32,
         output_size=1,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+
         kwargs["hidden_size"] = hidden_size
         kwargs["num_layers"] = num_layers
         kwargs["num_features"] = num_features
@@ -665,7 +692,6 @@ class BaselineInceptionTime(BaseNNModel):
             c_in=n_ts_inputs, c_out=hidden_size, nf=num_features, depth=num_layers
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -713,9 +739,6 @@ class BaselineInceptionTime(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts = x_ts.permute(0, 2, 1)
         x_ts = self._timeseries(x_ts)
@@ -728,33 +751,39 @@ class BaselineTransformer(BaseNNModel):
     """Transformer model.
 
     Args:
-         hidden_size (int): The number of resulting timeseries features.
-         d_moodel (int): Total dimension of the model.
-         n_head (int): Parallel attention heads.
-         d_ffn (int): The dimension of the feedforward network model.
-         output_size (int): The number of output classes. Defaults to 1.
-         num_layers (1): The number of sub-encoder-layers in the encoder.
-         transforms (list): A list of transforms to apply to the input time series. Defaults to [transform_ts_inputs_to_dekadal].
-         **kwargs: Additional keyword arguments passed to the base class.
+        seq_len (int): length of time series sequence (in days)
+        time_series_have_same_length (bool): whether time series have the same length
+        hidden_size (int): The number of resulting timeseries features.
+        d_moodel (int): Total dimension of the model.
+        n_head (int): Parallel attention heads.
+        d_ffn (int): The dimension of the feedforward network model.
+        output_size (int): The number of output classes. Defaults to 1.
+        num_layers (1): The number of sub-encoder-layers in the encoder.
+        **kwargs: Additional keyword arguments passed to the base class.
     """
 
     def __init__(
         self,
         seq_len,
+        time_series_have_same_length=False,
         hidden_size=64,
         d_model=64,
         n_head=1,
         d_ff=256,
         output_size=1,
         num_layers=3,
-        transforms=[
-            transform_ts_inputs_to_dekadal,
-        ],
         **kwargs,
     ):
         # Add all arguments to init_args to enable model reconstruction in fit method
         n_ts_inputs = len(TIME_SERIES_PREDICTORS)
         n_static_inputs = len(STATIC_PREDICTORS)
+        if time_series_have_same_length:
+            kwargs["aggregate_time_series_to"] = None
+        else:
+            kwargs["aggregate_time_series_to"] = "dekad"
+            # NOTE: Should match num_time_steps in TorchDataset __getitem__().
+            seq_len = int(np.ceil(seq_len / 10))
+
         kwargs["hidden_size"] = hidden_size
         kwargs["d_model"] = d_model
         kwargs["n_head"] = n_head
@@ -762,8 +791,8 @@ class BaselineTransformer(BaseNNModel):
         kwargs["num_layers"] = num_layers
         kwargs["output_size"] = output_size
         kwargs["seq_len"] = seq_len
-
         super().__init__(**kwargs)
+
         self._timeseries = TST(
             c_in=n_ts_inputs,
             c_out=hidden_size,
@@ -774,7 +803,6 @@ class BaselineTransformer(BaseNNModel):
             d_ff=d_ff,
         )
         self._fc = nn.Linear(hidden_size + n_static_inputs, output_size)
-        self._transforms = transforms
 
     def fit(
         self,
@@ -822,9 +850,6 @@ class BaselineTransformer(BaseNNModel):
         )
 
     def forward(self, x):
-        for transform in self._transforms:
-            x = transform(x, self._min_date, self._max_date)
-
         x_ts, x_static = separate_ts_static_inputs(x)
         x_ts = x_ts.permute(0, 2, 1)
         x_ts = self._timeseries(x_ts)

@@ -11,13 +11,6 @@ CONFIG_DIR = os.path.abspath(os.path.join(__file__, os.pardir))
 PATH_DATA_DIR = os.path.join(CONFIG_DIR, "data")
 os.makedirs(PATH_DATA_DIR, exist_ok=True)
 
-# Path to folder where aligned data is stored
-# NOTE: Data is saved after aligning time series to crop season.
-# Similarly, labels data is aligned to have the same locations and years
-# as in input data.
-PATH_ALIGNED_DATA_DIR = os.path.join(CONFIG_DIR, "aligned_data")
-os.makedirs(PATH_ALIGNED_DATA_DIR, exist_ok=True)
-
 # Path to folder where output is stored
 PATH_OUTPUT_DIR = os.path.join(CONFIG_DIR, "output")
 os.makedirs(PATH_OUTPUT_DIR, exist_ok=True)
@@ -115,6 +108,15 @@ KEY_YEAR = "year"
 KEY_TARGET = "yield"
 # Key used for dates matching observations
 KEY_DATES = "dates"
+# Key used for crop season data
+KEY_CROP_SEASON = "crop_season"
+# Key used for combined input features
+KEY_COMBINED_FEATURES = "combined_features"
+
+# Minimum and maximum year in input data.
+# Used to add years to crop calendar data.
+MIN_INPUT_YEAR = 2000
+MAX_INPUT_YEAR = 2023
 
 # Soil properties
 SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
@@ -138,11 +140,26 @@ TIME_SERIES_PREDICTORS = (
     METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
 )
 
+# Aggregation functions
+TIME_SERIES_AGGREGATIONS = {
+    "tmin": "min",
+    "tmax": "max",
+    "tavg": "mean",
+    "prec": "sum",
+    "cwb": "sum",
+    "rad": "mean",
+    RS_FPAR: "mean",
+    RS_NDVI: "mean",
+    "ssm": "mean",
+}
+
 # All predictors. Add more when available
 ALL_PREDICTORS = STATIC_PREDICTORS + TIME_SERIES_PREDICTORS
 
-# Crop calendar entries: start of season, end of season
-CROP_CALENDAR_ENTRIES = ["sos", "eos"]
+# Crop calendar entries: start of season, end of season.
+# doy = day of year (1 to 366).
+CROP_CALENDAR_DOYS = ["sos", "eos"]
+CROP_CALENDAR_DATES = ["sos_date", "eos_date", "cutoff_date"]
 
 # Feature design
 # Base temperature for corn and wheat for growing degree days wheat:0 maize:10.

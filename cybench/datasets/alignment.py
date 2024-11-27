@@ -1,10 +1,17 @@
 import pandas as pd
 import numpy as np
 
-from cybench.config import KEY_LOC, KEY_YEAR
+from cybench.config import (
+    KEY_LOC,
+    KEY_YEAR,
+    SPINUP_DAYS,
+    FORECAST_LEAD_TIME,
+    CROP_CALENDAR_DOYS,
+    CROP_CALENDAR_DATES,
+)
 
 
-def _add_cutoff_days(df: pd.DataFrame, lead_time: str):
+def add_cutoff_days(df: pd.DataFrame, lead_time: str):
     """Add a column with cutoff days relative to end of season.
 
     Args:
@@ -20,173 +27,112 @@ def _add_cutoff_days(df: pd.DataFrame, lead_time: str):
     else:
         assert "season" in lead_time
         if lead_time == "middle-of-season":
-            df["cutoff_days"] = df["season_length"] // 2
+            df["cutoff_days"] = (df["season_length"] // 2).astype(int)
         elif lead_time == "quarter-of-season":
-            df["cutoff_days"] = df["season_length"] // 4
+            df["cutoff_days"] = (df["season_length"] // 4).astype(int)
         else:
             raise Exception(f'Unrecognized lead time "{lead_time}"')
 
     return df
 
 
-def align_to_crop_season(df: pd.DataFrame, crop_cal_df: pd.DataFrame, spinup_days: int):
-    """Align time series data to crop season.
+def compute_crop_season_window(df, min_year, max_year, lead_time=FORECAST_LEAD_TIME):
+    """Compute crop season window used for forecasting.
 
     Args:
-        df (pd.DataFrame): time series data
-        crop_cal_df (pd.DataFrame): crop calendar data
-        spinup_days (int): extra days to include before the start of season
+        df (pd.DataFrame): crop calendar data
+        min_year (int): earliest year in target data
+        max_year (int): latest year in target data
+        lead_time (str): forecast lead time option
 
     Returns:
-        the same DataFrame with dates aligned to crop season
+        the same DataFrame with crop season window information
     """
-
-    select_cols = list(df.columns)
-
-    # Merge with crop calendar
-    crop_cal_cols = [KEY_LOC, "sos", "eos"]
-    crop_cal_df = crop_cal_df.astype({"sos": int, "eos": int})
-    df = df.merge(crop_cal_df[crop_cal_cols], on=[KEY_LOC])
+    df = df[[KEY_LOC] + CROP_CALENDAR_DOYS]
+    df = df.astype({k: int for k in CROP_CALENDAR_DOYS})
+    df = pd.concat(
+        [df.assign(**{KEY_YEAR: yr}) for yr in range(min_year, max_year + 1)],
+        ignore_index=True,
+    )
     df["sos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["sos"], format="%Y%j")
     df["eos_date"] = pd.to_datetime(df[KEY_YEAR] * 1000 + df["eos"], format="%Y%j")
 
-    # The next new year starts right after this year's harvest.
-    df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
-    df["new_year"] = np.where(df["date"] > df["eos_date"], df["year"] + 1, df["year"])
-
-    # Fix sos_date for data that are in a different year than sos_date.
-    # Say maize, AO sos_date is 20011124 and eos_date is 20020615.
-    # We want the data from 20020101 to 20020615 to have the sos_date of
-    # 20011124.
+    # Fix sos_date for cases where sos > eos.
+    # For example, sos_date is 20011124 and eos_date is 20010615.
+    # For 2001, select sos_date for the previous year because season started
+    # in the previous year.
     df["sos_date"] = np.where(
-        (df["date"] <= df["eos_date"]) & (df["sos"] > df["eos"]),
-        # select sos_date for the previous year because season started
-        # in the previous year.
+        (df["sos"] > df["eos"]),
         df["sos_date"] + pd.offsets.DateOffset(years=-1),
         df["sos_date"],
     )
 
-    # Fix eos_date for data that are after the current season's eos_date.
-    # Say eos_date for maize, NL is 20010728. All data after 20010728 belong to
-    # the season that ends in 2002. We change the eos_date for those data to be
-    # next year's eos_date.
-    # NOTE: This works only for static crop calendar.
-    df["eos_date"] = np.where(
-        (df["date"] > df["eos_date"]),
-        # select eos_date for the next year
-        df["eos_date"] + pd.offsets.DateOffset(years=1),
-        df["eos_date"],
+    df["season_length"] = (df["eos_date"] - df["sos_date"]).dt.days
+    assert df[df["season_length"] > 366].empty
+
+    df = add_cutoff_days(df, lead_time)
+    df["cutoff_date"] = df["eos_date"] - pd.to_timedelta(df["cutoff_days"], unit="d")
+    df["season_window_length"] = np.where(
+        df["season_length"] + SPINUP_DAYS <= 365,
+        df["season_length"] + SPINUP_DAYS - df["cutoff_days"],
+        365 - df["cutoff_days"],
     )
 
-    # Compute difference with eos
-    df["eos_diff"] = (df["date"] - df["eos_date"]).dt.days
-    df = df.rename(
-        columns={
-            "date": "original_date",
-            KEY_YEAR: "original_year",
-            "new_year": KEY_YEAR,
-        }
+    # drop redundant information
+    df.drop(columns=CROP_CALENDAR_DOYS + ["season_length", "cutoff_days"], inplace=True)
+
+    return df
+
+
+def align_to_crop_season_window(df: pd.DataFrame, crop_season_df: pd.DataFrame):
+    """Align time series data to crop season window (includes lead time and spinup).
+
+    Args:
+        df (pd.DataFrame): time series data
+        crop_season_df (pd.DataFrame): crop season data
+        lead_time (str): forecast lead time option
+
+    Returns:
+        the input DataFrame with data aligned to crop season and trimmed to lead time
+    """
+    select_cols = list(df.columns)
+
+    # Merge with crop season data
+    df = df.merge(
+        crop_season_df[[KEY_LOC, KEY_YEAR] + CROP_CALENDAR_DATES],
+        on=[KEY_LOC, KEY_YEAR],
     )
 
-    # Make date relative to crop season.
-    # NOTE: Alignment is relative to end of season.
-    # 1. Add delta to the end of the year to align eos with Dec 31.
-    # 2. Add delta with eos
-    df["end_of_year"] = pd.to_datetime(
-        df[KEY_YEAR].astype(str) + "1231", format="%Y%m%d"
-    )
-    df["date"] = df["eos_date"] + pd.to_timedelta(
-        (df["end_of_year"] - df["eos_date"]).dt.days + df["eos_diff"], unit="d"
-    )
+    # The next crop season starts right after current year's harvest.
+    df[KEY_YEAR] = np.where(df["date"] > df["eos_date"], df[KEY_YEAR] + 1, df[KEY_YEAR])
+    df.drop(columns=CROP_CALENDAR_DATES, inplace=True)
 
-    # Calculate season length. Handle seasons crossing calendar year.
-    df["season_length"] = np.where(
-        (df["eos"] > df["sos"]),
-        (df["eos"] - df["sos"]),
-        (365 - df["sos"]) + df["eos"],
-    )
+    # merge with crop season data again because we changed KEY_YEAR
+    df = df.merge(crop_season_df, on=[KEY_LOC, KEY_YEAR])
 
-    # Keep data for spinup days before the start of season.
-    df["ts_length"] = np.where(
-        df["season_length"] + spinup_days <= 365,
-        df["season_length"] + spinup_days,
-        365,
-    )
+    # Validate sos_date: date - sos_date should not be more than 366 days
+    assert df[(df["date"] - df["sos_date"]).dt.days > 366].empty
+
+    # Validate eos_date: eos_date - date should not be more than 366 days
+    assert df[(df["eos_date"] - df["date"]).dt.days > 366].empty
 
     # Drop years with not enough data for a season
-    # NOTE: It's necessary to make sure years with incomplete data
-    # don't influence ensuring same number of time steps.
-    # See `trim_to_lead_time` below.
+    # NOTE: We cannot filter with df.groupby(...)["date"].transform("count")
+    # because ndvi and fpar don't have daily values.
     df["min_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
         "min"
     )
     df["max_date"] = df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].transform(
         "max"
     )
-    df = df[(df["max_date"] - df["min_date"]).dt.days >= df["ts_length"]]
+    df = df[(df["max_date"] - df["min_date"]).dt.days >= df["season_window_length"]]
+    # Keep season_window_length, i.e. season_length + SPINUP_DAYS - cutoff_days
+    df = df[(df["cutoff_date"] - df["date"]).dt.days <= df["season_window_length"]]
 
-    return df[select_cols + ["season_length", "end_of_year"]]
-
-
-def trim_to_lead_time(df, lead_time, spinup_days):
-    """Remove time series data after lead time.
-
-    Args:
-        df (pd.DataFrame): time series data
-        lead_time (str): lead time option
-        spinup_days (int): extra days to include before the start of season
-
-    Returns:
-        the same DataFrame with data after lead time removed
-    """
-    # NOTE: df should have the columns returned by `align_to_crop_season` above.
-    index_names = df.index.names
-    df.reset_index(inplace=True)
-    assert "season_length" in df.columns
-    assert "end_of_year" in df.columns
-    select_cols = [c for c in df.columns if c not in ["season_length", "end_of_year"]]
-
-    # Determine cutoff days based on lead time.
-    df = _add_cutoff_days(df, lead_time)
-    # NOTE: We need to do pd.to_datetime because pandas reads dates as str.
-    # Also note that pandas seems to write dates in "%Y-%m-%d" format.
-    df["end_of_year"] = pd.to_datetime(df["end_of_year"], format="%Y-%m-%d")
-    df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d")
-    df["cutoff_date"] = df["end_of_year"] - pd.to_timedelta(df["cutoff_days"], unit="d")
+    # Trim to lead time
     df = df[df["date"] <= df["cutoff_date"]]
 
-    # Keep the same number of time steps for all locations and years.
-    # It's necessary because models will stack time series data in a batch.
-    # NOTE: We don't want more than (season_length + spinup_days - cutoff_days).
-    #   We could do avg of season_length, but max is safer.
-    #   It doesn't hurt to have more data in the front.
-    #   Using less may hurt performance.
-    # More NOTEs:
-    # 1. We take min of date by (loc, year) so that all data points have
-    #   num_time_steps.
-    # 2. Then we look at max of (season_length + spinup_days - cutoff_days).
-    #    This is the maximum number of time steps after accounting for
-    #    spinup_days and lead time (cutoff_days).
-    # We take the min of 1 and 2 to meet both criteria.
-    num_time_steps = (
-        df.groupby([KEY_LOC, KEY_YEAR], observed=True)["date"].count().min()
-    )
-    num_time_steps = min(df["season_length"].max() + spinup_days, num_time_steps)
-    # sort by date to make sure tail works correctly
-    df = df.sort_values(by=[KEY_LOC, KEY_YEAR, "date"])
-    df = (
-        df.groupby([KEY_LOC, KEY_YEAR], observed=True)
-        .tail(num_time_steps)
-        .reset_index()
-    )
-
-    # NOTE: pandas adds "-" to date
-    df["date"] = df["date"].astype(str)
-    df["date"] = df["date"].str.replace("-", "")
-    df = df[select_cols]
-    df.set_index(index_names, inplace=True)
-
-    return df
+    return df[select_cols]
 
 
 def align_inputs_and_labels(df_y: pd.DataFrame, dfs_x: dict) -> tuple:

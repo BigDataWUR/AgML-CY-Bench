@@ -55,31 +55,32 @@ BASELINE_MODELS = list(_BASELINE_MODEL_CONSTRUCTORS.keys())
 
 _BASELINE_MODEL_INIT_KWARGS = defaultdict(dict)
 
+NN_MODELS_EPOCHS = 50
 _BASELINE_MODEL_FIT_KWARGS = defaultdict(dict)
 _BASELINE_MODEL_FIT_KWARGS["LSTM"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["LSTMRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTime"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 _BASELINE_MODEL_FIT_KWARGS["InceptionTimeRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
 _BASELINE_MODEL_FIT_KWARGS["Transformer"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
 _BASELINE_MODEL_FIT_KWARGS["TransformerRes"] = {
-    "epochs": 50,
+    "epochs": NN_MODELS_EPOCHS,
     "device": "cuda" if torch.cuda.is_available() else "cpu",
 }
 
@@ -164,13 +165,12 @@ def run_benchmark(
         train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
         # TODO: put into generic function
-        seq_len = (
-            dekad_from_date(train_dataset.max_date)
-            - dekad_from_date(train_dataset.min_date)
-            + 1
-        )
-        models_init_kwargs["Transformer"] = {"seq_len": seq_len}
-        models_init_kwargs["TransformerRes"] = {"seq_len": seq_len}
+        models_init_kwargs["Transformer"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
+        models_init_kwargs["TransformerRes"] = {
+            "seq_len": train_dataset.max_season_window_length,
+        }
 
         labels = test_dataset.targets()
 
