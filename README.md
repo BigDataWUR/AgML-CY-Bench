@@ -20,7 +20,7 @@ benchmark is called CY-Bench (crop yield benchmark).
 
 * [Overview](#overview)
 * [Getting started](#getting-started)
-* [Dataset](#dataset)
+* [Running the full benchmark](#running-the-full-benchmark)
 * [Leaderboard](#leaderboard)
 * [How to cite](#how-to-cite)
 * [How to contribute](#how-to-contribute)
@@ -92,7 +92,86 @@ git clone https://github.com/BigDataWUR/AgML-CY-Bench
 
 #### Requirements
 
-The benchmark results were produced in the following test environment:
+Run the following commands to install dependencies or requirements.
+
+```
+pip install poetry
+cd AgML-CY-Bench
+poetry install
+```
+
+#### Downloading the sample dataset
+You can work with a small sample of the dataset by running
+
+```
+git clone https://github.com/BigDataWUR/sample_data.git cybench/data
+```
+from the `AgML-CY-Bench` folder.
+
+#### Running a reduced version of the benchmark
+
+To check everything is set up correctly, run
+```
+poetry run python cybench/runs/run_benchmark.py -d maize_NL -m test
+```
+
+### Running the full benchmark
+To run the benchmark for many crops and countries, follow the steps for [installation](#installation) and
+[requirements](#requirements) from the previous section  in a machine with significant amount of resources (memory and storage).
+
+Get the dataset from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
+After downloading the dataset, move the unzipped data inside `AgML-CY-Bench/cybench/data` or
+make sure `AgML-CY-Bench/cybench/data` points to the directory containing unzipped data.
+
+Unzip the downloaded data:
+```
+unzip cybench-data.zip -d <target_dir>
+```
+Move the data to the expected data path:
+```
+mv <target_dir> cybench/data
+```
+or create a symbolic link from `cybench/data` to the target directory:
+```
+ln -sf <target_dir> cybench/data
+```
+
+Run the benchmark on a dataset using
+```
+poetry run python cybench/runs/run_benchmark.py -d maize_NL
+```
+
+If you want to write your own model and compare performance with the benchmark,
+write a model class `your_model` that extends the `BaseModel` class.
+The base model class definition is inside `models.model`.
+
+```
+from cybench.models.model import BaseModel
+from cybench.runs.run_benchmark import run_benchmark
+
+class MyModel(BaseModel): 
+    pass
+
+
+run_name = <run_name>
+dataset_name = "maize_US"
+result = run_benchmark(run_name=run_name, 
+                       model_name="my_model",
+                       model_constructor=MyModel,
+                       model_init_kwargs: <int args>,
+                       model_fit_kwargs: <fit params>,
+                       dataset_name=dataset_name)
+
+metrics = ["normalized_rmse", "mape", "r2"]
+df_metrics = result["df_metrics"].reset_index()
+print(df_metrics.groupby("model").agg({ m : "mean" for m in metrics }))
+
+```
+
+Compare the results (values of metrics for the specified dataset) with [the baseline results](results_baselines/tables/) for the same dataset.
+
+#### Reproducing the baseline results
+The baseline results were produced in the following test environment:
 
 ```
 Operating system: Ubuntu 18.04
@@ -105,61 +184,16 @@ GPU: NVIDIA RTX A6000
 **Benchmark run time**
 
 During the benchmark run with the baseline models, several countries were run in parallel, each in a GPU in a
-distributed cluster.
-The larger countries took approximately 18 hours to complete.
+distributed cluster. The larger countries took approximately 18 hours to complete.
 If run sequentially in a single capable GPU, the whole benchmark should take 50-60 hours to complete.
 
-**Software requirements**: Python 3.9.4, scikit-learn 1.4.2, PyTorch 2.3.0+cu118.
-
-#### Downloading dataset
-
-Get the dataset
-from [Zenodo](https://doi.org/10.5281/zenodo.11502142).
-
-#### Running the benchmark
-
-First write a model class `your_model` that extends the `BaseModel` class. The base model class definition is
-inside `models.model`.
-
-```
-from cybench.models.model import BaseModel
-from cybench.runs.run_benchmark import run_benchmark
-
-class MyModel(BaseModel): 
-    pass
-
-
-run_name = <run_name>
-dataset_name = "maize_US"
-run_benchmark(run_name=run_name, 
-              model_name="my_model",
-              model_constructor=MyModel,
-              model_init_kwargs: <int args>,
-              model_fit_kwargs: <fit params>,
-              dataset_name=dataset_name)
-
-```
-
-### Dataset
-
-Dataset can be loaded by crop and (optionally by country).
-
-For example
-
-```
-dataset = Dataset.load("maize")
-```
-
-will load data for countries covered by the maize dataset. Maize data for the US can be loaded as follows:
-
-```
-dataset = Dataset.load("maize_US")
-```
+### Leaderboard
+See [tables inside `results_baselines`](results_baselines/tables/)
 
 #### Data sources
 
-| Crop Statistics                                                           | Shapefiles or administrative boundaries                              | Predictors, crop masks, crop calendars                                                     |
-|---------------------------------------------------------------------------|----------------------------------------------------------------------|--------------------------------------------------------------------------------------------|
+| Crop Statistics | Shapefiles or administrative boundaries | Predictors, crop masks, crop calendars |
+|-----------------|-----------------------------------------|----------------------------------------|
 | [Africa from FEWSNET](data_preparation/crop_statistics_FEWSNET/README.md) | [Africa from FEWSNET](data_preparation/shapefiles_FEWSNET/README.md) | Weather: [AgERA5](data_preparation/global_AgERA5/README.md)                                |
 | [Mali](data_preparation/crop_statistics_ML/README.md) (1)                 | Use Africa shapefiles from FEWSNET                                   | Soil: [WISE soil data](data_preparation/global_soil_WISE/README.md)                        |
 | [Argentina](data_preparation/crop_statistics_AR/README.md)                | [Argentina](data_preparation/shapefiles_AR/README.md)                | Soil moisture: [GLDAS](data_preparation/global_soil_moisture_GLDAS/README.md)              |
@@ -176,9 +210,6 @@ dataset = Dataset.load("maize_US")
 
 2: Germany data is also included in the EU dataset, but there most of the data fails coherence tests (e.g. yield =
 production / harvest_area)
-
-### Leaderboard
-See [baseline results](results_baselines/tables/)
 
 ### How to cite
 

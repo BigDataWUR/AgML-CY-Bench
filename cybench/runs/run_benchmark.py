@@ -129,9 +129,7 @@ def run_benchmark(
         model_name not in BASELINE_MODELS
     ), f"Model name {model_name} already occurs in the baseline"
 
-    model_constructors = {
-        k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models
-    }
+    model_constructors = {k: _BASELINE_MODEL_CONSTRUCTORS[k] for k in baseline_models}
 
     models_init_kwargs = defaultdict(dict)
     for name in baseline_models:
@@ -155,7 +153,7 @@ def run_benchmark(
     dataset = Dataset.load(dataset_name)
 
     all_years = sorted(dataset.years)
-    if (sel_years is not None):
+    if sel_years is not None:
         assert all([yr in all_years for yr in sel_years])
     else:
         sel_years = all_years
@@ -324,6 +322,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="run_benchmark.py", description="Run cybench")
     parser.add_argument("-r", "--run-name")
     parser.add_argument("-d", "--dataset-name")
+    parser.add_argument("-m", "--mode")
     args = parser.parse_args()
     dataset_name = args.dataset_name
     assert dataset_name is not None
@@ -333,23 +332,27 @@ if __name__ == "__main__":
     else:
         run_name = dataset_name
 
-    # skipping some models
-    baseline_models = [
-        "AverageYieldModel",
-        "LinearTrend",
-        "SklearnRidge",
-        "RidgeRes",
-        "LSTM",
-        "LSTMRes",
-    ]
-    # override epochs for nn-models
-    nn_models_epochs = 5
-    results = run_benchmark(
-        run_name=run_name,
-        dataset_name=dataset_name,
-        baseline_models=baseline_models,
-        nn_models_epochs=nn_models_epochs,
-    )
+    if (args.mode is not None) and args.mode == "test":
+        # skipping some models
+        baseline_models = [
+            "AverageYieldModel",
+            "LinearTrend",
+            "SklearnRidge",
+            "RidgeRes",
+            "LSTM",
+            "LSTMRes",
+        ]
+        # override epochs for nn-models
+        nn_models_epochs = 5
+        results = run_benchmark(
+            run_name=run_name,
+            dataset_name=dataset_name,
+            baseline_models=baseline_models,
+            nn_models_epochs=nn_models_epochs,
+        )
+    else:
+        results = run_benchmark(run_name=run_name, dataset_name=dataset_name)
+
     df_metrics = results["df_metrics"].reset_index()
     print(
         df_metrics.groupby("model").agg(
