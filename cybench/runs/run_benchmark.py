@@ -151,7 +151,6 @@ def run_benchmark(
         models_fit_kwargs[model_name] = model_fit_kwargs
 
     dataset = Dataset.load(dataset_name)
-
     all_years = sorted(dataset.years)
     if sel_years is not None:
         assert all([yr in all_years for yr in sel_years])
