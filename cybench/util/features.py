@@ -190,7 +190,7 @@ def _count_threshold(
 
 
 def unpack_time_series(df: pd.DataFrame, indicators: list):
-    """Unpack time series from lists into separate rows by date.
+    """Unpack time series data to rows per date.
 
     Args:
       df : pd.DataFrame
@@ -223,32 +223,19 @@ def growing_degree_days(df: pd.DataFrame, tbase: float):
 
 def design_features(
     crop: str,
-    weather_df: pd.DataFrame,
-    soil_df: pd.DataFrame,
-    fpar_df: pd.DataFrame = None,
-    ndvi_df: pd.DataFrame = None,
-    soil_moisture_df: pd.DataFrame = None,
+    input_dfs: dict,
 ):
     """Design features based domain expertise.
 
     Args:
-      crop: crop name, e.g. maize
-
-      weather_df : pd.DataFrame, weather variables
-
-      soil_df: pd.DataFrame, soil properties
-
-      fpar_df : pd.DataFrame, fraction of absorbed photosynthetically active radiation
-
-      ndvi_df: pd.DataFrame, normalized difference vegetation index
-
-      et0_df: pd.DataFrame, potential evapotraspiration
-
-      soil_moisture_df: pd.DataFrame, soil moisture (surface and root zone)
+      crop (str): crop name, e.g. maize
+      input_dfs (dict): keys are input names, values are pd.DataFrames
 
     Returns:
       pd.DataFrame of features
     """
+    assert "soil" in input_dfs
+    soil_df = input_dfs["soil"]
     if "drainage_class" in soil_df.columns:
         soil_df["drainage_class"] = soil_df["drainage_class"].astype(str)
         # one hot encoding for categorical data
@@ -262,15 +249,23 @@ def design_features(
     # Feature design for time series
     index_cols = [KEY_LOC, KEY_YEAR]
     period_length = "month"
+    assert "meteo" in input_dfs
+    weather_df = input_dfs["meteo"]
     weather_df = _add_period(weather_df, period_length)
 
-    if fpar_df is not None:
+    fpar_df = None
+    if "fpar" in input_dfs:
+        fpar_df = input_dfs["fpar"]
         fpar_df = _add_period(fpar_df, period_length)
 
-    if ndvi_df is not None:
+    ndvi_df = None
+    if "ndvi" in input_dfs:
+        ndvi_df = input_dfs["ndvi"]
         ndvi_df = _add_period(ndvi_df, period_length)
 
-    if soil_moisture_df is not None:
+    soil_moisture_df = None
+    if "soil_moisture" in input_dfs:
+        soil_moisture_df = input_dfs["soil_moisture"]
         soil_moisture_df = _add_period(soil_moisture_df, period_length)
 
     # cumlative sums

@@ -15,3 +15,5 @@
     f. InceptionTime. An example InceptionTime model is included as a deep learning (1D-CNN) or representation learning baseline.
 
     g. Transformer. An example Transformer model is included as a deep learning (Transformer) or representation learning baseline.
+
+    h. Residual models: All the models c-g have their residual modeling counterparts. Residual models subtract the prediction of a Linear Trend model from b and learn to predict or forecast the residual (i.e. yield - trend). The idea is to remove the location and time dependent component of yields. The seasonal predictors included in CY-Bench are likely to better forecast the year-to-year variability in yields  than yields themselves.
