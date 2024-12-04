@@ -10,6 +10,7 @@ from cybench.config import (
     KEY_COUNTRY,
     KEY_LOC,
     KEY_YEAR,
+    PATH_OUTPUT_DIR,
     PATH_RESULTS_DIR,
 )
 from cybench.evaluation.eval import get_default_metrics
@@ -105,7 +106,7 @@ def write_results_to_table(output_file: str):
             )
 
     # Open a file to write Markdown content
-    with open(output_file, "w") as file:
+    with open(os.path.join(PATH_OUTPUT_DIR, output_file), "w") as file:
         for crop, metrics in tables.items():
             for metric, values in metrics.items():
                 df = tables[crop][metric]
