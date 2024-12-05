@@ -119,7 +119,7 @@ MIN_INPUT_YEAR = 2000
 MAX_INPUT_YEAR = 2023
 
 # Soil properties
-SOIL_PROPERTIES = ["awc", "bulk_density"]  # "drainage_class", "bulk_density"]
+SOIL_PROPERTIES = ["awc", "bulk_density"]  # , "drainage_class"]
 
 # Static predictors. Add more when available
 STATIC_PREDICTORS = SOIL_PROPERTIES
@@ -135,10 +135,15 @@ RS_NDVI = "ndvi"
 # Soil moisture indicators: surface moisture, root zone moisture
 SOIL_MOISTURE_INDICATORS = ["ssm"]  # , "rsm"]
 
+TIME_SERIES_INPUTS = {
+    "meteo": METEO_INDICATORS,
+    "fpar": [RS_FPAR],
+    "ndvi": [RS_NDVI],
+    "soil_moisture": SOIL_MOISTURE_INDICATORS,
+}
+
 # Time series predictors
-TIME_SERIES_PREDICTORS = (
-    METEO_INDICATORS + [RS_FPAR, RS_NDVI] + SOIL_MOISTURE_INDICATORS
-)
+TIME_SERIES_PREDICTORS = sum(TIME_SERIES_INPUTS.values(), [])
 
 # Aggregation functions
 TIME_SERIES_AGGREGATIONS = {

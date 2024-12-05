@@ -1,13 +1,19 @@
 import pandas as pd
 import numpy as np
 
+from cybench.util.features import dekad_from_date, unpack_time_series
+from cybench.util.data import data_to_pandas
 from cybench.config import (
     KEY_LOC,
     KEY_YEAR,
+    KEY_DATES,
     SPINUP_DAYS,
     FORECAST_LEAD_TIME,
     CROP_CALENDAR_DOYS,
     CROP_CALENDAR_DATES,
+    TIME_SERIES_INPUTS,
+    TIME_SERIES_PREDICTORS,
+    TIME_SERIES_AGGREGATIONS,
 )
 
 
@@ -171,6 +177,9 @@ def align_inputs_and_labels(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
 
     # Filter the labels
     df_y = df_y.loc[list(index_y_selection)]
+    # check empty targets
+    if df_y.empty:
+        return df_y, {}
 
     # Filter input data by index_y_locations and index_y_years
     index_y_locations = set([loc_id for loc_id, _ in index_y_selection])
@@ -196,3 +205,108 @@ def align_inputs_and_labels(df_y: pd.DataFrame, dfs_x: dict) -> tuple:
         dfs_x[x] = df_x
 
     return df_y, dfs_x
+
+
+def interpolate_time_series_data(
+    dfs: list, df_crop_season: pd.DataFrame, max_season_window_length: int
+):
+    """Add dates covering season window length and interpolate to fill in NAs.
+
+    Args:
+        dfs (list): time series DataFrames
+        df_crop_season (pd.DataFrame): crop season
+        max_season_window_length (int): maximum season window length
+
+    Returns:
+        pd.DataFrame with interpolated data
+    """
+    # combine time series data
+    df_ts = pd.concat(dfs, join="outer", axis=1)
+
+    # create a dataframe with all dates for every location and year
+    df_all_dates = df_crop_season[["cutoff_date"]].copy()
+    df_all_dates["date"] = df_all_dates.apply(
+        lambda r: pd.date_range(
+            end=r["cutoff_date"], periods=max_season_window_length, freq="D"
+        ),
+        axis=1,
+    )
+    df_all_dates = df_all_dates.explode("date").drop(columns=["cutoff_date"])
+    df_all_dates.reset_index(inplace=True)
+    df_all_dates.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+
+    # merge to get all dates in time series data
+    df_ts = df_ts.merge(df_all_dates, how="outer", on=[KEY_LOC, KEY_YEAR, "date"])
+    del df_all_dates
+
+    # NOTE: interpolate fills data in forward direction.
+    df_ts = df_ts.sort_index().interpolate(method="linear")
+    # fill NAs in the front with 0.0
+    df_ts.fillna(0.0, inplace=True)
+
+    return df_ts
+
+
+def interpolate_time_series_data_items(X: list, max_season_window_length: int):
+    """Add dates covering season window length and interpolate to fill in NAs.
+
+    Args:
+        X (list): data samples
+        max_season_window_length (int): maximum season window length
+
+    Returns:
+        pd.DataFrame with interpolated data
+    """
+    ts_inputs = []
+    for x, ts_cols in TIME_SERIES_INPUTS.items():
+        df = data_to_pandas(X, [KEY_LOC, KEY_YEAR, KEY_DATES] + ts_cols)
+        df = unpack_time_series(df, ts_cols)
+        df.set_index([KEY_LOC, KEY_YEAR, "date"], inplace=True)
+        df = df.astype({k: "float" for k in ts_cols})
+        ts_inputs.append(df)
+
+    df_crop_season = data_to_pandas(X, [KEY_LOC, KEY_YEAR] + CROP_CALENDAR_DATES)
+    df_crop_season.set_index([KEY_LOC, KEY_YEAR], inplace=True)
+    df_ts = interpolate_time_series_data(
+        ts_inputs, df_crop_season, max_season_window_length
+    )
+
+    return df_ts
+
+
+def aggregate_time_series_data(df_ts: pd.DataFrame, aggregate_time_series_to: str):
+    """Aggregate time series data to the specified resolution.
+
+    Args:
+        df_ts (pd.DataFrame): time series data in daily resolution
+        aggregate_time_series_to (str): resolution of aggregated data
+
+    Returns:
+        pd.DataFrame with interpolated data
+    """
+    if aggregate_time_series_to not in ["week", "dekad"]:
+        raise Exception(
+            f"Unsupported time series aggregation resolution {aggregate_time_series_to}"
+        )
+
+    if "date" not in df_ts.columns:
+        assert "date" in df_ts.index.names
+        df_ts.reset_index(inplace=True)
+
+    assert "date" in df_ts.columns
+    if aggregate_time_series_to == "week":
+        df_ts["week"] = df_ts["date"].dt.isocalendar().week
+    else:
+        df_ts["dekad"] = df_ts.apply(lambda r: dekad_from_date(r["date"]), axis=1)
+
+    ts_aggrs = {k: TIME_SERIES_AGGREGATIONS[k] for k in TIME_SERIES_PREDICTORS}
+    # Primarily to avoid losing the "date" column.
+    ts_aggrs["date"] = "min"
+    df_ts = (
+        df_ts.groupby([KEY_LOC, KEY_YEAR, aggregate_time_series_to])
+        .agg(ts_aggrs)
+        .reset_index()
+    )
+    df_ts.drop(columns=[aggregate_time_series_to], inplace=True)
+
+    return df_ts
