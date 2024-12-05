@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import argparse
 
 from cybench.runs.run_benchmark import (
     compute_metrics,
@@ -9,12 +10,10 @@ from cybench.config import (
     KEY_COUNTRY,
     KEY_LOC,
     KEY_YEAR,
+    PATH_OUTPUT_DIR,
     PATH_RESULTS_DIR,
 )
 from cybench.evaluation.eval import get_default_metrics
-
-
-outputfilename = "output_tables.md"
 
 
 def results_to_metrics():
@@ -88,7 +87,7 @@ def df_to_markdown(df, formatted_df):
     return "\n".join(table)
 
 
-def write_results_to_table():
+def write_results_to_table(output_file: str):
     df_metrics = results_to_metrics()
     default_metrics = get_default_metrics()
     metrics = [m for m in default_metrics if m in df_metrics.columns]
@@ -107,7 +106,7 @@ def write_results_to_table():
             )
 
     # Open a file to write Markdown content
-    with open(outputfilename, "w") as file:
+    with open(os.path.join(PATH_OUTPUT_DIR, output_file), "w") as file:
         for crop, metrics in tables.items():
             for metric, values in metrics.items():
                 df = tables[crop][metric]
@@ -120,4 +119,13 @@ def write_results_to_table():
 
 
 if __name__ == "__main__":
-    write_results_to_table()
+    parser = argparse.ArgumentParser(
+        prog="process_results.py", description="Output markdown tables with summary of metrics"
+    )
+    parser.add_argument("-o", "--output_file")
+    args = parser.parse_args()
+    output_file = "output_tables.md"
+    if (args.output_file is not None):
+        output_file = args.output_file
+
+    write_results_to_table(output_file=output_file)
