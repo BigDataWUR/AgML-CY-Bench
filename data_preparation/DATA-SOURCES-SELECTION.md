@@ -85,7 +85,7 @@ Duden, C., Nacke, C. & Offermann, F. Crop yields and area in Germany from 1979 t
 Ronchetti, G., Nisini Scacchiafichi, L., Seguini, L., Cerrani, I., and van der Velde, M.: Harmonized European Union subnational crop statistics can reveal climate impacts and crop cultivation shifts, Earth Syst. Sci. Data, 16, 1623–1649, https://doi.org/10.5194/essd-16-1623-2024, 2024.
 
 ## Crop yield ML
-TODO: Justification for ML data from ICRISAT vs FEWSNET.
+We selected Compagnie Malienne pour le Developpement des Textiles (CMDT) dataset that provides unparalleled granularity for Mali, offering arrondissement-level ((administrative level 3 equivalent within Mali) insights across five regions and 28 sectors from 1990-2017, making it optimal for localized maize production studies. Conversely, there is FEWSNET data that presents a broader regional perspective, covering multiple African countries including Mali with subnational data at administrative levels 1 and 2, which enables more comprehensive cross-country agricultural comparisons. Ultimately, the choice between these datasets depends on the specific research objectives: CMDT was ideal for granular, Mali-centric investigations.
 
 ### Contact
-Janet Mutuku, Celeste Tchampi, PCS Traore 
+Janet Mutuku, PCS Traore, Celeste Tchampi 
