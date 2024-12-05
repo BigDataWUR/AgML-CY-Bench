@@ -23,6 +23,7 @@ from cybench.config import (
     KEY_TARGET,
     KEY_DATES,
     SOIL_PROPERTIES,
+    YIELD_TREND_FEATURES,
     TIME_SERIES_INPUTS,
 )
 
@@ -212,6 +213,9 @@ class BaseSklearnModel(BaseModel):
             dfs_x[x] = df_ts.reset_index()
 
         features = design_features(crop, dfs_x)
+        trend_features = data_to_pandas(data_items,
+                                        data_cols=[KEY_LOC, KEY_YEAR] + YIELD_TREND_FEATURES)
+        features = features.merge(trend_features, on=[KEY_LOC, KEY_YEAR])
 
         return features
 

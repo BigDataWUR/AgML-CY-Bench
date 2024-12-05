@@ -157,37 +157,39 @@ def run_benchmark(
     else:
         sel_years = all_years
 
-    for test_year in sel_years:
-        train_years = [y for y in all_years if y != test_year]
-        test_years = [test_year]
-        train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
+    test_years = sorted([yr for yr in all_years if yr >= 2015])
+    train_years = sorted([y for y in all_years if y not in test_years])
+    if len(train_years) == 0 or len(test_years) == 0:
+        return {"df_metrics" : None}
 
-        # TODO: put into generic function
-        models_init_kwargs["Transformer"] = {
-            "seq_len": train_dataset.max_season_window_length,
-        }
-        models_init_kwargs["TransformerRes"] = {
-            "seq_len": train_dataset.max_season_window_length,
-        }
+    train_dataset, test_dataset = dataset.split_on_years((train_years, test_years))
 
-        labels = test_dataset.targets()
+    # TODO: put into generic function
+    models_init_kwargs["Transformer"] = {
+        "seq_len": train_dataset.max_season_window_length,
+    }
+    models_init_kwargs["TransformerRes"] = {
+        "seq_len": train_dataset.max_season_window_length,
+    }
 
-        model_output = {
-            KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
-            KEY_YEAR: [year for _, year in test_dataset.indices()],
-            KEY_TARGET: labels,
-        }
+    labels = test_dataset.targets()
 
-        for model_name, model_constructor in model_constructors.items():
-            model = model_constructor(**models_init_kwargs[model_name])
-            model.fit(train_dataset, **models_fit_kwargs[model_name])
-            predictions, _ = model.predict(test_dataset)
-            model_output[model_name] = predictions
+    model_output = {
+        KEY_LOC: [loc_id for loc_id, _ in test_dataset.indices()],
+        KEY_YEAR: [year for _, year in test_dataset.indices()],
+        KEY_TARGET: labels,
+    }
 
-        df = pd.DataFrame.from_dict(model_output)
-        df[KEY_COUNTRY] = df[KEY_LOC].str[:2]
-        df.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
-        df.to_csv(os.path.join(path_results, f"{dataset_name}_year_{test_year}.csv"))
+    for model_name, model_constructor in model_constructors.items():
+        model = model_constructor(**models_init_kwargs[model_name])
+        model.fit(train_dataset, **models_fit_kwargs[model_name])
+        predictions, _ = model.predict(test_dataset)
+        model_output[model_name] = predictions
+
+    df = pd.DataFrame.from_dict(model_output)
+    df[KEY_COUNTRY] = df[KEY_LOC].str[:2]
+    df.set_index([KEY_COUNTRY, KEY_LOC, KEY_YEAR], inplace=True)
+    df.to_csv(os.path.join(path_results, f"{dataset_name}.csv"))
 
     df_metrics = compute_metrics(run_name, list(model_constructors.keys()))
 
@@ -342,7 +344,7 @@ if __name__ == "__main__":
             "LSTMRes",
         ]
         # override epochs for nn-models
-        nn_models_epochs = 5
+        nn_models_epochs = 50
         results = run_benchmark(
             run_name=run_name,
             dataset_name=dataset_name,
