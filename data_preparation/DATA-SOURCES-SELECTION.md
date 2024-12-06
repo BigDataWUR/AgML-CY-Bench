@@ -23,13 +23,14 @@ For soil moisture, the only relevant weather variable not covered by AgERA5, we 
 Raed Hamed
 
 ## Remote sensing indicators
-Various remote sensing indicators of biomass status and health exists at the global scale. These include various vegetation indexes (VIs; e.g. NDVI, EVI, etc.) and various biophysical indicators (e.g. FPAR, LAI). One of the mandatory requirement for sub-national yield forecasting is the availability of a long term time series of such indicators (i.e. > 20 years) and a short revisit time of the satellite to guarantee the existence of cloud free imagery. These requirements pragmatically restrict the possible choices to the MODIS coarse spatial resolution mission (and VIIRS for the continuity).
-Although MODIS data can be directly downloaded from NASA LPDACC, the direct use of raw VIs and biophysical variables is hampered by the presence of low quality of observations (mainly due to cloud presence) that need to be screened out, gap filled and corrected. This further processing involving the use of quality flags provided with the data and of a temporal smoothing procedure is typically time consuming and not trivial when applied to near real-time data, this latter of utmost importance for operational yield forecasting.
+Various remote sensing indicators of biomass status and health exists at the global scale. These include various vegetation indexes (VIs; e.g. NDVI, EVI, etc.) and various biophysical indicators (e.g. FPAR, LAI). Sub-national yield forecasting necessitates long-term time series (>20 years) of these indicators, coupled with frequent satellite revisits to ensure cloud-free imagery. These requirements practically limit options to the coarse-resolution missions MODIS and its successor, VIIRS.
 
-In view of an operational deployment of the sub-national yield forecasting, we selected two analysis ready operational products representing crop biomass and health: FPAR and NDVI. FPAR (Fraction of Adsorbed Photosynthetically Active Radiation) dekadal (10-day) and 500 m spatial resolution gap-filled and smoothed MODIS and VIIRS FPAR data is sourced from the European Commission's Joint Research Centre (JRC), [here](https://agricultural-production-hotspots.ec.europa.eu/data/indicators_fpar/). The quality of the near real-time products of such processing line we assessed in [Meroni et al. (2019]( https://doi.org/10.1016/j.rse.2018.11.041) for the results on NDVI and in Seguini et al. (under preparation) for FPAR.
+While MODIS data can be directly downloaded from NASA LPDACC, the raw VIs and biophysical variables are often of low quality due to issues like cloud cover. These limitations necessitate screening, gap-filling, and corrections. The additional processing, which includes utilizing quality flags and applying temporal smoothing procedures, is both time-consuming and complex. These challenges become even more pronounced when processing near-real-time data, which is essential for operational yield forecasting.
 
+In view of an operational deployment of sub-national yield forecasting, we selected two analysis-ready operational products representing crop biomass and health: FPAR and NDVI. 
+FPAR (Fraction of Absorbed Photosynthetically Active Radiation) is provided as dekadal (10-day) data with a 500-meter spatial resolution, utilizing gap-filled and smoothed MODIS and VIIRS datasets. This data is sourced from the European Commission's Joint Research Centre (JRC) from the following [url](https://agricultural-production-hotspots.ec.europa.eu/data/indicators_fpar/). The quality of this near-real-time product has been assessed in [Meroni et al. (2019)](https://doi.org/10.1016/j.rse.2018.11.041).
 
-NDVI..
+NDVI ...
 
 
 ### Contact
