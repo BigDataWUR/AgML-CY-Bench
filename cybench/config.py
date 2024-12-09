@@ -187,7 +187,7 @@ GDD_UPPER_LIMIT = {
 # Lead time for forecasting
 # Choices: "middle-of-season", "quarter-of-season",
 # "n-day(s)" where n is an integer
-FORECAST_LEAD_TIME = "middle-of-season"
+FORECAST_LEAD_TIME = "60-days"
 
 # Buffer period before the start of season
 SPINUP_DAYS = 90

@@ -19,13 +19,17 @@ from cybench.datasets.dataset import Dataset
 from cybench.evaluation.eval import evaluate_predictions
 from cybench.models.naive_models import AverageYieldModel
 from cybench.models.trend_models import TrendModel
-from cybench.models.sklearn_models import SklearnRidge, SklearnRandomForest
+from cybench.models.sklearn_models import (
+    SklearnRidge,
+    SklearnRandomForest,
+    SklearnKNN,
+)
+
 from cybench.models.nn_models import (
     BaselineLSTM,
     BaselineInceptionTime,
     BaselineTransformer,
 )
-from cybench.util.features import dekad_from_date
 
 from cybench.models.residual_models import (
     RidgeRes,
@@ -43,6 +47,7 @@ _BASELINE_MODEL_CONSTRUCTORS = {
     "RidgeRes": RidgeRes,
     "SklearnRF": SklearnRandomForest,
     "RFRes": RandomForestRes,
+    "SklearnKNN": SklearnKNN,
     "LSTM": BaselineLSTM,
     "LSTMRes": LSTMRes,
     "InceptionTime": BaselineInceptionTime,
@@ -157,8 +162,13 @@ def run_benchmark(
     else:
         sel_years = all_years
 
-    test_years = sorted([yr for yr in all_years if yr >= 2015])
-    train_years = sorted([y for y in all_years if y not in test_years])
+    # NOTE The test set is different per dataset in MLBaseline.
+    # Examples:
+    # Wheat, NL: 2012-2018
+    # Wheat or Maize, ES: 2012-2016
+    # Wheat or Maize, FR: 2010-2018
+    test_years = sorted([yr for yr in all_years if (yr >= 2012) and (yr <= 2016)])
+    train_years = sorted([yr for yr in all_years if yr < 2012])
     if len(train_years) == 0 or len(test_years) == 0:
         return {"df_metrics" : None}
 
@@ -276,32 +286,28 @@ def compute_metrics(
     country_codes = df_all[KEY_COUNTRY].unique()
     for cn in country_codes:
         df_cn = df_all[df_all[KEY_COUNTRY] == cn]
-        all_years = sorted(df_cn[KEY_YEAR].unique())
-        for yr in all_years:
-            df_yr = df_cn[df_cn[KEY_YEAR] == yr]
-            y_true = df_yr[KEY_TARGET].values
-            if model_names is None:
-                model_names = [
-                    c
-                    for c in df_yr.columns
-                    if c not in [KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET]
-                ]
+        y_true = df_cn[KEY_TARGET].values
+        if model_names is None:
+            model_names = [
+                c
+                for c in df_cn.columns
+                if c not in [KEY_COUNTRY, KEY_LOC, KEY_YEAR, KEY_TARGET]
+            ]
 
-            for model_name in model_names:
-                metrics = evaluate_predictions(y_true, df_yr[model_name].values)
-                metrics_row = {
-                    KEY_COUNTRY: cn,
-                    "model": model_name,
-                    KEY_YEAR: yr,
-                }
+        for model_name in model_names:
+            metrics = evaluate_predictions(y_true, df_cn[model_name].values)
+            metrics_row = {
+                KEY_COUNTRY: cn,
+                "model": model_name,
+            }
 
-                for metric_name, value in metrics.items():
-                    metrics_row[metric_name] = value
+            for metric_name, value in metrics.items():
+                metrics_row[metric_name] = value
 
-                rows.append(metrics_row)
+            rows.append(metrics_row)
 
     df_all = pd.DataFrame(rows)
-    df_all.set_index([KEY_COUNTRY, "model", KEY_YEAR], inplace=True)
+    df_all.set_index([KEY_COUNTRY, "model"], inplace=True)
 
     return df_all
 
@@ -339,9 +345,9 @@ if __name__ == "__main__":
             "AverageYieldModel",
             "LinearTrend",
             "SklearnRidge",
-            "RidgeRes",
+            "SklearnRF",
+            "SklearnKNN",
             "LSTM",
-            "LSTMRes",
         ]
         # override epochs for nn-models
         nn_models_epochs = 50
@@ -354,9 +360,4 @@ if __name__ == "__main__":
     else:
         results = run_benchmark(run_name=run_name, dataset_name=dataset_name)
 
-    df_metrics = results["df_metrics"].reset_index()
-    print(
-        df_metrics.groupby("model").agg(
-            {"normalized_rmse": "mean", "mape": "mean", "r2": "mean"}
-        )
-    )
+    print(results["df_metrics"].head())
