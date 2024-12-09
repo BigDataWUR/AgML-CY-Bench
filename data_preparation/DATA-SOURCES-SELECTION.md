@@ -30,8 +30,7 @@ While MODIS data can be directly downloaded from NASA LPDACC, the raw VIs and bi
 In view of an operational deployment of sub-national yield forecasting, we selected two analysis-ready operational products representing crop biomass and health: FPAR and NDVI. 
 FPAR (Fraction of Absorbed Photosynthetically Active Radiation) is provided as dekadal (10-day) data with a 500-meter spatial resolution, utilizing gap-filled and smoothed MODIS and VIIRS datasets. This data is sourced from the European Commission's Joint Research Centre (JRC) from the following [url](https://agricultural-production-hotspots.ec.europa.eu/data/indicators_fpar/). The quality of this near-real-time product has been assessed in [Meroni et al. (2019)](https://doi.org/10.1016/j.rse.2018.11.041).
 
-NDVI ...
-
+NDVI (Normalized Difference Vegetation Index), a key indicator of vegetation greenness, is extracted from MOD09CMG, available from the Land Processes Distributed Active Archive Center. MOD09CMG provides 8-day composite surface reflectance data at a spatial resolution of 0.05 degree.
 
 ### Contact
 FPAR: Michele Meroni
