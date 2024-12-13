@@ -48,7 +48,7 @@ WISE soil data is a better choice than SoilGrids for the following reasons:
 Allard de Wit
 
 ## Crop masks
-With the aim of making available global maize and winter-spring cereals map we sourced the only crop-type specific maps currently available: maize and winter-spring cereals high spatial resolution (10 m) maps from ESA WorldCereal (https://esa-worldcereal.org/en). Area Fraction Images fully spatially compatible with the JRC FPAR 500 m were derived from the WorldCereal maps.
+With the aim of making available global maize and winter-spring cereals map we sourced the only crop-type specific maps currently available: maize and winter-spring cereals high spatial resolution (10 m) maps from ESA WorldCereal (https://esa-worldcereal.org/en). Alternatives sources of crop masks include Anomaly Hotspots of Agricultural Production (ASAP) from the European Commission's Joint Research Centre and IIASA (JRC-IIASA) and Global Best Available Crop Specific Masks (GEOGLAM-BACS) from the Group on Earth Observations Global Agriculture Monitoring (GEOGLAM). ESA WorldCereal is a better choice than the generic cropland layer from JRC-IIASA because of the availability of crop type maps for maize and wheat (spring and winter cereals). Although GEOGLAM-BACS provides crop type maps for maize and wheat (spring and winter cereals), their spatial resolution (0.05 degree) is lower compared to ESA WorldCereal (500m = 0.000446 degree).
 
 ### Contact
 Francesco Collivignarelli, Michele Meroni, Ritvik Sahajpal
