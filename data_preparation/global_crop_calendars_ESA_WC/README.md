@@ -32,7 +32,7 @@ Primary season
 NA
 
 **Spatial resolution**:
-0.05 deg
+0.5°
 
 **Date Published**:
 2021
